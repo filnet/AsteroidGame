@@ -1,0 +1,87 @@
+﻿10 node types
+    Geometry
+    Transform
+    Light
+    Camera
+    Particle System
+    Switch
+    LOD (Level Of Detail)
+    Sound
+    Marker
+    Tracker
+ 
+Defines the scene graph tree starting from its root node
+Strict hierarchy
+Only these nodes can have children
+    - Geometry
+    - Transform
+    - Switch
+    - LOD
+    - Marker
+    - Tracker
+ 
+ Used by
+    - Camera
+    - Physics Engine
+    - Network Server & Client
+    - Rendering
+    - ...
+ 
+ 
+Geometry Node
+
+Defines geometric model, material, and physical properties for physical simulation
+Geometric Model
+    - Model mesh
+    - Shader for rendering the model
+    - Bounding box
+    - ...
+Material
+    - Diffuse color
+    - Specular color
+    - Specular power
+    - Emissive color
+    - Transparency
+    - Texture
+Physical Properties
+    - Mass, Shape, ...
+    - Pickable, Interactable, Collidable, IsVehicle,…
+    - Linear/Angular Damping, Restitution, Friction,…
+    - Initial Linear/Angular Velocity
+
+Transform Node
+Defines transformation of nodes with transform property
+(Camera Node, Geometry Node, Light Node, Particle Node, Sound Node, LOD Node)
+    - Scaling
+    - Rotation
+    - Translation
+ 
+Transform nodes can be cascaded to compose transformations
+
+Camera Node
+
+Defines Eyepoint and View Frustum
+
+Eyepoint
+- Translation
+- Rotation
+
+View Frustum
+- Near plane
+- Far plane
+- Aspect ratio
+- Field of View [vertical]
+
+ 
+Light Node
+
+Defines illumination
+
+Directional lights:
+- Direction
+- Diffuse color
+- Specular color
+- ...
+
+lightmaterial.exe tutor: www.xmission.com/~nate/tutors.html
+Demonstrates the more complex model of light and material properties used in OpenGL

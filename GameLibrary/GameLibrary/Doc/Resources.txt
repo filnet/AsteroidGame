@@ -1,0 +1,98 @@
+﻿Asteroid
+
+http://www.atari.com/play/atari/asteroids
+
+http://strategywiki.org/wiki/Asteroids
+http://strategywiki.org/wiki/Asteroids/Getting_Started
+
+Tutorial
+
+http://www.xnadevelopment.com/alltutorials.shtml
+http://xnaresources.com/default.asp?offset=14
+
+State
+
+http://blogs.msdn.com/b/shawnhar/archive/2010/04/02/state-objects-in-xna-game-studio-4-0.aspx
+
+Scene Graph
+
+http://www.sgtconker.com/2009/10/article-creating-a-scene-graph-in-xna/
+http://www.progware.org/Blog/post/XNA-Game-Development-%28Scenes-and-Game-Services%29.aspx
+http://www.sgtconker.com/2009/10/article-creating-a-scene-graph-in-xna/1/
+http://roecode.wordpress.com/xna-gameengine-development-series/
+http://code.google.com/p/xna-basic-scene-graph/
+
+http://world.mitrasites.com/scene-graph.html
+
+http://gamedev.stackexchange.com/questions/4134/scene-graph-classification
+http://cowboyprogramming.com/2007/01/05/evolve-your-heirachy/
+
+http://www.slideshare.net/Chris_G/goblin-xna-slides
+
+http://www.nuclex.org/blog/gamedev/100-to-gamecomponent-or-not-to-gamecomponent
+
+Octree + portals + custom frustrum
+
+http://nomorecoins.info/blog/back-to-the-basics-scene-management/
+
+Particules
+
+http://create.msdn.com/en-US/education/catalog/sample/particle
+http://create.msdn.com/en-US/education/catalog/sample/particle_3d
+
+Frameworks
+
+http://www.nuclex.org/blog/gamedev
+
+Code Snippet: Clipping Planes in Shader [HLSL]
+
+http://ploobs.com.br/?p=1223
+
+Code Snippet: Edge Detector/Antialiasing Shader
+
+http://ploobs.com.br/?p=1043
+
+Programming Guide for HLSL
+
+http://msdn.microsoft.com/en-us/library/windows/desktop/bb509635%28v=vs.85%29.aspx
+
+Performance:
+
+http://blogs.msdn.com/b/shawnhar/archive/2008/04/07/how-to-tell-if-you-are-cpu-or-gpu-bound.aspx
+http://blogs.msdn.com/b/shawnhar/archive/2008/04/11/santa-s-production-line.aspx
+
+Stock Shaders
+
+http://create.msdn.com/en-US/education/catalog/sample/stock_effects
+
+Shader tutorial
+
+http://create.msdn.com/en-US/education/catalog/article/shader_primer
+http://forums.create.msdn.com/forums/t/27849.aspx
+http://knol.google.com/k/hlsl-shaders#
+
+Rim Shader:
+
+http://digitseven.com/rim.aspx
+
+Combining Shaders
+
+http://blogs.msdn.com/b/shawnhar/archive/2009/08/17/combining-shaders.aspx
+
+Other
+
+// pass in a position and camera matrices
+// returns true if the position is on screen
+bool VertexIsOnScreen(Vector3 position3D, Matrix projMatrix, Matrix viewMatrix, Matrix worldMatrix)
+{
+  // project 3d position to 2d
+  Vector2 position2D = GraphicsDeviceManager.GraphicsDevice.ViewPort.Project(position3D, projMatrix, viewMatrix, worldMatrix);
+
+  // check x is on screen
+  if(position2D.X < 0 || position2D.X > GraphicsDeviceManager.GraphicsDevice.PreferredBackBufferWidth) return false;
+
+  // check y is on screen
+  if(position2D.Y < 0 || position2D.Y > GraphicsDeviceManager.GraphicsDevice.PreferredBackBufferHeight) return false;
+
+  return true;
+}
