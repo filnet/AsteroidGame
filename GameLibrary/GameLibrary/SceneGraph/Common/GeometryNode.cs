@@ -34,9 +34,9 @@ namespace GameLibrary.SceneGraph.Common
     public class Physics
     {
         public float Mass { get; set; }
-        
+
         public Vector3 LinearVelocity { get; set; }
-        
+
         public Vector3 AngularVelocity { get; set; }
 
         public Physics()
@@ -50,9 +50,9 @@ namespace GameLibrary.SceneGraph.Common
 
     public class GeometryNode : TransformNode
     {
-        private BoundingVolume localBoundingVolume;
+        private BoundingVolume boundingVolume;
         private BoundingVolume worldBoundingVolume;
-            
+
         private Physics physics;
 
         public int RenderGroupId { get; set; }
@@ -62,10 +62,10 @@ namespace GameLibrary.SceneGraph.Common
         /// <summary>
         /// Gets or sets the geometry bounding volume, which contains the entire geometry in model (local) space.
         /// </summary>
-        public virtual BoundingVolume LocalBoundingVolume
+        public virtual BoundingVolume BoundingVolume
         {
-            get { return localBoundingVolume; }
-            internal set { localBoundingVolume = value; }
+            get { return boundingVolume; }
+            internal set { boundingVolume = value; }
         }
 
         /// <summary>
@@ -91,7 +91,7 @@ namespace GameLibrary.SceneGraph.Common
         {
             RenderGroupId = node.RenderGroupId;
             CollisionGroupId = node.CollisionGroupId;
-            localBoundingVolume = node.localBoundingVolume != null ? node.localBoundingVolume.Clone() : null;
+            boundingVolume = node.boundingVolume != null ? node.boundingVolume.Clone() : null;
             worldBoundingVolume = node.worldBoundingVolume != null ? node.worldBoundingVolume.Clone() : null;
 
             physics = null;
@@ -102,8 +102,39 @@ namespace GameLibrary.SceneGraph.Common
             return new GeometryNode(this);
         }
 
-        public virtual void Draw(Scene scene, GameTime gameTime)
+        internal override bool UpdateWorldTransform(TransformNode parentTransformNode)
+        {
+            if (base.UpdateWorldTransform(parentTransformNode))
+            {
+                if (BoundingVolume != null)
+                {
+                    // TODO : do not create garbage
+                    WorldBoundingVolume = BoundingVolume.Transform(WorldTransform, null);
+                }
+                return true;
+            }
+            return false;
+        }
+
+        public class DrawContext
+        {
+            public Scene scene;
+            public Effect effect;
+            public EffectPass pass;
+            public GameTime gameTime;
+        }
+
+        public virtual void preDraw(DrawContext dc)
         {
         }
+
+        public virtual void Draw(DrawContext dc)
+        {
+        }
+
+        public virtual void postDraw(DrawContext dc)
+        {
+        }
+
     }
 }

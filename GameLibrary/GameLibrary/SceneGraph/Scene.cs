@@ -1,17 +1,13 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
-using System.Text;
 using Microsoft.Xna.Framework;
 using Microsoft.Xna.Framework.Graphics;
 using GameLibrary.Control;
 using GameLibrary.SceneGraph.Common;
-using System.Threading;
 using GameLibrary.SceneGraph.Bounding;
-using GameLibrary.Debug;
 using GameLibrary.Geometry.Common;
 using GameLibrary.Geometry;
-using GameLibrary.Util;
 
 namespace GameLibrary.SceneGraph
 {
@@ -33,6 +29,7 @@ namespace GameLibrary.SceneGraph
         Dictionary<int, LinkedList<Collision>> collisionCache = new Dictionary<int, LinkedList<Collision>>();
         LinkedList<GameLibrary.Util.Intersection> intersections = new LinkedList<GameLibrary.Util.Intersection>();
 
+        private bool debug = true;
 
         public GraphicsDevice GraphicsDevice
         {
@@ -79,6 +76,7 @@ namespace GameLibrary.SceneGraph
         public static int BULLET = 6;
         public static int ASTEROID = 7;
         public static int BOUNDING = 8;
+        public static int HW_INSTANCING = 9;
 
         public void Initialize()
         {
@@ -92,6 +90,7 @@ namespace GameLibrary.SceneGraph
             renderEffects[BULLET] = createBulletEffect(); // clipping
             renderEffects[ASTEROID] = createClippingEffect(); // clipping
             renderEffects[BOUNDING] = createBoundingEffect(); // clipping
+            //renderEffects[HW_INSTANCING] = createHWInstancingEffect();
 
             geo = GeometryUtil.CreateGeodesicWF("BOUNDING_SPHERE", 1);
             geo.Scene = this;
@@ -102,9 +101,6 @@ namespace GameLibrary.SceneGraph
 
             rootNode.Visit(COMMIT_VISITOR);
             rootNode.Initialize();
-
-            prepareWorldMatrix();
-            prepareBounding();
         }
 
         public void Dispose()
@@ -114,12 +110,11 @@ namespace GameLibrary.SceneGraph
 
         public void Update(GameTime gameTime)
         {
-            rootNode.Visit(UPDATE_VISITOR, gameTime);
+            rootNode.Visit(CONTROLLER_VISITOR, gameTime);
             rootNode.Visit(COMMIT_VISITOR);
 
-            prepareWorldMatrix();
-
-            prepareBounding();
+            rootNode.Visit(UPDATE_VISITOR, null, UPDATE_POST_VISITOR);
+            //rootNode.Visit(DUMP_VISITOR);
 
             collisionGroups.Clear();
             rootNode.Visit(COLLISION_GROUP_VISITOR, this);
@@ -170,6 +165,10 @@ namespace GameLibrary.SceneGraph
             GraphicsDevice.RasterizerState = RasterizerState.CullClockwise;
             GraphicsDevice.SamplerStates[0] = SamplerState.LinearWrap;
 
+            GeometryNode.DrawContext dc = new GeometryNode.DrawContext();
+            dc.scene = this;
+            dc.gameTime = gameTime;
+
             foreach (KeyValuePair<int, List<GeometryNode>> nodeListKVP in renderGroups)
             {
                 int renderGroupId = nodeListKVP.Key;
@@ -194,19 +193,27 @@ namespace GameLibrary.SceneGraph
                     effectMatrices.Projection = CameraComponent.ProjectionMatrix;
                     effectMatrices.View = CameraComponent.ViewMatrix;
                 }
+                dc.effect = effect;
                 List<GeometryNode> nodeList = nodeListKVP.Value;
+                //Console.Out.WriteLine(renderGroupId + " " + nodeList.Count);
                 foreach (GeometryNode node in nodeList)
                 {
                     if (!node.Visible) continue;
+
+                    //xxxxx
+                    //effect.CurrentTechnique = effect.Techniques["HardwareInstancing"];
                     if (effectMatrices != null)
                     {
-                        effectMatrices.World = node.WorldMatrix;
+                        effectMatrices.World = node.WorldTransform;
                     }
+                    node.preDraw(dc);
                     foreach (EffectPass pass in effect.CurrentTechnique.Passes)
                     {
                         pass.Apply();
-                        node.Draw(this, gameTime);
+                        dc.pass = pass;
+                        node.Draw(dc);
                     }
+                    node.postDraw(dc);
                 }
             }
 
@@ -224,6 +231,10 @@ namespace GameLibrary.SceneGraph
 
         private void drawBounding(GameTime gameTime)
         {
+            GeometryNode.DrawContext dc = new GeometryNode.DrawContext();
+            dc.scene = this;
+            dc.gameTime = gameTime;
+
             Effect effect = renderEffects[BOUNDING];
             IEffectMatrices effectMatrices = effect as IEffectMatrices;
             if (effectMatrices != null)
@@ -232,6 +243,7 @@ namespace GameLibrary.SceneGraph
                 effectMatrices.View = CameraComponent.ViewMatrix;
                 effectMatrices.World = Matrix.Identity; // node.WorldMatrix;
             }
+            dc.effect = effect;
 
             GraphicsDevice.RasterizerState = RasterizerState.CullClockwise;
             GraphicsDevice.BlendState = BlendState.NonPremultiplied;
@@ -259,11 +271,14 @@ namespace GameLibrary.SceneGraph
                             Color c = Color.Red;
                             clippingEffect.Color = new Color(c.R, c.G, c.B, 128);
                         }
+                        geo.preDraw(dc);
                         foreach (EffectPass pass in effect.CurrentTechnique.Passes)
                         {
                             pass.Apply();
-                            geo.Draw(this, gameTime);
+                            dc.pass = pass;
+                            geo.Draw(dc);
                         }
+                        geo.postDraw(dc);
                         if (collided && clippingEffect != null)
                         {
                             Color c = Color.LightGreen;
@@ -276,6 +291,10 @@ namespace GameLibrary.SceneGraph
 
         private void drawIntersection(GameTime gameTime)
         {
+            GeometryNode.DrawContext dc = new GeometryNode.DrawContext();
+            dc.scene = this;
+            dc.gameTime = gameTime;
+
             Effect effect = renderEffects[BOUNDING];
             IEffectMatrices effectMatrices = effect as IEffectMatrices;
             if (effectMatrices != null)
@@ -284,6 +303,7 @@ namespace GameLibrary.SceneGraph
                 effectMatrices.View = CameraComponent.ViewMatrix;
                 effectMatrices.World = Matrix.Identity; // node.WorldMatrix;
             }
+            dc.effect = effect;
 
             GraphicsDevice.RasterizerState = RasterizerState.CullClockwise;
             GraphicsDevice.BlendState = BlendState.NonPremultiplied;
@@ -296,24 +316,73 @@ namespace GameLibrary.SceneGraph
                     //effectMatrices.World = node.WorldMatrix;// *Matrix.CreateScale(boundingSphere.Radius); // node.WorldMatrix;
                     effectMatrices.World = Matrix.CreateScale(0.04f) * Matrix.CreateTranslation(intersection.vertex); // node.WorldMatrix;
                 }
+                geo.preDraw(dc);
                 foreach (EffectPass pass in effect.CurrentTechnique.Passes)
                 {
                     pass.Apply();
-                    geo.Draw(this, gameTime);
+                    dc.pass = pass;
+                    geo.Draw(dc);
                 }
+                geo.postDraw(dc);
             }
         }
 
-        private static Node.Visitor DISPOSE_VISITOR = delegate(Node node, Object arg)
+        private static Node.Visitor UPDATE_VISITOR = delegate(Node node, ref Object arg)
+        {
+            if (!node.Enabled) return false;
+            TransformNode transformNode = node as TransformNode;
+            if (transformNode != null)
+            {
+                transformNode.UpdateTransform();
+                transformNode.UpdateWorldTransform(arg as TransformNode);
+                // propagate parent transform node
+                arg = transformNode;
+            }
+            // do we need to recurse
+            bool childDirty = node.IsDirty(Node.DirtyFlag.ChildTransform);
+            if (!childDirty) {
+                childDirty = node.IsDirty(Node.DirtyFlag.ChildWorldTransform);
+            }
+            return childDirty;
+        };
+
+        private static Node.Visitor UPDATE_POST_VISITOR = delegate(Node node, ref Object arg)
+        {
+            if (node.IsDirty(Node.DirtyFlag.ChildTransform))
+            {
+                node.ClearDirty(Node.DirtyFlag.ChildTransform);
+            }
+            if (node.IsDirty(Node.DirtyFlag.ChildWorldTransform))
+            {
+                node.ClearDirty(Node.DirtyFlag.ChildWorldTransform);
+            }
+            // for non transform nodes
+            if (node.IsDirty(Node.DirtyFlag.WorldTransform))
+            {
+                node.ClearDirty(Node.DirtyFlag.WorldTransform);
+            }
+            return true;
+        };
+
+        private static Node.Visitor DUMP_VISITOR = delegate(Node node, ref Object arg)
+        {
+            int level = (arg != null) ? (int) arg : 0;
+            Console.Out.Write("".PadLeft(level, ' '));
+            Console.Out.WriteLine(node.Name.PadRight(30 - level, ' ') + " " + node.DirtyFlagsAsString());
+            arg = level + 1;
+            return true;
+        };
+
+        private static Node.Visitor DISPOSE_VISITOR = delegate(Node node, ref Object arg)
         {
             Console.Out.WriteLine("Disposing " + node.Name);
             node.Dispose();
             return true;
         };
 
-        private static Node.Visitor COMMIT_VISITOR = delegate(Node node, Object arg)
+        private static Node.Visitor COMMIT_VISITOR = delegate(Node node, ref Object arg)
         {
-            if (!node.Enabled) return false; // no need to continue...
+            if (!node.Enabled) return false;
             //Console.Out.WriteLine("Commiting " + node.Name);
             if (node is GroupNode)
             {
@@ -322,31 +391,52 @@ namespace GameLibrary.SceneGraph
             return true;
         };
 
-        private Node.Visitor UPDATE_VISITOR = delegate(Node node, Object arg)
+        private static Node.Visitor CONTROLLER_VISITOR = delegate(Node node, ref Object arg)
         {
-            if (!node.Enabled) return false; // no need to continue...
+            if (!node.Enabled) return false;
             //Console.Out.WriteLine("Updating " + node.Name);
+            GameTime gameTime = arg as GameTime;
             foreach (Controller controller in node.Controllers)
             {
                 if (!node.Enabled) break; // no need to continue...
-                GameTime gameTime = arg as GameTime;
                 controller.Update(gameTime);
             }
             return true;
         };
 
-        private Node.Visitor RENDER_GROUP_VISITOR = delegate(Node node, Object arg)
+        private static Node.Visitor RENDER_GROUP_VISITOR = delegate(Node node, ref Object arg)
         {
             if (!node.Visible) return false;
-            if (node is GeometryNode)
+            GeometryNode geometryNode = node as GeometryNode;
+            if (geometryNode != null)
             {
+                bool cull = false;
                 Scene scene = arg as Scene;
-                scene.addToRenderGroup(node as GeometryNode);
+                GameLibrary.SceneGraph.Bounding.BoundingSphere bs = geometryNode.WorldBoundingVolume as GameLibrary.SceneGraph.Bounding.BoundingSphere;
+                if (bs != null)
+                {
+                    Microsoft.Xna.Framework.BoundingSphere xbs = new Microsoft.Xna.Framework.BoundingSphere(bs.Center, bs.Radius);
+                    BoundingFrustum boundingFrustum = scene.CameraComponent.BoundingFrustum;
+                    //Console.Out.WriteLine(boundingFrustum);
+                    if (scene.CameraComponent.BoundingFrustum.Contains(xbs) == ContainmentType.Disjoint)
+                    {
+                        //Console.Out.WriteLine("Culling " + node.Name);
+                        cull = true;
+                    }
+                }
+                else
+                {
+                    //Console.Out.WriteLine("No bounds " + node.Name);
+                }
+                if (!cull)
+                {
+                    scene.addToRenderGroup(geometryNode);
+                }
             }
             return true;
         };
 
-        private Node.Visitor COLLISION_GROUP_VISITOR = delegate(Node node, Object arg)
+        private static Node.Visitor COLLISION_GROUP_VISITOR = delegate(Node node, ref Object arg)
         {
             if (!node.Enabled) return false;
             GeometryNode geometryNode = node as GeometryNode;
@@ -357,66 +447,6 @@ namespace GameLibrary.SceneGraph
             }
             return true;
         };
-
-        private void prepareWorldMatrix()
-        {
-            prepareWorldMatrix(RootNode, Matrix.Identity);
-        }
-
-        // Preorder traversal (http://en.wikipedia.org/wiki/Tree_traversal#Example)
-        private void prepareWorldMatrix(Node node, Matrix parentWorld)
-        {
-            Matrix world;
-
-            if (node is TransformNode)
-            {
-                TransformNode transformNode = (TransformNode) node;
-                transformNode.LocalMatrix = Matrix.CreateScale(transformNode.Scale) * Matrix.CreateFromQuaternion(transformNode.Rotation) * Matrix.CreateTranslation(transformNode.Translation);
-                world = transformNode.LocalMatrix * parentWorld;
-                transformNode.WorldMatrix = world;
-            }
-            else
-            {
-                world = parentWorld;
-            }
-
-            if (node is GroupNode)
-            {
-                GroupNode groupNode = (GroupNode) node;
-                for (LinkedListNode<Node> it = groupNode.Nodes.First; it != null; it = it.Next)
-                {
-                    prepareWorldMatrix(it.Value, world);
-                }
-
-            }
-        }
-
-        private void prepareBounding()
-        {
-            prepareBounding(RootNode);
-        }
-
-        private void prepareBounding(Node node)
-        {
-            if (node is GeometryNode)
-            {
-                GeometryNode geometryNode = (GeometryNode) node;
-                if (geometryNode.LocalBoundingVolume != null)
-                {
-                    // TODO : do not create garbage
-                    geometryNode.WorldBoundingVolume = geometryNode.LocalBoundingVolume.Transform(geometryNode.WorldMatrix, null);
-                }
-            }
-
-            if (node is GroupNode)
-            {
-                GroupNode groupNode = (GroupNode) node;
-                foreach (Node childNode in groupNode.Nodes)
-                {
-                    prepareBounding(childNode);
-                }
-            }
-        }
 
         struct Collision
         {
@@ -496,10 +526,11 @@ namespace GameLibrary.SceneGraph
                 list = new List<GeometryNode>();
                 renderGroups[groupId] = list;
             }
-            if (!list.Contains(node))
+            if (debug && list.Contains(node))
             {
-                list.Add(node);
+                throw new Exception("Node already in render groupkp " + groupId);
             }
+            list.Add(node);
         }
 
         internal void addToCollisionGroup(GeometryNode node)
@@ -515,10 +546,11 @@ namespace GameLibrary.SceneGraph
                 list = new List<GeometryNode>();
                 collisionGroups[groupId] = list;
             }
-            if (!list.Contains(node))
+            if (debug && list.Contains(node))
             {
-                list.Add(node);
+                throw new Exception("Node already in collision group " + groupId);
             }
+            list.Add(node);
         }
 
         private void removeFromRenderGroup(int groupId, GeometryNode node)
@@ -639,7 +671,7 @@ namespace GameLibrary.SceneGraph
                 basicEffect.DirectionalLight1.Enabled = true;
                 if (basicEffect.DirectionalLight1.Enabled)
                 {
-                    // y direction is geen
+                    // y direction is green
                     basicEffect.DirectionalLight1.DiffuseColor = new Vector3(0, 1, 0);
                     basicEffect.DirectionalLight1.Direction = Vector3.Normalize(new Vector3(0, -1, 0));
                     basicEffect.DirectionalLight1.SpecularColor = Vector3.One;
@@ -688,7 +720,7 @@ namespace GameLibrary.SceneGraph
                 basicEffect.DirectionalLight1.Enabled = false;
                 if (basicEffect.DirectionalLight1.Enabled)
                 {
-                    // y direction is geen
+                    // y direction is green
                     basicEffect.DirectionalLight1.DiffuseColor = new Vector3(0, 1, 0);
                     basicEffect.DirectionalLight1.Direction = Vector3.Normalize(new Vector3(0, -1, 0));
                     basicEffect.DirectionalLight1.SpecularColor = Vector3.One;
@@ -737,7 +769,7 @@ namespace GameLibrary.SceneGraph
                 basicEffect.DirectionalLight1.Enabled = false;
                 if (basicEffect.DirectionalLight1.Enabled)
                 {
-                    // y direction is geen
+                    // y direction is green
                     basicEffect.DirectionalLight1.DiffuseColor = new Vector3(0, 1, 0);
                     basicEffect.DirectionalLight1.Direction = Vector3.Normalize(new Vector3(0, -1, 0));
                     basicEffect.DirectionalLight1.SpecularColor = Vector3.One;

@@ -6,15 +6,21 @@ using Microsoft.Xna.Framework.Graphics;
 using Microsoft.Xna.Framework;
 using GameLibrary.SceneGraph;
 using GameLibrary.SceneGraph.Common;
+using GameLibrary.Voxel;
 
 namespace GameLibrary
 {
-    public class CubeGeometry : GeometryNode
+    public class VoxelMapGeometry : GeometryNode
     {
-        VertexBuffer vertexBuffer;
+        int size;
+        VoxelMap voxelMap;
 
-        public CubeGeometry(String name) : base(name)
+        public VoxelMapGeometry(String name, int size)
+            : base(name)
         {
+
+            //number_of_vertices = verticesCount;
+            this.size = size;
         }
 
         static VertexDeclaration vertexDeclaration = new VertexDeclaration(new VertexElement[]
@@ -24,9 +30,21 @@ namespace GameLibrary
                 new VertexElement(24, VertexElementFormat.Vector2, VertexElementUsage.TextureCoordinate, 0)
             }
         );
-        
+
+        // To store instance transform matrices in a vertex buffer, we use this custom
+        // vertex type which encodes 4x4 matrices as a set of four Vector4 values.
+        static VertexDeclaration instanceVertexDeclaration = new VertexDeclaration
+        (
+            new VertexElement(0, VertexElementFormat.Vector4, VertexElementUsage.BlendWeight, 0),
+            new VertexElement(16, VertexElementFormat.Vector4, VertexElementUsage.BlendWeight, 1),
+            new VertexElement(32, VertexElementFormat.Vector4, VertexElementUsage.BlendWeight, 2),
+            new VertexElement(48, VertexElementFormat.Vector4, VertexElementUsage.BlendWeight, 3)
+        );
+
         public override void Initialize()
         {
+            voxelMap = new SimpleVoxelMap(size);
+
             VertexPositionNormalTexture[] cubeVertices = createCubeVertices();
             vertexBuffer = new VertexBuffer(
                 Scene.GraphicsDevice,
@@ -41,10 +59,10 @@ namespace GameLibrary
 
         public override void Dispose()
         {
+
             //base.Dispose();
             vertexBuffer.Dispose();
-            //indexBuffer.Dispose();
-            //vertexBuffer.SetData(null);
+            instanceVertexBuffer.Dispose();
         }
 
         /// <summary>
@@ -131,14 +149,74 @@ namespace GameLibrary
             return cubeVertices;
         }
 
+        class PreDrawVisitor : Voxel.Visitor
+        {
+            int instances;
+            public Matrix[] instanceTransforms;
+
+            public void begin(int size, int instanceCount, int maxInstanceCount)
+            {
+                // FIXME remove this resize (bad for performance)
+                Array.Resize(ref instanceTransforms, instanceCount);
+                instances = 0;
+            }
+
+            public void visit(int x, int y, int z, int v, int s)
+            {
+                instanceTransforms[instances] = Matrix.CreateTranslation(x, y, z);
+                instances++;
+            }
+
+            public void end()
+            {
+            }
+
+        }
+
+
+        PreDrawVisitor v = new PreDrawVisitor();
+
+        VertexBuffer vertexBuffer;
+
+        DynamicVertexBuffer instanceVertexBuffer;
+
         public override void preDraw(GeometryNode.DrawContext dc)
         {
-            Scene.GraphicsDevice.SetVertexBuffer(vertexBuffer);
+            voxelMap.visit(v);
+
+            // If we have more instances than room in our vertex buffer, grow it to the neccessary size.
+            if ((instanceVertexBuffer == null) || (v.instanceTransforms.Length > instanceVertexBuffer.VertexCount))
+            {
+                if (instanceVertexBuffer != null)
+                {
+                    instanceVertexBuffer.Dispose();
+                }
+                instanceVertexBuffer = new DynamicVertexBuffer(Scene.GraphicsDevice, instanceVertexDeclaration,
+                                                               v.instanceTransforms.Length, BufferUsage.WriteOnly);
+            }
+
+            // Transfer the latest instance transform matrices into the instanceVertexBuffer.
+            instanceVertexBuffer.SetData(v.instanceTransforms, 0, v.instanceTransforms.Length, SetDataOptions.Discard);
+
+            // Tell the GPU to read from both the model vertex buffer plus our instanceVertexBuffer.
+            Scene.GraphicsDevice.SetVertexBuffers(
+                        new VertexBufferBinding(vertexBuffer, 0, 0),
+                        new VertexBufferBinding(instanceVertexBuffer, 0, 1)
+                    );
         }
 
         public override void Draw(GeometryNode.DrawContext dc)
         {
-            Scene.GraphicsDevice.DrawPrimitives(PrimitiveType.TriangleList, 0, 12);
+            /*
+            Console.WriteLine("XXXX " + vertexBuffer.IsDisposed);
+            Console.WriteLine("XXXX " + vertexBuffer.VertexCount);
+            Console.WriteLine("XXXX " + instanceVertexBuffer.IsDisposed);
+            Console.WriteLine("XXXX " + instanceVertexBuffer.IsContentLost);
+            Console.WriteLine("XXXX " + instanceVertexBuffer.VertexCount);
+             */
+            Scene.GraphicsDevice.DrawInstancedPrimitives(PrimitiveType.TriangleList, 0, 0,
+                                      vertexBuffer.VertexCount, 0,
+                                      12, instanceVertexBuffer.VertexCount);
         }
     }
 

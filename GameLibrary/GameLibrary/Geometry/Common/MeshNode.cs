@@ -4,6 +4,7 @@ using GameLibrary.SceneGraph;
 using GameLibrary.Geometry.Common;
 using GameLibrary.Geometry;
 using GameLibrary.SceneGraph.Common;
+using Microsoft.Xna.Framework.Graphics;
 
 namespace GameLibrary.Geometry.Common
 {
@@ -43,7 +44,7 @@ namespace GameLibrary.Geometry.Common
             if (meshFactory != null)
             {
                 mesh = meshFactory.CreateMesh(Scene.GraphicsDevice);
-                LocalBoundingVolume = mesh.BoundingVolume;
+                BoundingVolume = mesh.BoundingVolume;
                 owned = true;
             }
             base.Initialize();
@@ -58,7 +59,20 @@ namespace GameLibrary.Geometry.Common
             }
         }
 
-        public override void Draw(Scene scene, GameTime gameTime)
+        public override void preDraw(GeometryNode.DrawContext dc)
+        {
+            if (mesh.IndexBuffer != null)
+            {
+                Scene.GraphicsDevice.SetVertexBuffer(mesh.VertexBuffer);
+                Scene.GraphicsDevice.Indices = mesh.IndexBuffer;
+            }
+            else
+            {
+                Scene.GraphicsDevice.SetVertexBuffer(mesh.VertexBuffer);
+            }
+        }
+
+        public override void Draw(GeometryNode.DrawContext dc)
         {
             //if (!owned)
             //{
@@ -66,13 +80,10 @@ namespace GameLibrary.Geometry.Common
             //}
             if (mesh.IndexBuffer != null)
             {
-                Scene.GraphicsDevice.SetVertexBuffer(mesh.VertexBuffer);
-                Scene.GraphicsDevice.Indices = mesh.IndexBuffer;
                 Scene.GraphicsDevice.DrawIndexedPrimitives(mesh.PrimitiveType, 0, 0, mesh.VertexCount, 0, mesh.PrimitiveCount);
             }
             else
             {
-                Scene.GraphicsDevice.SetVertexBuffer(mesh.VertexBuffer);
                 Scene.GraphicsDevice.DrawPrimitives(mesh.PrimitiveType, 0, mesh.PrimitiveCount);
             }
         }

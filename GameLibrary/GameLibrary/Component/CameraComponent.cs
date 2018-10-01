@@ -183,6 +183,8 @@ namespace GameLibrary
         Matrix ViewMatrix { get; }
         Matrix ProjectionMatrix { get; }
 
+        BoundingFrustum BoundingFrustum { get; }
+
 //        void LookAt(Vector3 eye, Vector3 target, Vector3 up);
 
         void Perspective(float FOV, float aspect, float nearPlane, float farPlane);
@@ -247,7 +249,7 @@ namespace GameLibrary
 
         private Quaternion orientation;
         private Matrix viewMatrix;
-        private Matrix projMatrix;
+        private Matrix projectionMatrix;
 
         private Quaternion savedOrientation;
         private Vector3 savedEye;
@@ -433,25 +435,25 @@ namespace GameLibrary
             float xScale = 1.0f / (float)Math.Tan(0.5f * fovy);
             float yScale = xScale / aspectInv;
 
-            projMatrix.M11 = xScale;
-            projMatrix.M12 = 0.0f;
-            projMatrix.M13 = 0.0f;
-            projMatrix.M14 = 0.0f;
+            projectionMatrix.M11 = xScale;
+            projectionMatrix.M12 = 0.0f;
+            projectionMatrix.M13 = 0.0f;
+            projectionMatrix.M14 = 0.0f;
 
-            projMatrix.M21 = 0.0f;
-            projMatrix.M22 = yScale;
-            projMatrix.M23 = 0.0f;
-            projMatrix.M24 = 0.0f;
+            projectionMatrix.M21 = 0.0f;
+            projectionMatrix.M22 = yScale;
+            projectionMatrix.M23 = 0.0f;
+            projectionMatrix.M24 = 0.0f;
 
-            projMatrix.M31 = 0.0f;
-            projMatrix.M32 = 0.0f;
-            projMatrix.M33 = (zfar + znear) / (znear - zfar);
-            projMatrix.M34 = -1.0f;
+            projectionMatrix.M31 = 0.0f;
+            projectionMatrix.M32 = 0.0f;
+            projectionMatrix.M33 = (zfar + znear) / (znear - zfar);
+            projectionMatrix.M34 = -1.0f;
 
-            projMatrix.M41 = 0.0f;
-            projMatrix.M42 = 0.0f;
-            projMatrix.M43 = (2.0f * zfar * znear) / (znear - zfar);
-            projMatrix.M44 = 0.0f;
+            projectionMatrix.M41 = 0.0f;
+            projectionMatrix.M42 = 0.0f;
+            projectionMatrix.M43 = (2.0f * zfar * znear) / (znear - zfar);
+            projectionMatrix.M44 = 0.0f;
         }
 
         /// <summary>
@@ -911,7 +913,7 @@ namespace GameLibrary
         /// </summary>
         public Matrix ProjectionMatrix
         {
-            get { return projMatrix; }
+            get { return projectionMatrix; }
         }
 
         /// <summary>
@@ -935,7 +937,20 @@ namespace GameLibrary
         /// </summary>
         public Matrix ViewProjectionMatrix
         {
-            get { return viewMatrix * projMatrix; }
+            get { return viewMatrix * projectionMatrix; }
+        }
+
+        public BoundingFrustum BoundingFrustum
+        {
+            get
+            {
+                //if (dirty)
+                //{
+                //    updateMatrix();
+                //}
+                // TODO don't build on each call...
+                return new BoundingFrustum(ViewProjectionMatrix);
+            }
         }
 
         /// <summary>
@@ -2086,6 +2101,19 @@ namespace GameLibrary
         public Matrix ViewProjectionMatrix
         {
             get { return camera.ViewProjectionMatrix; }
+        }
+
+        public BoundingFrustum BoundingFrustum
+        {
+            get
+            {
+                //if (dirty)
+                //{
+                //    updateMatrix();
+                //}
+                // TODO don't build on each call...
+                return new BoundingFrustum(ViewProjectionMatrix);
+            }
         }
 
         /// <summary>

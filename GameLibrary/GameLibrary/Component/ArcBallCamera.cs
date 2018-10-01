@@ -44,10 +44,10 @@ namespace GameLibrary
         {
             get
             {
-                //if (dirty)
-                //{
-                //    updateMatrix();
-                //}
+                if (dirty)
+                {
+                    updateMatrix();
+                }
                 return viewMatrix;
             }
         }
@@ -64,6 +64,19 @@ namespace GameLibrary
             }
         }
 
+        public BoundingFrustum BoundingFrustum
+        {
+            get
+            {
+                //if (dirty)
+                //{
+                //    updateMatrix();
+                //}
+                // TODO don't build on each call...
+                return new BoundingFrustum(ViewMatrix * ProjectionMatrix);
+            }
+        }
+        
         public float Zoom
         {
             get
@@ -141,10 +154,12 @@ namespace GameLibrary
         {
             base.Update(gameTime);
 
+            /*
             if (dirty)
             {
                 updateMatrix();
             }
+             */
 
             TimeSpan elapsedSpan = gameTime.ElapsedGameTime;
             double elapsed = elapsedSpan.TotalSeconds * 60;

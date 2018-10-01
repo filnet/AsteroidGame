@@ -96,6 +96,8 @@
   </ItemGroup>
   <ItemGroup>
     <Compile Include="Component\2D\Line2D.cs" />
+    <Compile Include="Geometry\VoxelMapGeometry2.cs" />
+    <Compile Include="Geometry\VoxelMapGeometry.cs" />
     <Compile Include="Debug\UI\ConsoleUI.cs" />
     <Compile Include="Debug\DebugManager.cs" />
     <Compile Include="Debug\DebugSystem.cs" />
@@ -107,6 +109,7 @@
     <Compile Include="Geometry\LineMeshFactory.cs" />
     <Compile Include="Geometry\GridMeshFactory.cs" />
     <Compile Include="Geometry\GeometryUtil.cs" />
+    <Compile Include="Voxel\VoxelMap.cs" />
     <Compile Include="Util\IntegerUtil.cs" />
     <Compile Include="Util\KeyboardUtils.cs" />
     <Compile Include="Util\Layout.cs" />

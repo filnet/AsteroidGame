@@ -1,10 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using Microsoft.Xna.Framework;
-using Microsoft.Xna.Framework.Graphics;
 using GameLibrary.Control;
+using GameLibrary.Util;
 
 namespace GameLibrary.SceneGraph.Common
 {
@@ -18,13 +15,15 @@ namespace GameLibrary.SceneGraph.Common
             return nextNodeID;
         }
 
-        public delegate Boolean Visitor(Node node, Object arg);
+        public enum DirtyFlag : int { Transform, ChildTransform, WorldTransform, ChildWorldTransform };
 
         #region Fields
 
         private int id;
 
         private String name;
+
+        private int dirty;
 
         private List<Controller> controllers;
 
@@ -37,7 +36,7 @@ namespace GameLibrary.SceneGraph.Common
         public String Name { get { return name; } }
 
         public Boolean Enabled { get; set; }
-        
+
         public Boolean Visible { get; set; }
 
         public GroupNode ParentNode { get; set; }
@@ -100,16 +99,70 @@ namespace GameLibrary.SceneGraph.Common
         {
         }
 
+        public bool IsDirty(DirtyFlag dirtyFlag)
+        {
+            return isDirty(dirtyFlag);
+        }
+
+        public void ClearDirty(DirtyFlag dirtyFlag)
+        {
+            clearDirty(dirtyFlag);
+        }
+
+        public String DirtyFlagsAsString()
+        {
+            return dirty.ToBinaryString();
+        }
+
+        protected bool isDirty(DirtyFlag dirtyFlag)
+        {
+            return dirty.IsBitSet((int) dirtyFlag);
+        }
+
+        internal void setDirty(DirtyFlag dirtyFlag)
+        {
+            dirty = dirty.SetBit((int) dirtyFlag);
+        }
+
+        internal void clearDirty(DirtyFlag dirtyFlag)
+        {
+            dirty = dirty.UnsetBit((int) dirtyFlag);
+        }
+
+        protected void setParentDirty(DirtyFlag dirtyFlag)
+        {
+            if (!Enabled)
+            {
+                return;
+            }
+            if ((ParentNode != null) && !ParentNode.isDirty(dirtyFlag))
+            {
+                ParentNode.setDirty(dirtyFlag);
+                ParentNode.setParentDirty(dirtyFlag);
+            }
+        }
+
+        internal void setChildDirty(DirtyFlag dirtyFlag)
+        {
+            setChildDirty(dirtyFlag, -1);
+        }
+
+        internal virtual void setChildDirty(DirtyFlag dirtyFlag, int depth)
+        {
+        }
+
         public virtual void Remove()
         {
             if (ParentNode == null) throw new Exception("no parent");
             ParentNode.Remove(this);
         }
-        
+
         public void AddController(Controller controller)
         {
             controllers.Add(controller);
         }
+
+        public delegate bool Visitor(Node node, ref Object arg);
 
         public enum VisitType
         {
@@ -131,7 +184,42 @@ namespace GameLibrary.SceneGraph.Common
 
         public virtual void Visit(Visitor visitor, VisitType visitType, Object arg)
         {
-            visitor(this, arg);
+            switch (visitType)
+            {
+                case VisitType.PreOrder:
+                    visit(visitor, null, null, arg);
+                    break;
+                case VisitType.InOrder:
+                    visit(null, visitor, null, arg);
+                    break;
+                case VisitType.PostOrder:
+                    visit(null, null, visitor, arg);
+                    break;
+            }
+        }
+
+        public void Visit(Visitor preVisitor, Visitor inVisitor, Visitor postVisitor)
+        {
+            visit(preVisitor, inVisitor, postVisitor, null);
+        }
+
+        public void Visit(Visitor preVisitor, Visitor inVisitor, Visitor postVisitor, Object arg)
+        {
+            visit(preVisitor, inVisitor, postVisitor, arg);
+        }
+
+        internal virtual bool visit(Visitor preVisitor, Visitor inVisitor, Visitor postVisitor, Object arg)
+        {
+            bool cont = true;
+            if (preVisitor != null)
+            {
+                cont &= preVisitor(this, ref arg);
+            }
+            if (postVisitor != null)
+            {
+                cont &= postVisitor(this, ref arg);
+            }
+            return cont;
         }
 
         #endregion

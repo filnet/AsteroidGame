@@ -162,7 +162,7 @@ namespace GameLibrary
         }
 
         // Derivative values for primary state.
-        // This structure stores all derivative values for primary state in Cube::State.
+        // This structure stores all derivative values for primary state in VoxelMap::State.
         // For example velocity is the derivative of position, force is the derivative
         // of momentum etc. Storing all derivatives in this structure makes it easy
         // to implement the RK4 integrator cleanly because it needs to calculate the

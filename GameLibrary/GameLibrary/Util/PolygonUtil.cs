@@ -601,7 +601,7 @@ namespace GameLibrary.Util
             VertexPositionColor[] vertexBuffer = new VertexPositionColor[mesh.PrimitiveCount];
             mesh.VertexBuffer.GetData(vertexBuffer);
             Polygon poly = new Polygon(vertexBuffer.Count());
-            Matrix worldMatrix = meshNode.WorldMatrix;
+            Matrix worldMatrix = meshNode.WorldTransform;
             Vector3 tmpV;
             float Z = float.NaN;
             for (int i = 0; i < vertexBuffer.Count(); i++)

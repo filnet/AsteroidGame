@@ -12,7 +12,7 @@ namespace GameLibrary.SceneGraph.Common
     {
         #region Fields
 
-        private BoundingVolume boundingVolume;
+        //private BoundingVolume boundingVolume;
 
         private LinkedList<Node> nodes;
 
@@ -56,18 +56,20 @@ namespace GameLibrary.SceneGraph.Common
         /// <remarks>
         /// This node itself is not included in this bounding sphere
         /// </remarks>
-        public virtual BoundingVolume BoundingVolume
-        {
-            get { return boundingVolume; }
-            internal set { boundingVolume = value; }
-        }
+        /// 
+        /*
+                public virtual BoundingVolume BoundingVolume
+                {
+                    get { return boundingVolume; }
+                    internal set { boundingVolume = value; }
+                }
+                */
 
         public bool BoundingVolumeVisible
         {
             get;
             set;
         }
-
         public LinkedList<Node> Nodes
         {
             get { return nodes; }
@@ -87,7 +89,7 @@ namespace GameLibrary.SceneGraph.Common
         public GroupNode(GroupNode node)
             : base(node)
         {
-            boundingVolume = node.boundingVolume != null ? node.boundingVolume.Clone() : null;
+            //boundingVolume = node.boundingVolume != null ? node.boundingVolume.Clone() : null;
             BoundingVolumeVisible = node.BoundingVolumeVisible;
             nodes = new LinkedList<Node>();
             for (LinkedListNode<Node> it = node.Nodes.First; it != null; it = it.Next)
@@ -111,6 +113,7 @@ namespace GameLibrary.SceneGraph.Common
             {
                 nodeEvents = new LinkedList<NodeEvent>();
             }
+            // TODO performance: call AddFrist
             nodeEvents.AddLast(new NodeEvent(EventType.ADDED, node));
         }
 
@@ -120,6 +123,7 @@ namespace GameLibrary.SceneGraph.Common
             {
                 nodeEvents = new LinkedList<NodeEvent>();
             }
+            // TODO performance: call AddFrist
             nodeEvents.AddLast(new NodeEvent(EventType.ADDED_FIRST, node));
         }
 
@@ -129,6 +133,7 @@ namespace GameLibrary.SceneGraph.Common
             {
                 nodeEvents = new LinkedList<NodeEvent>();
             }
+            // TODO performance: call AddFrist
             nodeEvents.AddLast(new NodeEvent(EventType.REMOVED, node));
         }
 
@@ -166,26 +171,48 @@ namespace GameLibrary.SceneGraph.Common
             }
         }
 
-        public override void Visit(Visitor visitor, VisitType visitType, Object arg)
+        // http://en.wikipedia.org/wiki/Tree_traversal#Example
+        internal override bool visit(Visitor preVisitor, Visitor inVisitor, Visitor postVisitor, Object arg)
         {
-            if (visitType == VisitType.PreOrder)
+            bool cont = true;
+            if (preVisitor != null)
             {
-                Boolean propagate = visitor(this, arg);
-                if (!propagate) return;
+                cont &= preVisitor(this, ref arg);
             }
             for (LinkedListNode<Node> it = nodes.First; it != null; it = it.Next)
             {
                 Node node = it.Value;
-                node.Visit(visitor, visitType, arg);
+                node.visit(preVisitor, inVisitor, postVisitor, arg);
+                if (inVisitor != null)
+                {
+                    cont &= inVisitor(node, ref arg);
+                }
             }
-            if (visitType == VisitType.PostOrder)
+            if (postVisitor != null)
             {
-                Boolean propagate = visitor(this, arg);
-                if (!propagate) return;
+                cont &= postVisitor(this, ref arg);
             }
+            return cont;
         }
 
         #endregion
+
+        internal override void setChildDirty(DirtyFlag dirtyFlag, int depth)
+        {
+            for (LinkedListNode<Node> it = nodes.First; it != null; it = it.Next)
+            {
+                Node node = it.Value;
+                if (!node.IsDirty(dirtyFlag))
+                {
+                    node.setDirty(dirtyFlag);
+                    if (depth > 0 || depth == -1)
+                    {
+                        node.setChildDirty(dirtyFlag, (depth > 0) ? depth - 1 : depth);
+                    }
+                }
+            }
+        }
+
 
         #region Private Methods
 

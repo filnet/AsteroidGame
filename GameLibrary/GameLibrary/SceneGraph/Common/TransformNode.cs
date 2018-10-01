@@ -22,39 +22,37 @@ namespace GameLibrary.SceneGraph.Common
         private Quaternion rotation = Quaternion.Identity;
         private Vector3 translation = Vector3.Zero;
 
-        private Matrix localMatrix = Matrix.Identity;
-        private Matrix worldMatrix = Matrix.Identity;
-
-        private Boolean dirty;
+        private Matrix transform = Matrix.Identity;
+        private Matrix worldTransform = Matrix.Identity;
 
         public Vector3 Scale
         {
             get { return scale; }
-            set { scale = value; }
+            set { scale = value; setTransformDirty(); }
         }
 
         public Quaternion Rotation
         {
             get { return rotation; }
-            set { rotation = value; }
+            set { rotation = value; setTransformDirty(); }
         }
 
         public Vector3 Translation
         {
             get { return translation; }
-            set { translation = value; }
+            set { translation = value; setTransformDirty(); }
         }
 
-        public Matrix LocalMatrix
+        public Matrix Transform
         {
-            get { return localMatrix; }
-            set { localMatrix = value; }
+            get { return transform; }
+            private set { transform = value; setWorldTransformDirty(); }
         }
 
-        public Matrix WorldMatrix
+        public Matrix WorldTransform
         {
-            get { return worldMatrix; }
-            set { worldMatrix = value; }
+            get { return worldTransform; }
+            private set { worldTransform = value; }
         }
 
         public TransformNode(String name)
@@ -66,12 +64,12 @@ namespace GameLibrary.SceneGraph.Common
         public TransformNode(TransformNode node)
             : base(node)
         {
-            scale = node.scale;
-            rotation = node.rotation;
-            translation = node.translation;
+            Scale = node.Scale;
+            Rotation = node.Rotation;
+            Translation = node.Translation;
 
-            localMatrix = node.localMatrix;
-            worldMatrix = node.worldMatrix;
+            Transform = node.Transform;
+            WorldTransform = node.WorldTransform;
         }
 
         public override Node Clone()
@@ -79,27 +77,49 @@ namespace GameLibrary.SceneGraph.Common
             return new TransformNode(this);
         }
 
-        //public override void Dispose()
-        //{
-        //    base.Dispose();
-        //    if (!sharedDrawable && drawableGameComponent != null)
-        //    {
-        //        drawableGameComponent.Dispose();
-        //    }
-        //}
+        public override void Initialize()
+        {
+            base.Initialize();
+            setParentDirty(DirtyFlag.ChildTransform);
+        }
 
-        //protected override void LoadContent()
-        //{
-        //    base.LoadContent();
-        //}
+        internal bool UpdateTransform()
+        {
+            if (!isDirty(Node.DirtyFlag.Transform)) return false;
 
-        //public override void Draw(GameTime gameTime)
-        //{
-        //    base.Draw(gameTime);
-        //    if (drawableGameComponent != null)
-        //    {
-        //        drawableGameComponent.Draw(gameTime);
-        //    }
-        //}
+            Transform = Matrix.CreateScale(Scale) * Matrix.CreateFromQuaternion(Rotation) * Matrix.CreateTranslation(Translation);
+            clearDirty(Node.DirtyFlag.Transform);
+            
+            return true;
+        }
+
+        internal virtual bool UpdateWorldTransform(TransformNode parentTransformNode)
+        {
+            if (!isDirty(Node.DirtyFlag.WorldTransform)) return false;
+
+            Matrix parentWorldTransform = (parentTransformNode != null) ? parentTransformNode.WorldTransform : Matrix.Identity;
+            WorldTransform = Transform * parentWorldTransform;
+            clearDirty(Node.DirtyFlag.WorldTransform);
+
+            // propagate...
+            // TODO find a better way
+            setDirty(DirtyFlag.ChildWorldTransform);
+            setChildDirty(DirtyFlag.WorldTransform, -1);
+            
+            return true;
+        }
+
+        private void setTransformDirty()
+        {
+            setDirty(DirtyFlag.Transform);
+            setParentDirty(DirtyFlag.ChildTransform);
+        }
+
+        private void setWorldTransformDirty()
+        {
+            setDirty(DirtyFlag.WorldTransform);
+            setParentDirty(DirtyFlag.ChildWorldTransform);
+        }
+
     }
 }
