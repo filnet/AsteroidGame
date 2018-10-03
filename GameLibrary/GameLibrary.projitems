@@ -1,0 +1,112 @@
+<?xml version="1.0" encoding="utf-8"?>
+<Project xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <PropertyGroup>
+    <MSBuildAllProjects>$(MSBuildAllProjects);$(MSBuildThisFileFullPath)</MSBuildAllProjects>
+    <HasSharedItems>true</HasSharedItems>
+    <SharedGUID>1b6f29e2-6664-4da4-84be-00b322b6c52f</SharedGUID>
+  </PropertyGroup>
+  <PropertyGroup Label="Configuration">
+    <Import_RootNamespace>GameLibrary</Import_RootNamespace>
+  </PropertyGroup>
+  <ItemGroup>
+    <Compile Include="$(MSBuildThisFileDirectory)Component\2D\Circle2D.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)Component\2D\Grid2D.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)Component\2D\Line2D.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)Component\3D\Cube.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)Component\3D\CubeGeometry.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)Component\ArcBallCamera.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)Component\CameraComponent.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)Component\Sprite\Sprite.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)Control\BaseNodeController.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)Control\Controller.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)Control\InputController.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)Control\NodeController.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)Control\NodeInputController.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)Control\PhysicsController.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)CustomGame.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)CustomGraphicsDeviceManager.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)Debug\DebugManager.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)Debug\DebugSystem.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)Debug\IDebugCommandHost.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)Debug\UI\ConsoleUI.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)Debug\UI\FPSCounterUI.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)Debug\UI\TimeRulerUI.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)FPSComponent.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)Geometry\CircleMeshFactory.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)Geometry\Common\IMeshFactory.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)Geometry\Common\Mesh.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)Geometry\Common\MeshNode.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)Geometry\Common\VertexBufferBuilder.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)Geometry\GeodesicMeshFactory.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)Geometry\GeodesicWFMeshFactory.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)Geometry\GeometryUtil.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)Geometry\GridMeshFactory.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)Geometry\LineMeshFactory.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)Geometry\PolygonMeshFactory.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)Geometry\SquareMeshFactory.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)Geometry\VoxelMapGeometry.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)Geometry\VoxelMapGeometry2.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)Physics\Integrator.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)SceneGraph\Bounding\BoundingSphere.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)SceneGraph\Bounding\BoundingVolume.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)SceneGraph\Common\GeometryNode.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)SceneGraph\Common\GroupNode.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)SceneGraph\Common\Node.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)SceneGraph\Common\TransformNode.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)SceneGraph\Scene.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)StockEffects\C#\ClippingEffect.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)StockEffects\C#\EffectHelpers.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)Util\IntegerUtil.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)Util\KeyboardUtils.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)Util\Layout.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)Util\MathUtil.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)Util\ObjectCloner.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)Util\PolygonUtil.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)Util\QuaternionUtil.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)Util\Sphere.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)Util\SphereUtil.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)Util\StringBuilderUtil.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)Util\VectorUtil.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)Voxel\VoxelMap.cs" />
+  </ItemGroup>
+  <ItemGroup>
+    <MonoGameContentReference Include="$(MSBuildThisFileDirectory)Content\Content.mgcb" />
+  </ItemGroup>
+  <ItemGroup>
+    <Content Include="$(MSBuildThisFileDirectory)Content\Effects\AlphaTestEffect.fx" />
+    <Content Include="$(MSBuildThisFileDirectory)Content\Effects\BasicEffect.fx" />
+    <Content Include="$(MSBuildThisFileDirectory)Content\Effects\DualTextureEffect.fx" />
+    <Content Include="$(MSBuildThisFileDirectory)Content\Effects\EnvironmentMapEffect.fx" />
+    <Content Include="$(MSBuildThisFileDirectory)Content\Effects\SkinnedEffect.fx" />
+    <Content Include="$(MSBuildThisFileDirectory)Content\Effects\SpriteEffect.fx" />
+    <Content Include="$(MSBuildThisFileDirectory)Content\Effects\VectorEffect.fx" />
+    <Content Include="$(MSBuildThisFileDirectory)Content\Fonts\Arial-Bold-12pt-OuterGlow-3px.png" />
+    <Content Include="$(MSBuildThisFileDirectory)Doc\Clipping Shader.txt" />
+    <Content Include="$(MSBuildThisFileDirectory)Doc\Resources.txt" />
+    <Content Include="$(MSBuildThisFileDirectory)Doc\SceneGraphModel.txt" />
+    <Content Include="$(MSBuildThisFileDirectory)StockEffects\HLSL\AlphaTestEffect.fx" />
+    <Content Include="$(MSBuildThisFileDirectory)StockEffects\HLSL\BasicEffect.fx" />
+    <Content Include="$(MSBuildThisFileDirectory)StockEffects\HLSL\DualTextureEffect.fx" />
+    <Content Include="$(MSBuildThisFileDirectory)StockEffects\HLSL\EnvironmentMapEffect.fx" />
+    <Content Include="$(MSBuildThisFileDirectory)StockEffects\HLSL\SkinnedEffect.fx" />
+    <Content Include="$(MSBuildThisFileDirectory)StockEffects\HLSL\SpriteEffect.fx" />
+    <Content Include="$(MSBuildThisFileDirectory)StockEffects\HLSL\VectorEffect.fx" />
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="$(MSBuildThisFileDirectory)Content\Content.mgcb" />
+    <None Include="$(MSBuildThisFileDirectory)Content\Effects\ClippingEffect.fx" />
+    <None Include="$(MSBuildThisFileDirectory)Content\Effects\Common.fxh" />
+    <None Include="$(MSBuildThisFileDirectory)Content\Effects\Lighting.fxh" />
+    <None Include="$(MSBuildThisFileDirectory)Content\Effects\Macros.fxh" />
+    <None Include="$(MSBuildThisFileDirectory)Content\Effects\Structures.fxh" />
+    <None Include="$(MSBuildThisFileDirectory)Content\Fonts\Arial-Bold-12pt-OuterGlow-3px.spritefont" />
+    <None Include="$(MSBuildThisFileDirectory)Content\DemoFont12pt.xnb">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+    <None Include="$(MSBuildThisFileDirectory)StockEffects\HLSL\ClippingEffect.fx" />
+    <None Include="$(MSBuildThisFileDirectory)StockEffects\HLSL\Common.fxh" />
+    <None Include="$(MSBuildThisFileDirectory)StockEffects\HLSL\Lighting.fxh" />
+    <None Include="$(MSBuildThisFileDirectory)StockEffects\HLSL\Macros.fxh" />
+    <None Include="$(MSBuildThisFileDirectory)StockEffects\HLSL\Structures.fxh" />
+  </ItemGroup>
+</Project>

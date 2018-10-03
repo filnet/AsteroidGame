@@ -1,0 +1,35 @@
+﻿
+Microsoft Visual Studio Solution File, Format Version 12.00
+# Visual Studio 15
+VisualStudioVersion = 15.0.28010.2036
+MinimumVisualStudioVersion = 10.0.40219.1
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "AsteroidGame", "AsteroidGame\AsteroidGame.csproj", "{6DB66302-2DEC-4263-92F9-AC0906FC8FAC}"
+EndProject
+Project("{D954291E-2A0B-460D-934E-DC6B0785DB48}") = "GameLibrary", "GameLibrary\GameLibrary.shproj", "{817CFFFB-C78B-4BB6-A2D9-00E3818F85C2}"
+EndProject
+Global
+	GlobalSection(SharedMSBuildProjectFiles) = preSolution
+		GameLibrary\GameLibrary.projitems*{6db66302-2dec-4263-92f9-ac0906fc8fac}*SharedItemsImports = 4
+		GameLibrary\GameLibrary.projitems*{817cfffb-c78b-4bb6-a2d9-00e3818f85c2}*SharedItemsImports = 13
+	EndGlobalSection
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|Any CPU = Debug|Any CPU
+		Debug|x86 = Debug|x86
+		Release|Any CPU = Release|Any CPU
+		Release|x86 = Release|x86
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{6DB66302-2DEC-4263-92F9-AC0906FC8FAC}.Debug|Any CPU.ActiveCfg = Debug|x86
+		{6DB66302-2DEC-4263-92F9-AC0906FC8FAC}.Debug|x86.ActiveCfg = Debug|x86
+		{6DB66302-2DEC-4263-92F9-AC0906FC8FAC}.Debug|x86.Build.0 = Debug|x86
+		{6DB66302-2DEC-4263-92F9-AC0906FC8FAC}.Release|Any CPU.ActiveCfg = Release|x86
+		{6DB66302-2DEC-4263-92F9-AC0906FC8FAC}.Release|x86.ActiveCfg = Release|x86
+		{6DB66302-2DEC-4263-92F9-AC0906FC8FAC}.Release|x86.Build.0 = Release|x86
+	EndGlobalSection
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
+	EndGlobalSection
+	GlobalSection(ExtensibilityGlobals) = postSolution
+		SolutionGuid = {9F8C8995-19AA-4282-8E94-1795FA6E8C14}
+	EndGlobalSection
+EndGlobal
