@@ -54,7 +54,7 @@ namespace AsteroidGame
         {
             // scene
             Scene scene = null;
-            int mode = 1;
+            int mode = 0;
             switch (mode)
             {
                 case 0:

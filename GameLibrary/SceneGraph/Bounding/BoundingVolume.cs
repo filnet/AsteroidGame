@@ -19,7 +19,7 @@ namespace GameLibrary.SceneGraph.Bounding
         //Oriented Bounding Box
         OBB
     }
-    
+
     /// <summary>
     /// Defines the base bounding volume. A bounding volume defines a simple
     /// shape (such as a box or a sphere) that encapsulates a spatial, or
@@ -31,9 +31,34 @@ namespace GameLibrary.SceneGraph.Bounding
     {
         protected Vector3 center;
 
-        public Vector3 Center {
+        public Vector3 Center
+        {
             get { return center; }
-            set { center = value; }
+            set
+            {
+                if (center != value)
+                {
+                    center = value;
+                    dirty = true;
+                }
+            }
+        }
+
+        private Matrix worldMatrix;
+
+        protected bool dirty = true;
+
+        public Matrix WorldMatrix
+        {
+            get
+            {
+                if (dirty)
+                {
+                    worldMatrix = ComputeWorldMatrix();
+                    dirty = false;
+                }
+                return worldMatrix;
+            }
         }
 
         public BoundingVolume()
@@ -50,6 +75,8 @@ namespace GameLibrary.SceneGraph.Bounding
         {
             center = bv.center;
         }
+
+        public abstract Matrix ComputeWorldMatrix();
 
         /// <summary>
         /// Creates a deep-copy of this BoundVolume, returns the same type.

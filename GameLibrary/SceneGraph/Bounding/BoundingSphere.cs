@@ -11,10 +11,30 @@ namespace GameLibrary.SceneGraph.Bounding
 
         protected float radius;
 
-        public float Radius { get { return radius; } set { radius = value; } }
+        protected Microsoft.Xna.Framework.BoundingSphere xnaBoundingSphere;
+
+        public float Radius
+        {
+            get { return radius; }
+            set
+            {
+                if (radius != value)
+                {
+                    radius = value;
+                    dirty = true;
+                }
+            }
+        }
+
+        public Microsoft.Xna.Framework.BoundingSphere AsXnaBoundingSphere()
+        {
+            xnaBoundingSphere.Center = center;
+            xnaBoundingSphere.Radius = radius;
+            return xnaBoundingSphere;
+        }
 
         public BoundingSphere()
-            : base()
+        : base()
         {
             radius = 0;
         }
@@ -32,7 +52,7 @@ namespace GameLibrary.SceneGraph.Bounding
         }
 
         public BoundingSphere(BoundingSphere bs)
-            : base(bs)
+        : base(bs)
         {
             radius = bs.Radius;
         }
@@ -44,6 +64,11 @@ namespace GameLibrary.SceneGraph.Bounding
         public override BoundingVolume Clone()
         {
             return new BoundingSphere(this);
+        }
+
+        public override Matrix ComputeWorldMatrix()
+        {
+            return Matrix.CreateScale(Radius) * Matrix.CreateTranslation(Center);
         }
 
         /// <summary>
@@ -133,7 +158,7 @@ namespace GameLibrary.SceneGraph.Bounding
         /// <returns>Volume</returns>
         public override float GetVolume()
         {
-            return (float) (4 * (1 / 3) * System.Math.PI * Radius * Radius * Radius);
+            return (float)(4 * (1 / 3) * System.Math.PI * Radius * Radius * Radius);
         }
 
         /// <summary>

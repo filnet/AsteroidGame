@@ -18,6 +18,9 @@ namespace GameLibrary
     public class CustomGame : Microsoft.Xna.Framework.Game
     {
         //private const string FontAssetName = @"Arial-Bold-12pt-OuterGlow-3px";
+        //private const string FontAssetName = @"DemoFont12pt";
+        //private const string FontAssetName = @"Fonts/Arial-12pt";
+        //private const string FontAssetName = @"Fonts/Font";
         private const string FontAssetName = @"DemoFont12pt";
 
         // Set distance from the camera of the near and far clipping planes.

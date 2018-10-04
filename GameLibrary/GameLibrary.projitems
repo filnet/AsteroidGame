@@ -49,6 +49,7 @@
     <Compile Include="$(MSBuildThisFileDirectory)Physics\Integrator.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)SceneGraph\Bounding\BoundingSphere.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)SceneGraph\Bounding\BoundingVolume.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)SceneGraph\EffectFactory.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)SceneGraph\Common\GeometryNode.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)SceneGraph\Common\GroupNode.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)SceneGraph\Common\Node.cs" />
@@ -96,13 +97,15 @@
     <None Include="$(MSBuildThisFileDirectory)Content\Content.mgcb" />
     <None Include="$(MSBuildThisFileDirectory)Content\Effects\ClippingEffect.fx" />
     <None Include="$(MSBuildThisFileDirectory)Content\Effects\Common.fxh" />
+    <None Include="$(MSBuildThisFileDirectory)Content\Effects\InstancedModel.fx" />
     <None Include="$(MSBuildThisFileDirectory)Content\Effects\Lighting.fxh" />
     <None Include="$(MSBuildThisFileDirectory)Content\Effects\Macros.fxh" />
     <None Include="$(MSBuildThisFileDirectory)Content\Effects\Structures.fxh" />
-    <None Include="$(MSBuildThisFileDirectory)Content\Fonts\Arial-Bold-12pt-OuterGlow-3px.spritefont" />
+    <None Include="$(MSBuildThisFileDirectory)Content\Fonts\Arial-12pt.spritefont" />
     <None Include="$(MSBuildThisFileDirectory)Content\DemoFont12pt.xnb">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </None>
+    <None Include="$(MSBuildThisFileDirectory)Content\Fonts\Font.spritefont" />
     <None Include="$(MSBuildThisFileDirectory)StockEffects\HLSL\ClippingEffect.fx" />
     <None Include="$(MSBuildThisFileDirectory)StockEffects\HLSL\Common.fxh" />
     <None Include="$(MSBuildThisFileDirectory)StockEffects\HLSL\Lighting.fxh" />

@@ -24,6 +24,8 @@ namespace GameLibrary.SceneGraph
         private Dictionary<int, List<GeometryNode>> collisionGroups;
 
         private MeshNode boundingGeo;
+        public int cullCount;
+        public int renderCount;
 
         Dictionary<int, LinkedList<Collision>> collisionCache = new Dictionary<int, LinkedList<Collision>>();
         LinkedList<GameLibrary.Util.Intersection> intersections = new LinkedList<GameLibrary.Util.Intersection>();
@@ -81,17 +83,17 @@ namespace GameLibrary.SceneGraph
         public void Initialize()
         {
             //effect = createEffect();
-            renderEffects[THREE_LIGHTS] = createeffect1(); // 3 lights
-            renderEffects[ONE_LIGHT] = createeffect2(); // 1 light
-            renderEffects[NO_LIGHT] = createeffect3(); // no light
-            renderEffects[WIRE_FRAME] = createeffect3(); // no light + wire frame
-            renderEffects[VECTOR] = createClippingEffect(); // vector
-            renderEffects[CLIPPING] = createClippingEffect(); // clipping
-            renderEffects[BULLET] = createBulletEffect(); // clipping
-            renderEffects[ASTEROID] = createClippingEffect(); // clipping
-            renderEffects[BOUND] = createBoundingEffect(); // clipping
-            renderEffects[BOUND_GROUP] = createBoundingEffect(); // clipping
-            //renderEffects[HW_INSTANCING] = createHWInstancingEffect();
+            renderEffects[THREE_LIGHTS] = EffectFactory.CreateBasicEffect1(GraphicsDevice); // 3 lights
+            renderEffects[ONE_LIGHT] = EffectFactory.CreateBasicEffect2(GraphicsDevice); // 1 light
+            renderEffects[NO_LIGHT] = EffectFactory.CreateBasicEffect3(GraphicsDevice); // no light
+            renderEffects[WIRE_FRAME] = EffectFactory.CreateBasicEffect3(GraphicsDevice); // no light + wire frame
+            renderEffects[VECTOR] = EffectFactory.CreateClippingEffect(GraphicsDevice); // vector
+            renderEffects[CLIPPING] = EffectFactory.CreateClippingEffect(GraphicsDevice); // clipping
+            renderEffects[BULLET] = EffectFactory.CreateBulletEffect(GraphicsDevice); // clipping
+            renderEffects[ASTEROID] = EffectFactory.CreateClippingEffect(GraphicsDevice); // clipping
+            renderEffects[BOUND] = EffectFactory.CreateBoundingEffect(GraphicsDevice); // clipping
+            renderEffects[BOUND_GROUP] = EffectFactory.CreateBoundingEffect(GraphicsDevice); // clipping
+            //renderEffects[HW_INSTANCING] = EffectFactory.CreateHWInstancingEffect(GraphicsDevice);
 
             boundingGeo = GeometryUtil.CreateGeodesicWF("BOUNDING_SPHERE", 1);
             boundingGeo.Scene = this;
@@ -153,7 +155,10 @@ namespace GameLibrary.SceneGraph
             ClearGroups(renderGroups);
             ClearGroups(boundGroups);
 
+            cullCount = 0;
+            renderCount = 0;
             rootNode.Visit(RENDER_GROUP_VISITOR, this);
+            //Console.Out.WriteLine(cullCount + " / " + renderCount);
 
             BlendState oldBlendState = GraphicsDevice.BlendState;
             DepthStencilState oldDepthStencilState = GraphicsDevice.DepthStencilState;
@@ -204,9 +209,6 @@ namespace GameLibrary.SceneGraph
                 foreach (GeometryNode node in nodeList)
                 {
                     if (!node.Visible) continue;
-
-                    //xxxxx
-                    //effect.CurrentTechnique = effect.Techniques["HardwareInstancing"];
                     if (effectMatrices != null)
                     {
                         effectMatrices.World = node.WorldTransform;
@@ -264,8 +266,7 @@ namespace GameLibrary.SceneGraph
                     GameLibrary.SceneGraph.Bounding.BoundingSphere boundingSphere = node.WorldBoundingVolume as GameLibrary.SceneGraph.Bounding.BoundingSphere;
                     if (boundingSphere != null && effectMatrices != null)
                     {
-                        //effectMatrices.World = node.WorldMatrix;// *Matrix.CreateScale(boundingSphere.Radius); // node.WorldMatrix;
-                        effectMatrices.World = Matrix.CreateScale(boundingSphere.Radius) * Matrix.CreateTranslation(boundingSphere.Center);
+                        effectMatrices.World = boundingSphere.WorldMatrix;
                     }
                     if (boundingSphere != null)
                     {
@@ -424,10 +425,9 @@ namespace GameLibrary.SceneGraph
                 GameLibrary.SceneGraph.Bounding.BoundingSphere bs = geometryNode.WorldBoundingVolume as GameLibrary.SceneGraph.Bounding.BoundingSphere;
                 if (bs != null)
                 {
-                    Microsoft.Xna.Framework.BoundingSphere xbs = new Microsoft.Xna.Framework.BoundingSphere(bs.Center, bs.Radius);
                     BoundingFrustum boundingFrustum = scene.CameraComponent.BoundingFrustum;
                     //Console.Out.WriteLine(boundingFrustum);
-                    if (scene.CameraComponent.BoundingFrustum.Contains(xbs) == ContainmentType.Disjoint)
+                    if (scene.CameraComponent.BoundingFrustum.Contains(bs.AsXnaBoundingSphere()) == ContainmentType.Disjoint)
                     {
                         //Console.Out.WriteLine("Culling " + node.Name);
                         cull = true;
@@ -445,6 +445,11 @@ namespace GameLibrary.SceneGraph
                         scene.AddToGroups(scene.boundGroups, geometryNode);
                     }
                 }
+                else
+                {
+                    scene.cullCount++;
+                }
+                scene.renderCount++;
             }
             return true;
         };
@@ -575,202 +580,6 @@ namespace GameLibrary.SceneGraph
             FillMode = FillMode.WireFrame,
         };
 
-        private Effect createClippingEffect()
-        {
-            StockEffects.ClippingEffect effect = new StockEffects.ClippingEffect(GraphicsDevice);
-
-            effect.ClippingPlane1 = VectorUtil.CreatePlane(Vector3.Right, 3.0f);
-            effect.ClippingPlane2 = VectorUtil.CreatePlane(Vector3.Left, 3.0f);
-            //effect.ClippingPlane2 = new Vector4(1.0f, 0.0f, 0.0f, 3.0f);
-
-            effect.ClippingPlane3 = VectorUtil.CreatePlane(Vector3.Up, 3.0f);
-            effect.ClippingPlane4 = VectorUtil.CreatePlane(Vector3.Down, 3.0f);
-
-            effect.Color = Color.White;
-
-            return effect;
-        }
-
-        private Effect createBulletEffect()
-        {
-            StockEffects.ClippingEffect effect = new StockEffects.ClippingEffect(GraphicsDevice);
-
-            effect.ClippingPlane1 = VectorUtil.CreatePlane(Vector3.Right, 3.0f);
-            effect.ClippingPlane2 = VectorUtil.CreatePlane(Vector3.Left, 3.0f);
-            //effect.ClippingPlane2 = new Vector4(1.0f, 0.0f, 0.0f, 3.0f);
-
-            effect.ClippingPlane3 = VectorUtil.CreatePlane(Vector3.Up, 3.0f);
-            effect.ClippingPlane4 = VectorUtil.CreatePlane(Vector3.Down, 3.0f);
-
-            effect.Color = Color.Yellow;
-
-            return effect;
-        }
-
-        private Effect createBoundingEffect()
-        {
-            StockEffects.ClippingEffect effect = new StockEffects.ClippingEffect(GraphicsDevice);
-
-            effect.ClippingPlane1 = VectorUtil.CreatePlane(Vector3.Right, 3.0f);
-            effect.ClippingPlane2 = VectorUtil.CreatePlane(Vector3.Left, 3.0f);
-            //effect.ClippingPlane2 = new Vector4(1.0f, 0.0f, 0.0f, 3.0f);
-
-            effect.ClippingPlane3 = VectorUtil.CreatePlane(Vector3.Up, 3.0f);
-            effect.ClippingPlane4 = VectorUtil.CreatePlane(Vector3.Down, 3.0f);
-
-            Color c = Color.LightGreen;
-            effect.Color = new Color((byte)c.R, (byte)c.G, (byte)c.B, (byte)128);
-
-            return effect;
-        }
-
-        private Effect createeffect1()
-        {
-            BasicEffect effect = new BasicEffect(GraphicsDevice);
-
-            effect.World = Matrix.Identity;
-
-            // primitive color
-            effect.AmbientLightColor = new Vector3(0.1f, 0.1f, 0.1f);
-            effect.DiffuseColor = new Vector3(1.0f, 1.0f, 1.0f);
-            effect.SpecularColor = new Vector3(0.25f, 0.25f, 0.25f);
-            effect.SpecularPower = 5.0f;
-            effect.Alpha = 1.0f;
-
-            effect.LightingEnabled = true;
-            if (effect.LightingEnabled)
-            {
-                // enable each light individually
-                effect.DirectionalLight0.Enabled = true;
-                if (effect.DirectionalLight0.Enabled)
-                {
-                    // x direction is red
-                    effect.DirectionalLight0.DiffuseColor = new Vector3(1, 0, 0); // range is 0 to 1
-                    effect.DirectionalLight0.Direction = Vector3.Normalize(new Vector3(-1, 0, 0));
-                    // points from the light to the origin of the scene
-                    effect.DirectionalLight0.SpecularColor = Vector3.One;
-                }
-
-                effect.DirectionalLight1.Enabled = true;
-                if (effect.DirectionalLight1.Enabled)
-                {
-                    // y direction is green
-                    effect.DirectionalLight1.DiffuseColor = new Vector3(0, 1, 0);
-                    effect.DirectionalLight1.Direction = Vector3.Normalize(new Vector3(0, -1, 0));
-                    effect.DirectionalLight1.SpecularColor = Vector3.One;
-                }
-
-                effect.DirectionalLight2.Enabled = true;
-                if (effect.DirectionalLight2.Enabled)
-                {
-                    // z direction is blue
-                    effect.DirectionalLight2.DiffuseColor = new Vector3(0, 0, 1);
-                    effect.DirectionalLight2.Direction = Vector3.Normalize(new Vector3(0, 0, -1));
-                    effect.DirectionalLight2.SpecularColor = Vector3.One;
-                }
-            }
-
-            return effect;
-        }
-
-        private Effect createeffect2()
-        {
-            BasicEffect effect = new BasicEffect(GraphicsDevice);
-
-            effect.World = Matrix.Identity;
-
-            // primitive color
-            effect.AmbientLightColor = new Vector3(0.1f, 0.1f, 0.1f);
-            effect.DiffuseColor = new Vector3(1.0f, 1.0f, 1.0f);
-            effect.SpecularColor = new Vector3(0.25f, 0.25f, 0.25f);
-            effect.SpecularPower = 5.0f;
-            effect.Alpha = 1.0f;
-
-            effect.LightingEnabled = true;
-            if (effect.LightingEnabled)
-            {
-                // enable each light individually
-                effect.DirectionalLight0.Enabled = true;
-                if (effect.DirectionalLight0.Enabled)
-                {
-                    // x direction is red
-                    effect.DirectionalLight0.DiffuseColor = new Vector3(0.5f, 0.5f, 0.5f); // range is 0 to 1
-                    effect.DirectionalLight0.Direction = Vector3.Normalize(new Vector3(-1, -1, -1));
-                    // points from the light to the origin of the scene
-                    //effect.DirectionalLight0.SpecularColor = Vector3.One;
-                }
-
-                effect.DirectionalLight1.Enabled = false;
-                if (effect.DirectionalLight1.Enabled)
-                {
-                    // y direction is green
-                    effect.DirectionalLight1.DiffuseColor = new Vector3(0, 1, 0);
-                    effect.DirectionalLight1.Direction = Vector3.Normalize(new Vector3(0, -1, 0));
-                    effect.DirectionalLight1.SpecularColor = Vector3.One;
-                }
-
-                effect.DirectionalLight2.Enabled = false;
-                if (effect.DirectionalLight2.Enabled)
-                {
-                    // z direction is blue
-                    effect.DirectionalLight2.DiffuseColor = new Vector3(0, 0, 1);
-                    effect.DirectionalLight2.Direction = Vector3.Normalize(new Vector3(0, 0, -1));
-                    effect.DirectionalLight2.SpecularColor = Vector3.One;
-                }
-            }
-
-            return effect;
-        }
-
-        private Effect createeffect3()
-        {
-
-            BasicEffect effect = new BasicEffect(GraphicsDevice);
-
-            effect.World = Matrix.Identity;
-
-            // primitive color
-            effect.AmbientLightColor = new Vector3(1f, 1f, 1f);
-            effect.DiffuseColor = new Vector3(1.0f, 1.0f, 1.0f);
-            effect.SpecularColor = new Vector3(0.25f, 0.25f, 0.25f);
-            //effect.SpecularPower = 5.0f;
-            //effect.Alpha = 1.0f;
-
-            effect.LightingEnabled = false;
-            if (effect.LightingEnabled)
-            {
-                // enable each light individually
-                effect.DirectionalLight0.Enabled = true;
-                if (effect.DirectionalLight0.Enabled)
-                {
-                    // x direction is red
-                    effect.DirectionalLight0.DiffuseColor = new Vector3(0.5f, 0.5f, 0.5f); // range is 0 to 1
-                    effect.DirectionalLight0.Direction = Vector3.Normalize(new Vector3(-1, -1, -1));
-                    // points from the light to the origin of the scene
-                    effect.DirectionalLight0.SpecularColor = Vector3.One;
-                }
-
-                effect.DirectionalLight1.Enabled = false;
-                if (effect.DirectionalLight1.Enabled)
-                {
-                    // y direction is green
-                    effect.DirectionalLight1.DiffuseColor = new Vector3(0, 1, 0);
-                    effect.DirectionalLight1.Direction = Vector3.Normalize(new Vector3(0, -1, 0));
-                    effect.DirectionalLight1.SpecularColor = Vector3.One;
-                }
-
-                effect.DirectionalLight2.Enabled = false;
-                if (effect.DirectionalLight2.Enabled)
-                {
-                    // z direction is blue
-                    effect.DirectionalLight2.DiffuseColor = new Vector3(0, 0, 1);
-                    effect.DirectionalLight2.Direction = Vector3.Normalize(new Vector3(0, 0, -1));
-                    effect.DirectionalLight2.SpecularColor = Vector3.One;
-                }
-            }
-
-            return effect;
-        }
     }
 
 }
