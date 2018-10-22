@@ -44,8 +44,8 @@ namespace GameLibrary.Geometry
                 addEdge(builder, tri.v3, tri.v1);
             }
             Mesh mesh = new Mesh(PrimitiveType.LineList, faces.Count() * 3);
-            builder.setToMesh(mesh);
             mesh.BoundingVolume = new GameLibrary.SceneGraph.Bounding.BoundingSphere(Vector3.Zero, 1.0f);
+            builder.setToMesh(mesh);
             return mesh;
         }
 

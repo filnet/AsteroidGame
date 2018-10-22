@@ -15,7 +15,7 @@ using Microsoft.Xna.Framework.Content;
 
 #endregion
 
-namespace GameLibrary.Debug
+namespace GameLibrary.System
 {
     /// <summary>
     /// DebugManager class that holds graphics resources for debug

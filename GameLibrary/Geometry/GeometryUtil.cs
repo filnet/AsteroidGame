@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using GameLibrary.Geometry.Common;
+using Microsoft.Xna.Framework;
 
 namespace GameLibrary.Geometry
 {
@@ -30,6 +31,16 @@ namespace GameLibrary.Geometry
         }
 
         // cube
+
+        public static MeshNode CreateCube(String name)
+        {
+            return new MeshNode(name, new CubeMeshFactory());
+        }
+
+        public static MeshNode CreateCubeWF(String name, int size)
+        {
+            return new MeshNode(name, new CubeWFMeshFactory(size));
+        }
 
         // sphere
 
@@ -60,5 +71,11 @@ namespace GameLibrary.Geometry
             return new MeshNode(name, new GeodesicWFMeshFactory(depth, flat));
         }
 
+        // frustrum
+
+        public static MeshNode CreateFrustrum(String name, BoundingFrustum boundingFrustum)
+        {
+            return new MeshNode(name, new FrustrumMeshFactory(boundingFrustum));
+        }
     }
 }

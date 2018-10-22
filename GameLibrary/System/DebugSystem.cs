@@ -36,7 +36,7 @@
 
 using Microsoft.Xna.Framework;
 
-namespace GameLibrary.Debug
+namespace GameLibrary.System
 {
     /// <summary>
     /// DebugSystem is a helper class that streamlines the creation of the various GameDebug

@@ -11,9 +11,9 @@ namespace GameLibrary
 
         public static float GetMaxAxis(Vector3 v)
         {
-            float x = System.Math.Abs(v.X);
-            float y = System.Math.Abs(v.Y);
-            float z = System.Math.Abs(v.Z);
+            float x = Math.Abs(v.X);
+            float y = Math.Abs(v.Y);
+            float z = Math.Abs(v.Z);
 
             if (x >= y)
             {

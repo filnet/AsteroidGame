@@ -5,25 +5,35 @@
 // Copyright (C) Microsoft Corporation. All rights reserved.
 //-----------------------------------------------------------------------------
 
+#include "Macros.fxh"
+
+DECLARE_TEXTURE(Texture, 0);
 
 // Camera settings.
 float4x4 World;
 float4x4 View;
 float4x4 Projection;
 
+// not used (added to comply with BasicEffect)
+float4x4 WorldViewProj;
+float3 SpecularColor;
+float  SpecularPower;
+float4 DiffuseColor;
+float3 FogColor;
+float4 FogVector;  
+int ShaderIndex = 0;
 
 // This sample uses a simple Lambert lighting model.
 float3 LightDirection = normalize(float3(-1, -1, -1));
 float3 DiffuseLight = 1.25;
 float3 AmbientLight = 0.25;
 
+//texture Texture;
 
-texture Texture;
-
-sampler Sampler = sampler_state
-{
-    Texture = (Texture);
-};
+//sampler Sampler = sampler_state
+//{
+//    Texture = (Texture);
+//};
 
 
 struct VertexShaderInput
@@ -53,13 +63,14 @@ VertexShaderOutput VertexShaderCommon(VertexShaderInput input, float4x4 instance
     output.Position = mul(viewPosition, Projection);
 
     // Compute lighting, using a simple Lambert model.
-    float3 worldNormal = mul(input.Normal, instanceTransform);
+    //float3 worldNormal = mul(input.Normal, instanceTransform);
     
-    float diffuseAmount = max(-dot(worldNormal, LightDirection), 0);
+    //float diffuseAmount = max(-dot(worldNormal, LightDirection), 0);
     
-    float3 lightingResult = saturate(diffuseAmount * DiffuseLight + AmbientLight);
+    //float3 lightingResult = saturate(diffuseAmount * DiffuseLight + AmbientLight);
     
-    output.Color = float4(lightingResult, 1);
+    //output.Color = float4(lightingResult, 1);
+	output.Color = float4(1, 1, 1, 0);
 
     // Copy across the input texture coordinate.
     output.TextureCoordinate = input.TextureCoordinate;
@@ -72,6 +83,7 @@ VertexShaderOutput VertexShaderCommon(VertexShaderInput input, float4x4 instance
 VertexShaderOutput HardwareInstancingVertexShader(VertexShaderInput input,
                                                   float4x4 instanceTransform : BLENDWEIGHT)
 {
+    // mul(mul(position, transpose(world)), WorldViewProj);
     return VertexShaderCommon(input, mul(World, transpose(instanceTransform)));
 }
 
@@ -86,7 +98,7 @@ VertexShaderOutput NoInstancingVertexShader(VertexShaderInput input)
 // Both techniques share this same pixel shader.
 float4 PixelShaderFunction(VertexShaderOutput input) : COLOR0
 {
-    return tex2D(Sampler, input.TextureCoordinate) * input.Color;
+    return input.Color; //float4(1, 1, 1, 1); //tex2D(Sampler, input.TextureCoordinate) * input.Color;
 }
 
 
@@ -95,8 +107,8 @@ technique HardwareInstancing
 {
     pass Pass1
     {
-        VertexShader = compile vs_4_0 HardwareInstancingVertexShader();
-        PixelShader = compile ps_4_0 PixelShaderFunction();
+        VertexShader = compile vs_4_0_level_9_1 HardwareInstancingVertexShader();
+        PixelShader = compile ps_4_0_level_9_1 PixelShaderFunction();
     }
 }
 
@@ -106,7 +118,7 @@ technique NoInstancing
 {
     pass Pass1
     {
-        VertexShader = compile vs_4_0 NoInstancingVertexShader();
-        PixelShader = compile ps_4_0 PixelShaderFunction();
+        VertexShader = compile vs_4_0_level_9_1 NoInstancingVertexShader();
+        PixelShader = compile ps_4_0_level_9_1 PixelShaderFunction();
     }
 }

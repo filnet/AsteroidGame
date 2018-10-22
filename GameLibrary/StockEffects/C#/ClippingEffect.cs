@@ -159,7 +159,7 @@ namespace StockEffects
         /// Creates a new BasicEffect with default parameter settings.
         /// </summary>
         public ClippingEffect(GraphicsDevice device)
-            : base(AsteroidGame.AsteroidGame.Instance().Content.Load<Effect>("ClippingEffect"))
+            : base(AsteroidGame.AsteroidGame.Instance().Content.Load<Effect>("Effects/ClippingEffect"))
         {
             // TODO fix use of AsteroidGame.AsteroidGame.Instance(). above
             CacheEffectParameters(null);
@@ -226,7 +226,14 @@ namespace StockEffects
             }
             if ((dirtyFlags & EffectDirtyFlags.MaterialColor) != 0)
             {
-                colorParam.SetValue(color.ToVector4());
+                Vector4 c = color.ToVector4();
+
+                // premultiply alpha
+                c.X *= c.W;
+                c.Y *= c.W;
+                c.Z *= c.W;
+
+                colorParam.SetValue(c);
                 dirtyFlags &= ~EffectDirtyFlags.MaterialColor;
             }
         }

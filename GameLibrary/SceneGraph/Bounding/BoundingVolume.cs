@@ -29,22 +29,7 @@ namespace GameLibrary.SceneGraph.Bounding
     /// </summary>
     public abstract class BoundingVolume
     {
-        protected Vector3 center;
-
-        public Vector3 Center
-        {
-            get { return center; }
-            set
-            {
-                if (center != value)
-                {
-                    center = value;
-                    dirty = true;
-                }
-            }
-        }
-
-        private Matrix worldMatrix;
+        protected Matrix worldMatrix;
 
         protected bool dirty = true;
 
@@ -54,7 +39,7 @@ namespace GameLibrary.SceneGraph.Bounding
             {
                 if (dirty)
                 {
-                    worldMatrix = ComputeWorldMatrix();
+                    updateWorldMatrix();
                     dirty = false;
                 }
                 return worldMatrix;
@@ -63,20 +48,9 @@ namespace GameLibrary.SceneGraph.Bounding
 
         public BoundingVolume()
         {
-            center = new Vector3(0, 0, 0);
         }
 
-        public BoundingVolume(Vector3 center)
-        {
-            this.center = center;
-        }
-
-        public BoundingVolume(BoundingVolume bv)
-        {
-            center = bv.center;
-        }
-
-        public abstract Matrix ComputeWorldMatrix();
+        protected abstract void updateWorldMatrix();
 
         /// <summary>
         /// Creates a deep-copy of this BoundVolume, returns the same type.
@@ -111,7 +85,7 @@ namespace GameLibrary.SceneGraph.Bounding
         /// <returns>Distance</returns>
         public float DistanceTo(Vector3 point)
         {
-            return Vector3.Distance(Center, point);
+            return 0; //Vector3.Distance(Center, point);
         }
 
         /// <summary>
@@ -122,8 +96,10 @@ namespace GameLibrary.SceneGraph.Bounding
         /// <returns>Distance squared</returns>
         public float DistanceSquaredTo(Vector3 point)
         {
-            return Vector3.DistanceSquared(Center, point);
+            return 0; //Vector3.DistanceSquared(Center, point);
         }
+
+        public abstract ContainmentType IsContained(BoundingFrustum boundingFrustum);
 
         /// <summary>
         /// Compute the distance from the nearest edge of the volume
@@ -200,6 +176,7 @@ namespace GameLibrary.SceneGraph.Bounding
         /// <param name="x">X coordinate</param>
         /// <param name="y">Y coordinate</param>
         /// <param name="z">Z coordinate</param>
+/*     
         public void SetCenter(float x, float y, float z)
         {
             //Vector3 center = Center;
@@ -208,7 +185,7 @@ namespace GameLibrary.SceneGraph.Bounding
             center.Z = z;
             //Center = center;
         }
-
+*/
         /// <summary>
         /// Transforms this BoundVolume using the specified Transform
         /// object.
@@ -228,9 +205,9 @@ namespace GameLibrary.SceneGraph.Bounding
         /// <param name="rotation">Rotation</param>
         /// <param name="translation">Translation</param>
         /// <param name="store">BoundVolume to store in</param>
-        public abstract BoundingVolume Transform(Vector3 scale, Quaternion rotation, Vector3 translation, BoundingVolume store);
+        public abstract BoundingVolume Transform(Vector3 scale, Quaternion rotation, Vector3 translation, ref BoundingVolume store);
 
-        public abstract BoundingVolume Transform(Matrix m, BoundingVolume store);
+        public abstract BoundingVolume Transform(Matrix m, ref BoundingVolume store);
 
         //public abstract Camera.FrustumIntersect CheckFrustumPlane(Plane plane);
     }

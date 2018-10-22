@@ -1,6 +1,6 @@
 #region File Description
 //-----------------------------------------------------------------------------
-// BasicEffect.cs
+// InstancedEffect.cs
 //
 // Microsoft XNA Community Game Platform
 // Copyright (C) Microsoft Corporation. All rights reserved.
@@ -17,7 +17,7 @@ namespace StockEffects
     /// <summary>
     /// Built-in effect that supports optional texturing, vertex coloring, fog, and lighting.
     /// </summary>
-    public class BasicEffect : Effect, IEffectMatrices, IEffectLights, IEffectFog
+    public class InstancedEffect : Effect, IEffectMatrices, IEffectLights, IEffectFog
     {
         #region Effect Parameters
 
@@ -68,8 +68,26 @@ namespace StockEffects
 
         #endregion
 
-        #region Public Properties
+        public static readonly VertexDeclaration VertexDeclaration = new VertexDeclaration(new VertexElement[]
+    {
+                new VertexElement(0, VertexElementFormat.Vector3, VertexElementUsage.Position, 0),
+                new VertexElement(12, VertexElementFormat.Vector3, VertexElementUsage.Normal, 0),
+                new VertexElement(24, VertexElementFormat.Vector2, VertexElementUsage.TextureCoordinate, 0)
+    }
+);
 
+        // To store instance transform matrices in a vertex buffer, we use this custom
+        // vertex type which encodes 4x4 matrices as a set of four Vector4 values.
+        // TODO for cube faces a single translation (and eventual scale) is enough
+        public static readonly VertexDeclaration InstanceVertexDeclaration = new VertexDeclaration
+        (
+            new VertexElement(0, VertexElementFormat.Vector4, VertexElementUsage.BlendWeight, 0),
+            new VertexElement(16, VertexElementFormat.Vector4, VertexElementUsage.BlendWeight, 1),
+            new VertexElement(32, VertexElementFormat.Vector4, VertexElementUsage.BlendWeight, 2),
+            new VertexElement(48, VertexElementFormat.Vector4, VertexElementUsage.BlendWeight, 3)
+        );
+
+        #region Public Properties
 
         /// <summary>
         /// Gets or sets the world matrix.
@@ -77,7 +95,7 @@ namespace StockEffects
         public Matrix World
         {
             get { return world; }
-            
+
             set
             {
                 world = value;
@@ -92,7 +110,7 @@ namespace StockEffects
         public Matrix View
         {
             get { return view; }
-            
+
             set
             {
                 view = value;
@@ -107,7 +125,7 @@ namespace StockEffects
         public Matrix Projection
         {
             get { return projection; }
-            
+
             set
             {
                 projection = value;
@@ -122,7 +140,7 @@ namespace StockEffects
         public Vector3 DiffuseColor
         {
             get { return diffuseColor; }
-            
+
             set
             {
                 diffuseColor = value;
@@ -137,7 +155,7 @@ namespace StockEffects
         public Vector3 EmissiveColor
         {
             get { return emissiveColor; }
-            
+
             set
             {
                 emissiveColor = value;
@@ -172,7 +190,7 @@ namespace StockEffects
         public float Alpha
         {
             get { return alpha; }
-            
+
             set
             {
                 alpha = value;
@@ -187,7 +205,7 @@ namespace StockEffects
         public bool LightingEnabled
         {
             get { return lightingEnabled; }
-            
+
             set
             {
                 if (lightingEnabled != value)
@@ -205,7 +223,7 @@ namespace StockEffects
         public bool PreferPerPixelLighting
         {
             get { return preferPerPixelLighting; }
-            
+
             set
             {
                 if (preferPerPixelLighting != value)
@@ -223,7 +241,7 @@ namespace StockEffects
         public Vector3 AmbientLightColor
         {
             get { return ambientLightColor; }
-            
+
             set
             {
                 ambientLightColor = value;
@@ -256,7 +274,7 @@ namespace StockEffects
         public bool FogEnabled
         {
             get { return fogEnabled; }
-            
+
             set
             {
                 if (fogEnabled != value)
@@ -274,7 +292,7 @@ namespace StockEffects
         public float FogStart
         {
             get { return fogStart; }
-            
+
             set
             {
                 fogStart = value;
@@ -289,7 +307,7 @@ namespace StockEffects
         public float FogEnd
         {
             get { return fogEnd; }
-            
+
             set
             {
                 fogEnd = value;
@@ -314,7 +332,7 @@ namespace StockEffects
         public bool TextureEnabled
         {
             get { return textureEnabled; }
-            
+
             set
             {
                 if (textureEnabled != value)
@@ -342,7 +360,7 @@ namespace StockEffects
         public bool VertexColorEnabled
         {
             get { return vertexColorEnabled; }
-            
+
             set
             {
                 if (vertexColorEnabled != value)
@@ -360,10 +378,10 @@ namespace StockEffects
 
 
         /// <summary>
-        /// Creates a new BasicEffect with default parameter settings.
+        /// Creates a new InstancedEffect with default parameter settings.
         /// </summary>
-        public BasicEffect(GraphicsDevice device)
-            : base(AsteroidGame.AsteroidGame.Instance().Content.Load<Effect>("BasicEffect"))
+        public InstancedEffect(GraphicsDevice device)
+            : base(AsteroidGame.AsteroidGame.Instance().Content.Load<Effect>("Effects/InstancedModel"))
         {
             CacheEffectParameters(null);
 
@@ -375,9 +393,9 @@ namespace StockEffects
 
 
         /// <summary>
-        /// Creates a new BasicEffect by cloning parameter settings from an existing instance.
+        /// Creates a new InstancedEffect by cloning parameter settings from an existing instance.
         /// </summary>
-        protected BasicEffect(BasicEffect cloneSource)
+        protected InstancedEffect(InstancedEffect cloneSource)
             : base(cloneSource)
         {
             CacheEffectParameters(cloneSource);
@@ -404,11 +422,11 @@ namespace StockEffects
 
 
         /// <summary>
-        /// Creates a clone of the current BasicEffect instance.
+        /// Creates a clone of the current InstancedEffect instance.
         /// </summary>
         public override Effect Clone()
         {
-            return new BasicEffect(this);
+            return new InstancedEffect(this);
         }
 
 
@@ -426,20 +444,20 @@ namespace StockEffects
         /// <summary>
         /// Looks up shortcut references to our effect parameters.
         /// </summary>
-        void CacheEffectParameters(BasicEffect cloneSource)
+        void CacheEffectParameters(InstancedEffect cloneSource)
         {
-            textureParam                = Parameters["Texture"];
-            diffuseColorParam           = Parameters["DiffuseColor"];
-            emissiveColorParam          = Parameters["EmissiveColor"];
-            specularColorParam          = Parameters["SpecularColor"];
-            specularPowerParam          = Parameters["SpecularPower"];
-            eyePositionParam            = Parameters["EyePosition"];
-            fogColorParam               = Parameters["FogColor"];
-            fogVectorParam              = Parameters["FogVector"];
-            worldParam                  = Parameters["World"];
-            worldInverseTransposeParam  = Parameters["WorldInverseTranspose"];
-            worldViewProjParam          = Parameters["WorldViewProj"];
-            shaderIndexParam            = Parameters["ShaderIndex"];
+            textureParam = Parameters["Texture"];
+            diffuseColorParam = Parameters["DiffuseColor"];
+            emissiveColorParam = Parameters["EmissiveColor"];
+            specularColorParam = Parameters["SpecularColor"];
+            specularPowerParam = Parameters["SpecularPower"];
+            eyePositionParam = Parameters["EyePosition"];
+            fogColorParam = Parameters["FogColor"];
+            fogVectorParam = Parameters["FogVector"];
+            worldParam = Parameters["World"];
+            worldInverseTransposeParam = Parameters["WorldInverseTranspose"];
+            worldViewProjParam = Parameters["WorldViewProj"];
+            shaderIndexParam = Parameters["ShaderIndex"];
 
             light0 = new DirectionalLight(Parameters["DirLight0Direction"],
                                           Parameters["DirLight0DiffuseColor"],
@@ -465,7 +483,7 @@ namespace StockEffects
         {
             // Recompute the world+view+projection matrix or fog vector?
             dirtyFlags = EffectHelpers.SetWorldViewProjAndFog(dirtyFlags, ref world, ref view, ref projection, ref worldView, fogEnabled, fogStart, fogEnd, worldViewProjParam, fogVectorParam);
-            
+
             // Recompute the diffuse/emissive/alpha material color parameters?
             if ((dirtyFlags & EffectDirtyFlags.MaterialColor) != 0)
             {
@@ -478,10 +496,10 @@ namespace StockEffects
             {
                 // Recompute the world inverse transpose and eye position?
                 dirtyFlags = EffectHelpers.SetLightingMatrices(dirtyFlags, ref world, ref view, worldParam, worldInverseTransposeParam, eyePositionParam);
-                
+
                 // Check if we can use the only-bother-with-the-first-light shader optimization.
                 bool newOneLight = !light1.Enabled && !light2.Enabled;
-                
+
                 if (oneLight != newOneLight)
                 {
                     oneLight = newOneLight;
@@ -493,13 +511,13 @@ namespace StockEffects
             if ((dirtyFlags & EffectDirtyFlags.ShaderIndex) != 0)
             {
                 int shaderIndex = 0;
-                
+
                 if (!fogEnabled)
                     shaderIndex += 1;
-                
+
                 if (vertexColorEnabled)
                     shaderIndex += 2;
-                
+
                 if (textureEnabled)
                     shaderIndex += 4;
 

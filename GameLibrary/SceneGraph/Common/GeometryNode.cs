@@ -109,30 +109,22 @@ namespace GameLibrary.SceneGraph.Common
                 if (BoundingVolume != null)
                 {
                     // TODO : do not create garbage
-                    WorldBoundingVolume = BoundingVolume.Transform(WorldTransform, null);
+                    worldBoundingVolume = BoundingVolume.Transform(WorldTransform, ref worldBoundingVolume);
                 }
                 return true;
             }
             return false;
         }
 
-        public class DrawContext
-        {
-            public Scene scene;
-            public Effect effect;
-            public EffectPass pass;
-            public GameTime gameTime;
-        }
-
-        public virtual void preDraw(DrawContext dc)
+        public virtual void preDraw()
         {
         }
 
-        public virtual void Draw(DrawContext dc)
+        public virtual void Draw()
         {
         }
 
-        public virtual void postDraw(DrawContext dc)
+        public virtual void postDraw()
         {
         }
 

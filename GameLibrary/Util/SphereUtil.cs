@@ -18,7 +18,7 @@ namespace GameLibrary.Util
         public static void FromPoints(ref Sphere sphere, Vector3 O, Vector3 A)
         {
             double radiusSquared = ((A.X - O.X) * (A.X - O.X) + (A.Y - O.Y) * (A.Y - O.Y) + (A.Z - O.Z) * (A.Z - O.Z)) / 4.0f;
-            sphere.radius = (float) System.Math.Sqrt(radiusSquared);
+            sphere.radius = (float) Math.Sqrt(radiusSquared);
             sphere.radiusSquared = (float) radiusSquared;
             sphere.center.X = (O.X + A.X) / 2;
             sphere.center.Y = (O.Y + A.Y) / 2;
@@ -41,7 +41,7 @@ namespace GameLibrary.Util
             {
                 Vector3 o = ((Vector3.Cross(aCrossB, a) * b.LengthSquared()) + (Vector3.Cross(b, aCrossB) * a.LengthSquared())) / denom;
                 double radiusSquared = o.LengthSquared();
-                sphere.radius = (float) System.Math.Sqrt(radiusSquared);
+                sphere.radius = (float) Math.Sqrt(radiusSquared);
                 sphere.radiusSquared = (float) radiusSquared;
                 sphere.center = O + o;
             }
@@ -64,7 +64,7 @@ namespace GameLibrary.Util
             {
                 Vector3 o = ((Vector3.Cross(a, b) * c.LengthSquared()) + (Vector3.Cross(c, a) * b.LengthSquared()) + (Vector3.Cross(b, c) * a.LengthSquared())) / denom;
                 double radiusSquared = o.LengthSquared();
-                sphere.radius = (float) System.Math.Sqrt(radiusSquared);
+                sphere.radius = (float) global::System.Math.Sqrt(radiusSquared);
                 sphere.radiusSquared = (float) radiusSquared;
                 sphere.center = O + o;
             }
@@ -73,7 +73,7 @@ namespace GameLibrary.Util
         public static void FromPoints(ref Sphere sphere, Vector3[] points)
         {
             Vector3[] copy = new Vector3[points.Length];
-            System.Array.Copy(points, copy, points.Length);
+            global::System.Array.Copy(points, copy, points.Length);
             calculateWelzl(ref sphere, copy, copy.Length, 0, 0);
         }
 

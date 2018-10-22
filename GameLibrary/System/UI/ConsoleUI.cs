@@ -18,7 +18,7 @@ using GameLibrary.Util;
 
 #endregion
 
-namespace GameLibrary.Debug
+namespace GameLibrary.System
 {
     /// <summary>
     /// Command Window class for Debug purpose.

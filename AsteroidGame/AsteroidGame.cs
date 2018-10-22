@@ -16,6 +16,7 @@ using GameLibrary.Geometry;
 using GameLibrary.Geometry.Common;
 using AsteroidGame.Geometry;
 using GameLibrary.Util;
+using GameLibrary.Voxel;
 
 namespace AsteroidGame
 {
@@ -25,8 +26,6 @@ namespace AsteroidGame
     public class AsteroidGame : CustomGame
     {
         private static AsteroidGame instance;
-
-        private readonly float height = 0.25f;
 
         private GroupNode bulletGroupNode;
         private GroupNode asteroidGroupNode;
@@ -40,8 +39,30 @@ namespace AsteroidGame
             : base()
         {
             IsFixedTimeStep = false;
-            //graphics.GraphicsProfile = GraphicsProfile.HiDef;
             instance = this;
+        }
+
+        protected override void Initialize()
+        {
+            base.Initialize();
+        }
+
+        /// <summary>
+        /// LoadContent will be called once per game and is the place to load
+        /// all of your content.
+        /// </summary>
+        protected override void LoadContent()
+        {
+            base.LoadContent();
+        }
+
+        /// <summary>
+        /// UnloadContent will be called once per game and is the place to unload
+        /// all content.
+        /// </summary>
+        protected override void UnloadContent()
+        {
+            base.UnloadContent();
         }
 
         /// <summary>
@@ -50,31 +71,27 @@ namespace AsteroidGame
         /// related content.  Calling base.Initialize will enumerate through any components
         /// and initialize them as well.
         /// </summary>
-        protected override Scene createScene()
+        protected override Scene createScene(int mode)
         {
-            // scene
-            Scene scene = null;
-            int mode = 0;
             switch (mode)
             {
                 case 0:
-                    scene = createAsteroidScene();
-                    scene.RootNode.AddFirst(createGridNode());
-                    break;
+                    Scene scene = createAsteroidScene();
+                    return scene;
                 case 1:
-                    scene = createGeodesicTestScene();
-                    break;
+                    return createGeodesicTestScene();
                 case 2:
                     scene = createCollisionTestScene();
-                    break;
+                    return scene;
                 case 3:
                     scene = createCubeTestScene();
-                    break;
+                    return scene;
                 case 4:
                     scene = createVoxelTestScene();
-                    break;
+                    return scene;
+                default:
+                    return null;
             }
-            return scene;
         }
 
         private Node createGridNode()
@@ -96,6 +113,8 @@ namespace AsteroidGame
 
         private Scene createAsteroidScene()
         {
+            float height = 0.25f;
+
             Scene scene = new Scene();
             scene.GraphicsDevice = GraphicsDevice;
 
@@ -123,6 +142,8 @@ namespace AsteroidGame
             // root
             GroupNode rootNode = scene.RootNode;
             rootNode.Add(worldNode);
+
+            rootNode.AddFirst(createGridNode());
 
             return scene;
         }
@@ -241,7 +262,7 @@ namespace AsteroidGame
 
             scene.CameraComponent = CameraComponent;
 
-            GeometryNode cube = new CubeGeometry("CUBE");
+            GeometryNode cube = GeometryUtil.CreateCube("CUBE");
             cube.RenderGroupId = Scene.THREE_LIGHTS;
             cube.Scale = new Vector3(2.0f);
 
@@ -259,15 +280,117 @@ namespace AsteroidGame
 
             scene.CameraComponent = CameraComponent;
 
-            GeometryNode voxel = new VoxelMapGeometry2("VOXEL", 24);
-            voxel.RenderGroupId = Scene.THREE_LIGHTS;
-            voxel.Scale = new Vector3(3.50f);
+            //Node voxelMapNode = createVoxelMapNode("VOXEL", 16);
+            Node octreeNode = createOctreeNode("OCTREE", 1024);
 
             // root
+            TransformNode node = new TransformNode("SCENE");
+            node.Scale = new Vector3(0.10f);
+            //node.Add(voxelMapNode);
+            node.Add(octreeNode);
+
             GroupNode rootNode = scene.RootNode;
-            rootNode.Add(voxel);
+            rootNode.Add(node);
 
             return scene;
+        }
+
+        private Node createOctreeNode(String name, int size)
+        {
+            int SIZE = 1024;
+            int VOXEL_SIZE = 16;
+            int DEPTH = BitUtil.Log2(SIZE / VOXEL_SIZE);
+            OctreeGeometry node = new OctreeGeometry(name, SIZE);
+            node.RenderGroupId = Scene.OCTREE;
+
+            GroupNode groupNode = new GroupNode("GROUP_VOXEL");
+            groupNode.Enabled = true;
+            groupNode.Visible = false;
+            node.Add(groupNode);
+
+            //addOctreeChildren(node.Octree, node.Octree.RootNode);
+            //node.Octree.AddChild(Vector3.Zero, 6);
+
+            //node.Octree.AddChild(new Vector3(0,0,-1), 6);
+            //node.Octree.AddChild(new Vector3(0, -1, -1), 6);
+            //node.Octree.AddChild(new Vector3(-1, -1, -1), 6);
+
+            OctreeNode<GeometryNode> onode;
+
+            onode = node.Octree.AddChild(new Vector3(0, 0, 0), DEPTH);
+            onode.obj = createOctreeVoxelMapNode(node.Octree, onode, "VOXEL", VOXEL_SIZE);
+            // TODO don't had voxel nodes to scene...
+            groupNode.Add(onode.obj);
+
+            onode = node.Octree.AddChild(new Vector3(-16, 0, 0), DEPTH);
+            onode.obj = createOctreeVoxelMapNode(node.Octree, onode, "VOXEL", VOXEL_SIZE);
+            // TODO don't had voxel nodes to scene...
+            groupNode.Add(onode.obj);
+
+            onode = node.Octree.AddChild(new Vector3(16, 0, 0), DEPTH);
+            onode.obj = createOctreeVoxelMapNode(node.Octree, onode, "VOXEL", 16);
+            // TODO don't had voxel nodes to scene...
+            groupNode.Add(onode.obj);
+
+            onode = node.Octree.AddChild(new Vector3(32, 0, 0), DEPTH);
+            onode.obj = createOctreeVoxelMapNode(node.Octree, onode, "VOXEL", VOXEL_SIZE);
+            // TODO don't had voxel nodes to scene...
+            groupNode.Add(onode.obj);
+
+            return node;
+        }
+
+        private GeometryNode createOctreeVoxelMapNode(Octree<GeometryNode> octree, OctreeNode<GeometryNode> onode, String name, int size)
+        {
+            //voxelMap = new SimpleVoxelMap(size);
+            VoxelMap voxelMap = new FunctionVoxelMap(size);
+
+            //GeometryNode node = new VoxelMapGeometry(name, size);
+            //node.RenderGroupId = Scene.VOXEL_MAP;
+
+            GeometryNode node = new MeshNode("VOXEL", new VoxelMapMeshFactory(voxelMap));
+            node.Visible = true;
+            node.RenderGroupId = Scene.VOXEL;
+            //node.Rotation = Quaternion.CreateFromYawPitchRoll(0.3f, 0, 0);
+
+            Vector3 halfSize;
+            Vector3 center;
+            octree.GetNodeBoundingBox(onode, out center, out halfSize);
+
+            node.Translation = center;
+
+            return node;
+        }
+
+        private Node createVoxelMapNode(String name, int size)
+        {
+            //voxelMap = new SimpleVoxelMap(size);
+            VoxelMap voxelMap = new FunctionVoxelMap(size);
+
+            //GeometryNode node = new VoxelMapGeometry(name, size);
+            //node.RenderGroupId = Scene.VOXEL_MAP;
+
+            GeometryNode node = new MeshNode("VOXEL", new VoxelMapMeshFactory(voxelMap));
+            node.RenderGroupId = Scene.VOXEL;
+            //node.Rotation = Quaternion.CreateFromYawPitchRoll(0.3f, 0, 0);
+
+            return node;
+        }
+
+        private void addOctreeChildren(Octree<GeometryNode> octree, OctreeNode<GeometryNode> parentNode)
+        {
+            if (octree.GetNodeTreeDepth(parentNode) == 6)
+            {
+                return;
+            }
+            for (int i = 0; i < 8; i++)
+            {
+                OctreeNode<GeometryNode> childNode = octree.AddChild(parentNode, (Octant)i);
+                if (i == 0)
+                {
+                    addOctreeChildren(octree, childNode);
+                }
+            }
         }
 
         private Scene createCollisionTestScene()
@@ -333,7 +456,7 @@ namespace AsteroidGame
             bool WF = false;
 
             int depth = 4;
-            int types = 3;
+            int types = 5;
             for (int i = 0; i <= depth; i++)
             {
                 for (int j = 0; j < types; j++)
@@ -346,53 +469,40 @@ namespace AsteroidGame
                         case 0:
                             geo = GeometryUtil.CreateSphere("SPHERE_" + i + "_" + j, i);
                             geo.RenderGroupId = Scene.ONE_LIGHT;
-                            //geo.RenderGroupId = 1;
                             break;
                         case 1:
                             geo = GeometryUtil.CreateGeodesic("GEODESIC_" + i + "_" + j, i);
                             geo.RenderGroupId = Scene.ONE_LIGHT;
-                            //geo.RenderGroupId = 1;
                             break;
                         case 2:
-                            if (WF)
-                            {
-                                geo = GeometryUtil.CreateGeodesic("GEODESIC2_" + i + "_" + j, i);
-                                //geo.Scale = new Vector3(1.05f);
-                                geo.RenderGroupId = Scene.WIRE_FRAME;
-                                //geo.RenderGroupId = 2;
-                            }
-                            else
-                            {
-                                geo = GeometryUtil.CreateGeodesicWF("GEODESIC2_WF_" + i + "_" + j, i);
-                                //geo.Scale = new Vector3(1.05f);
-                                geo.RenderGroupId = Scene.VECTOR;
-                                //geo.RenderGroupId = 0;
-                            }
+                            geo = GeometryUtil.CreateGeodesic("GEODESIC2_" + i + "_" + j, i);
+                            geo.RenderGroupId = Scene.WIRE_FRAME;
                             break;
                         case 3:
+                            geo = GeometryUtil.CreateGeodesicWF("GEODESIC2_WF_" + i + "_" + j, i);
+                            geo.RenderGroupId = Scene.VECTOR;
+                            break;
+                        case 4:
                             geo = GeometryUtil.CreateGeodesic("GEODESIC2" + i + "_" + j, i);
-                            GeometryNode geoWF;
+                            geo.RenderGroupId = Scene.ONE_LIGHT;
                             if (WF)
                             {
-                                geoWF = GeometryUtil.CreateGeodesic("GEODESIC2_" + i + "_" + j, i);
+                                GeometryNode geoWF = GeometryUtil.CreateGeodesic("GEODESIC2_" + i + "_" + j, i);
                                 geoWF.Scale = new Vector3(1.05f);
                                 geoWF.RenderGroupId = Scene.WIRE_FRAME;
-                                //geoWF.RenderGroupId = 2;
                                 geo.Add(geoWF);
                             }
                             else
                             {
-                                geoWF = GeometryUtil.CreateGeodesicWF("GEODESIC2_WF_" + i + "_" + j, i);
+                                GeometryNode geoWF = GeometryUtil.CreateGeodesicWF("GEODESIC2_WF_" + i + "_" + j, i);
                                 geoWF.Scale = new Vector3(1.05f);
                                 geoWF.RenderGroupId = Scene.VECTOR;
-                                //geoWF.RenderGroupId = 0;
                                 geo.Add(geoWF);
                             }
                             break;
                         default:
                             geo = GeometryUtil.CreateGeodesic("GEODESIC_DEFAULT_" + i + "_" + j, i);
                             geo.RenderGroupId = Scene.ONE_LIGHT;
-                            //geo.RenderGroupId = 1;
                             break;
                     }
                     TransformNode node = new TransformNode("TRANSFORM" + i + "_" + j);
@@ -406,23 +516,6 @@ namespace AsteroidGame
             return scene;
         }
 
-        /// <summary>
-        /// LoadContent will be called once per game and is the place to load
-        /// all of your content.
-        /// </summary>
-        protected override void LoadContent()
-        {
-            base.LoadContent();
-        }
-
-        /// <summary>
-        /// UnloadContent will be called once per game and is the place to unload
-        /// all content.
-        /// </summary>
-        protected override void UnloadContent()
-        {
-            base.UnloadContent();
-        }
 
     }
 }

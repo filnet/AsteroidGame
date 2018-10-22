@@ -20,7 +20,7 @@ using GameLibrary.Util;
 
 #endregion
 
-namespace GameLibrary.Debug
+namespace GameLibrary.System
 {
     /// <summary>
     /// Realtime CPU measuring tool

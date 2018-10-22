@@ -57,7 +57,7 @@ namespace GameLibrary
         public override void Draw(GameTime gameTime)
         {
             base.Draw(gameTime);
-
+/*
             Vector2 fontPos = new Vector2(1.0f, 50.0f);
 
 
@@ -76,7 +76,7 @@ namespace GameLibrary
             //GraphicsDevice.DepthStencilState = depthStencilState;
             //GraphicsDevice.RasterizerState = rasterizerState;
             //GraphicsDevice.SamplerStates[0] = samplerState;
-
+*/
             IncrementFrameCounter();
         }
 

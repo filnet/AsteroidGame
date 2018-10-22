@@ -11,6 +11,8 @@ namespace GameLibrary
 {
     public class ArcBallCamera : InputController, ICameraComponent
     {
+        private static readonly float DEFAULT_ZOOM = 8.0f;
+
         // Set rates in world units per 1/60th second (the default fixed-step interval).
         private float rotationSpeed = 1f / 60f;
 
@@ -30,16 +32,18 @@ namespace GameLibrary
 
         private Matrix viewMatrix;
         private Matrix projectionMatrix;
+        private Matrix viewProjectionMatrix;
 
         private BoundingFrustum boundingFrustum;
 
-        private float zoom = 8.0f;
+        private float zoom = DEFAULT_ZOOM;
         private float horizontalAngle;// = MathHelper.PiOver4;
         private float verticalAngle;// = MathHelper.PiOver4;
 
         private bool clampVerticalAngle = true;
 
         private bool viewMatrixDirty;
+        private bool viewProjectionMatrixDirty;
         private bool boundingFrustumDirty;
 
         #region Properties
@@ -63,6 +67,19 @@ namespace GameLibrary
             }
         }
 
+        public Matrix ViewProjectionMatrix
+        {
+            get
+            {
+                if (viewProjectionMatrixDirty)
+                {
+                    viewProjectionMatrix = viewMatrix * projectionMatrix;
+                    viewProjectionMatrixDirty = false;
+                }
+                return viewProjectionMatrix;
+            }
+        }
+
         public BoundingFrustum BoundingFrustum
         {
             get
@@ -83,10 +100,16 @@ namespace GameLibrary
                 return zoom;
             }
             set
-            {    // Keep zoom within range
-                zoom = MathHelper.Clamp(value, zoomMin, zoomMax);
-                viewMatrixDirty = true;
-                boundingFrustumDirty = true;
+            {
+                // Keep zoom within range
+                value = MathHelper.Clamp(value, zoomMin, zoomMax);
+                if (zoom != value)
+                {
+                    zoom = value;
+                    viewMatrixDirty = true;
+                    viewProjectionMatrixDirty = true;
+                    boundingFrustumDirty = true;
+                }
             }
         }
 
@@ -97,10 +120,17 @@ namespace GameLibrary
                 return horizontalAngle;
             }
             set
-            {    // Keep horizontalAngle between -pi and pi.
-                horizontalAngle = value % (MathHelper.Pi * 2);
-                viewMatrixDirty = true;
-                boundingFrustumDirty = true;
+            {
+                // Keep horizontalAngle between -pi and pi.
+                value = value % (MathHelper.Pi * 2);
+                if (horizontalAngle != value)
+                {
+                    horizontalAngle = value;
+
+                    viewMatrixDirty = true;
+                    viewProjectionMatrixDirty = true;
+                    boundingFrustumDirty = true;
+                }
             }
         }
 
@@ -115,14 +145,40 @@ namespace GameLibrary
                 if (clampVerticalAngle)
                 {
                     // keep vertical angle within tolerances
-                    verticalAngle = MathHelper.Clamp(value, verticalAngleMin, verticalAngleMax);
+                    value = MathHelper.Clamp(value, verticalAngleMin, verticalAngleMax);
                 }
                 // Keep horizontalAngle between -pi and pi.
                 //verticalAngle = value % (MathHelper.Pi * 2);
-                viewMatrixDirty = true;
-                boundingFrustumDirty = true;
+                if (verticalAngle != value)
+                {
+                    verticalAngle = value;
+
+                    viewMatrixDirty = true;
+                    viewProjectionMatrixDirty = true;
+                    boundingFrustumDirty = true;
+                }
             }
         }
+
+        public Vector3 TargetPosition
+        {
+            get
+            {
+                return targetPosition;
+            }
+            set
+            {
+                if (targetPosition != value)
+                {
+                    targetPosition = value;
+
+                    viewMatrixDirty = true;
+                    viewProjectionMatrixDirty = true;
+                    boundingFrustumDirty = true;
+                }
+            }
+        }
+
         #endregion
 
         public ArcBallCamera()
@@ -132,6 +188,7 @@ namespace GameLibrary
             projectionMatrix = Matrix.Identity;
             boundingFrustum = new BoundingFrustum(Matrix.Identity);
             viewMatrixDirty = true;
+            viewProjectionMatrixDirty = true;
             boundingFrustumDirty = true;
         }
 
@@ -175,20 +232,26 @@ namespace GameLibrary
             {
                 VerticalAngle = 0;
                 HorizontalAngle = 0;
+                Zoom = DEFAULT_ZOOM;
+                TargetPosition = Vector3.Zero;
             }
             if (/*IsKeyDown(Keys.Left) ||*/ (GamePadState.DPad.Left == ButtonState.Pressed))
             {
                 // Rotate left.
-                RotateAroundY((float) ((double) rotationSpeed * elapsed));
+                //RotateAroundY((float) ((double) rotationSpeed * elapsed));
+                TargetPosition += new Vector3(-.01f, 0, 0);
             }
             if (/*IsKeyDown(Keys.Right) ||*/ (GamePadState.DPad.Right == ButtonState.Pressed))
             {
                 // Rotate right.
-                RotateAroundY(-(float) ((double) rotationSpeed * elapsed));
+                //RotateAroundY(-(float) ((double) rotationSpeed * elapsed));
+                TargetPosition += new Vector3(.01f, 0, 0);
             }
             if (/*IsKeyDown(Keys.Up) ||*/ (GamePadState.DPad.Up == ButtonState.Pressed))
             {
-                RotateAroundX((float) ((double) rotationSpeed * elapsed));
+                //RotateAroundX((float) ((double) rotationSpeed * elapsed));
+                TargetPosition += new Vector3(0, .01f, 0);
+
                 //Matrix forwardMovement = Matrix.CreateRotationY(yaw);
                 //Vector3 v = new Vector3(0, 0, forwardSpeed);
                 //v = Vector3.Transform(v, forwardMovement);
@@ -197,7 +260,9 @@ namespace GameLibrary
             }
             if (/*IsKeyDown(Keys.Down) ||*/ (GamePadState.DPad.Down == ButtonState.Pressed))
             {
-                RotateAroundX(-(float) ((double) rotationSpeed * elapsed));
+                //RotateAroundX(-(float) ((double) rotationSpeed * elapsed));
+                TargetPosition += new Vector3(0, -.01f, 0);
+
                 //Matrix forwardMovement = Matrix.CreateRotationY(yaw);
                 //Vector3 v = new Vector3(0, 0, -forwardSpeed);
                 //v = Vector3.Transform(v, forwardMovement);
@@ -212,22 +277,22 @@ namespace GameLibrary
             {
                 if (triggers.Left > 0)
                 {
-                    RotateAroundY((float) ((double) rotationSpeed * elapsed * -v.X));
+                    RotateAroundY((float)((double)rotationSpeed * elapsed * -v.X));
                 }
                 else
                 {
-                    RotateAroundY((float) ((double) rotationSpeed * elapsed * -v.X));
+                    RotateAroundY((float)((double)rotationSpeed * elapsed * -v.X));
                 }
             }
             if (v.Y != 0)
             {
                 if (triggers.Left > 0)
                 {
-                    Zoom += (float) (zoomSpeed * elapsed * -v.Y);
+                    Zoom += (float)(zoomSpeed * elapsed * -v.Y);
                 }
                 else
                 {
-                    RotateAroundX((float) ((double) rotationSpeed * elapsed * v.Y));
+                    RotateAroundX((float)((double)rotationSpeed * elapsed * v.Y));
                 }
             }
 
@@ -277,6 +342,7 @@ namespace GameLibrary
             this.rotation.Up = Vector3.Cross(this.rotation.Right, this.rotation.Forward);
 
             viewMatrixDirty = true;
+            viewProjectionMatrixDirty = true;
             boundingFrustumDirty = true;
         }
 

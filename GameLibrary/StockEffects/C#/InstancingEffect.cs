@@ -1,6 +1,6 @@
 #region File Description
 //-----------------------------------------------------------------------------
-// BasicEffect.cs
+// InstancingEffect.cs
 //
 // Microsoft XNA Community Game Platform
 // Copyright (C) Microsoft Corporation. All rights reserved.
@@ -17,7 +17,7 @@ namespace StockEffects
     /// <summary>
     /// Built-in effect that supports optional texturing, vertex coloring, fog, and lighting.
     /// </summary>
-    public class BasicEffect : Effect, IEffectMatrices, IEffectLights, IEffectFog
+    public class InstancingEffect : Effect, IEffectMatrices, IEffectLights, IEffectFog
     {
         #region Effect Parameters
 
@@ -360,10 +360,10 @@ namespace StockEffects
 
 
         /// <summary>
-        /// Creates a new BasicEffect with default parameter settings.
+        /// Creates a new InstancingEffect with default parameter settings.
         /// </summary>
-        public BasicEffect(GraphicsDevice device)
-            : base(AsteroidGame.AsteroidGame.Instance().Content.Load<Effect>("BasicEffect"))
+        public InstancingEffect(GraphicsDevice device)
+            : base(AsteroidGame.AsteroidGame.Instance().Content.Load<Effect>("Effects/InstancingEffect"))
         {
             CacheEffectParameters(null);
 
@@ -375,9 +375,9 @@ namespace StockEffects
 
 
         /// <summary>
-        /// Creates a new BasicEffect by cloning parameter settings from an existing instance.
+        /// Creates a new InstancingEffect by cloning parameter settings from an existing instance.
         /// </summary>
-        protected BasicEffect(BasicEffect cloneSource)
+        protected InstancingEffect(InstancingEffect cloneSource)
             : base(cloneSource)
         {
             CacheEffectParameters(cloneSource);
@@ -404,11 +404,11 @@ namespace StockEffects
 
 
         /// <summary>
-        /// Creates a clone of the current BasicEffect instance.
+        /// Creates a clone of the current InstancingEffect instance.
         /// </summary>
         public override Effect Clone()
         {
-            return new BasicEffect(this);
+            return new InstancingEffect(this);
         }
 
 
@@ -426,7 +426,7 @@ namespace StockEffects
         /// <summary>
         /// Looks up shortcut references to our effect parameters.
         /// </summary>
-        void CacheEffectParameters(BasicEffect cloneSource)
+        void CacheEffectParameters(InstancingEffect cloneSource)
         {
             textureParam                = Parameters["Texture"];
             diffuseColorParam           = Parameters["DiffuseColor"];

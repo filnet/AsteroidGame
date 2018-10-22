@@ -15,7 +15,7 @@ namespace GameLibrary.SceneGraph.Common
             return nextNodeID;
         }
 
-        public enum DirtyFlag : int { Transform, ChildTransform, WorldTransform, ChildWorldTransform };
+        public enum DirtyFlag : int { Structure, ChildStructure, Transform, ChildTransform, WorldTransform, ChildWorldTransform };
 
         #region Fields
 
@@ -92,7 +92,7 @@ namespace GameLibrary.SceneGraph.Common
 
         public virtual void Initialize()
         {
-            Console.Out.WriteLine("Initializing " + name);
+            Console.WriteLine("Initializing " + name);
         }
 
         public virtual void Dispose()

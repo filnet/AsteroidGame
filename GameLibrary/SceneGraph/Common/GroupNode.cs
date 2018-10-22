@@ -82,8 +82,9 @@ namespace GameLibrary.SceneGraph.Common
         public GroupNode(String name)
             : base(name)
         {
-            nodes = new LinkedList<Node>();
             BoundingVolumeVisible = true;
+            nodes = new LinkedList<Node>();
+            setStructureDirty();
         }
 
         public GroupNode(GroupNode node)
@@ -96,6 +97,7 @@ namespace GameLibrary.SceneGraph.Common
             {
                 Add(it.Value.Clone());
             }
+            setStructureDirty();
         }
 
         #endregion
@@ -115,6 +117,7 @@ namespace GameLibrary.SceneGraph.Common
             }
             // TODO performance: call AddFrist
             nodeEvents.AddLast(new NodeEvent(EventType.ADDED, node));
+            setStructureDirty();
         }
 
         public void AddFirst(Node node)
@@ -125,6 +128,7 @@ namespace GameLibrary.SceneGraph.Common
             }
             // TODO performance: call AddFrist
             nodeEvents.AddLast(new NodeEvent(EventType.ADDED_FIRST, node));
+            setStructureDirty();
         }
 
         public void Remove(Node node)
@@ -135,12 +139,18 @@ namespace GameLibrary.SceneGraph.Common
             }
             // TODO performance: call AddFrist
             nodeEvents.AddLast(new NodeEvent(EventType.REMOVED, node));
+            setStructureDirty();
         }
 
         public void Commit()
         {
+            if (!isDirty(DirtyFlag.Structure))
+            {
+                return;
+            }
             if (nodeEvents != null)
             {
+                bool added = false;
                 for (LinkedListNode<NodeEvent> it = nodeEvents.First; it != null; it = it.Next)
                 {
                     NodeEvent evt = it.Value;
@@ -148,16 +158,34 @@ namespace GameLibrary.SceneGraph.Common
                     switch (evt.Type)
                     {
                         case EventType.ADDED:
+                            added = true;
                             node.ParentNode = this;
                             setSceneRecursive(node);
                             nodes.AddLast(node);
                             node.Initialize();
+                            if (node.IsDirty(DirtyFlag.Transform))
+                            {
+                                node.setDirty(DirtyFlag.ChildTransform);
+                                setParentDirty(DirtyFlag.ChildTransform);
+                            }
+                            // FIXME this will cause every node in the scene to recompute their world transform
+                            node.setDirty(DirtyFlag.ChildWorldTransform);
+                            setParentDirty(DirtyFlag.ChildWorldTransform);
                             break;
                         case EventType.ADDED_FIRST:
+                            added = true;
                             node.ParentNode = this;
                             setSceneRecursive(node);
                             nodes.AddFirst(node);
                             node.Initialize();
+                            if (node.IsDirty(DirtyFlag.Transform))
+                            {
+                                node.setDirty(DirtyFlag.ChildTransform);
+                                setParentDirty(DirtyFlag.ChildTransform);
+                            }
+                            // FIXME this will cause every node in the scene to recompute their world transform
+                            node.setDirty(DirtyFlag.ChildWorldTransform);
+                            setParentDirty(DirtyFlag.ChildWorldTransform);
                             break;
                         case EventType.REMOVED:
                             node.ParentNode = null;
@@ -166,28 +194,33 @@ namespace GameLibrary.SceneGraph.Common
                             break;
                     }
                 }
+                if (added)
+                {
+                    setDirty(DirtyFlag.ChildStructure);
+                }
                 nodeEvents.Clear();
                 nodeEvents = null;
             }
+            clearDirty(DirtyFlag.Structure);
         }
 
         // http://en.wikipedia.org/wiki/Tree_traversal#Example
         internal override bool visit(Visitor preVisitor, Visitor inVisitor, Visitor postVisitor, Object arg)
         {
-            bool recurse = true;
+            bool cont = true;
             if (preVisitor != null)
             {
-                recurse = recurse && preVisitor(this, ref arg);
+                cont = cont && preVisitor(this, ref arg);
             }
-            if (recurse)
+            if (cont)
             {
                 for (LinkedListNode<Node> it = nodes.First; it != null; it = it.Next)
                 {
-                    Node node = it.Value;
-                    node.visit(preVisitor, inVisitor, postVisitor, arg);
+                    Node childNode = it.Value;
+                    childNode.visit(preVisitor, inVisitor, postVisitor, arg);
                     if (inVisitor != null)
                     {
-                        inVisitor(node, ref arg);
+                        inVisitor(childNode, ref arg);
                     }
                 }
             }
@@ -195,27 +228,34 @@ namespace GameLibrary.SceneGraph.Common
             {
                 postVisitor(this, ref arg);
             }
-            return recurse;
+            return cont;
         }
 
         #endregion
 
-        internal override void setChildDirty(DirtyFlag dirtyFlag, int depth)
+        private void setStructureDirty()
         {
-            for (LinkedListNode<Node> it = nodes.First; it != null; it = it.Next)
-            {
-                Node node = it.Value;
-                if (!node.IsDirty(dirtyFlag))
-                {
-                    node.setDirty(dirtyFlag);
-                    if (depth > 0 || depth == -1)
-                    {
-                        node.setChildDirty(dirtyFlag, (depth > 0) ? depth - 1 : depth);
-                    }
-                }
-            }
+            setDirty(DirtyFlag.Structure);
+            setParentDirty(DirtyFlag.ChildStructure);
         }
 
+        /*
+                internal override void setChildDirty(DirtyFlag dirtyFlag, int depth)
+                {
+                    for (LinkedListNode<Node> it = nodes.First; it != null; it = it.Next)
+                    {
+                        Node node = it.Value;
+                        if (!node.IsDirty(dirtyFlag))
+                        {
+                            node.setDirty(dirtyFlag);
+                            if (depth > 0 || depth == -1)
+                            {
+                                node.setChildDirty(dirtyFlag, (depth > 0) ? depth - 1 : depth);
+                            }
+                        }
+                    }
+                }
+        */
 
         #region Private Methods
 

@@ -13,7 +13,7 @@ using System.Collections.Generic;
 
 #endregion
 
-namespace GameLibrary.Debug
+namespace GameLibrary.System
 {
     /// <summary>
     /// Message types for debug command.

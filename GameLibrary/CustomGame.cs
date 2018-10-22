@@ -8,7 +8,7 @@ using Microsoft.Xna.Framework.Graphics;
 using GameLibrary.SceneGraph;
 using GameLibrary.Control;
 using System.Diagnostics;
-using GameLibrary.Debug;
+using GameLibrary.System;
 
 namespace GameLibrary
 {
@@ -36,6 +36,7 @@ namespace GameLibrary
         private ICameraComponent cameraComponent;
         private FPSComponent fpsComponent;
 
+        private int mode = 4;
         private Scene scene;
 
         public GraphicsDeviceManager Graphics
@@ -72,7 +73,7 @@ namespace GameLibrary
             IsMouseVisible = false;
         }
 
-        protected virtual Scene createScene()
+        protected virtual Scene createScene(int mode)
         {
             return null;
         }
@@ -104,6 +105,7 @@ namespace GameLibrary
         {
             GraphicsDeviceManager graphics = new GraphicsDeviceManager(this);
             graphics.SynchronizeWithVerticalRetrace = true;
+            graphics.GraphicsProfile = GraphicsProfile.HiDef;
             graphics.ApplyChanges();
             return graphics;
         }
@@ -142,23 +144,25 @@ namespace GameLibrary
             InitCamera();
 
             // Initialize the DebugSystem
-            DebugSystem.Initialize(this, debugFont: FontAssetName);
-            DebugSystem.Instance.FpsCounter.Visible = true;
-            DebugSystem.Instance.TimeRuler.Visible = true;
-            DebugSystem.Instance.TimeRuler.ShowLog = false;
+            System.DebugSystem.Initialize(this, debugFont: FontAssetName);
+            System.DebugSystem.Instance.FpsCounter.Visible = true;
+            System.DebugSystem.Instance.TimeRuler.Visible = true;
+            System.DebugSystem.Instance.TimeRuler.ShowLog = false;
 
 
             // Add "tr" command if DebugCommandHost is registered.
             IDebugCommandHost host = Services.GetService(typeof(IDebugCommandHost)) as IDebugCommandHost;
             if (host != null)
             {
-                host.RegisterCommand("bv", "Bounding volumes", this.CommandExecute);
+                host.RegisterCommand("t", "Toggle an option", this.ToggleOptionCommandExecute);
+                host.RegisterCommand("s", "Show options", this.ShowOptionsCommandExecute);
+                host.RegisterCommand("d", "Dump scene", this.SceneCommandExecute);
                 //this.Visible = true;
             }
 
             fpsComponent.Initialize();
 
-            scene = createScene();
+            scene = createScene(mode);
             scene.Initialize();
 
             // initialize self. will initialize all added components
@@ -183,6 +187,17 @@ namespace GameLibrary
             //Components.Remove(cameraComponent);
         }
 
+        public void NextScene()
+        {
+            if (scene != null)
+            {
+                scene.Dispose();
+            }
+            mode = (mode + 1) % 5;
+            scene = createScene(mode);
+            scene.Initialize();
+        }
+
         /// <summary>
         /// Allows the game to run logic such as updating the world,
         /// checking for collisions, gathering input, and playing audio.
@@ -191,10 +206,10 @@ namespace GameLibrary
         protected sealed override void Update(GameTime gameTime)
         {
             // call StartFrame at the begining of Update to indicate that new frame has started.
-            DebugSystem.Instance.TimeRuler.StartFrame();
+            System.DebugSystem.Instance.TimeRuler.StartFrame();
 
             // begin measuring the Update method
-            DebugSystem.Instance.TimeRuler.BeginMark("Update", Color.Yellow);
+            System.DebugSystem.Instance.TimeRuler.BeginMark("Update", Color.Yellow);
 
             fpsComponent.UpdateStopwatch.Start();
 
@@ -207,7 +222,7 @@ namespace GameLibrary
             //fpsCounter.Update(gameTime);
 
             // end measuring the Update method
-            DebugSystem.Instance.TimeRuler.EndMark("Update");
+            System.DebugSystem.Instance.TimeRuler.EndMark("Update");
         }
 
         protected void UpdateScene(GameTime gameTime)
@@ -222,7 +237,7 @@ namespace GameLibrary
         protected sealed override void Draw(GameTime gameTime)
         {
             // Begin measuring our Draw method
-            DebugSystem.Instance.TimeRuler.BeginMark("Draw", Color.Red);
+            System.DebugSystem.Instance.TimeRuler.BeginMark("Draw", Color.Red);
 
             fpsComponent.DrawStopwatch.Start();
 
@@ -231,10 +246,10 @@ namespace GameLibrary
             fpsComponent.DrawStopwatch.Stop();
             //fpsComponent.Draw(gameTime);
             base.Draw(gameTime);
-            //fpsCounter.Draw(gameTime);
+            fpsComponent.Draw(gameTime);
 
             // End measuring our Draw method
-            DebugSystem.Instance.TimeRuler.EndMark("Draw");
+            System.DebugSystem.Instance.TimeRuler.EndMark("Draw");
         }
 
         protected void DrawScene(GameTime gameTime)
@@ -264,7 +279,7 @@ namespace GameLibrary
         {
             int windowWidth = GraphicsDevice.DisplayMode.Width;
             int windowHeight = GraphicsDevice.DisplayMode.Height;
-            float aspectRatio = (float) windowWidth / (float) windowHeight;
+            float aspectRatio = (float)windowWidth / (float)windowHeight;
             cameraComponent.Perspective(viewAngle, aspectRatio, nearClip, farClip);
 
             //GraphicsDevice device = graphics.GraphicsDevice;
@@ -284,10 +299,9 @@ namespace GameLibrary
         /// <summary>
         /// 'tr' command execution.
         /// </summary>
-        void CommandExecute(IDebugCommandHost host, string command, IList<string> arguments)
+        void ToggleOptionCommandExecute(IDebugCommandHost host, string command, IList<string> arguments)
         {
-            if (arguments.Count == 0)
-                Scene.ShowBoundingVolumes = !Scene.ShowBoundingVolumes;
+            if (arguments.Count == 0) return;
 
             char[] subArgSeparator = new[] { ':' };
             foreach (string orgArg in arguments)
@@ -296,11 +310,44 @@ namespace GameLibrary
                 string[] subargs = arg.Split(subArgSeparator);
                 switch (subargs[0])
                 {
+                    case "d":
+                        Scene.Debug = !Scene.Debug;
+                        break;
+                    case "bv":
+                        Scene.ShowBoundingVolumes = !Scene.ShowBoundingVolumes;
+                        break;
+                    case "cbv":
+                        Scene.ShowCulledBoundingVolumes = !Scene.ShowCulledBoundingVolumes;
+                        break;
+                    case "c":
+                        Scene.ShowCollisionVolumes = !Scene.ShowCollisionVolumes;
+                        break;
+                    case "f":
+                        Scene.ShowFrustrum = !Scene.ShowFrustrum;
+                        break;
+                    case "cf":
+                        Scene.CaptureFrustrum = !Scene.CaptureFrustrum;
+                        break;
+                    default:
+                        break;
+                }
+            }
+        }
+
+        void ShowOptionsCommandExecute(IDebugCommandHost host, string command, IList<string> arguments)
+        {
+            char[] subArgSeparator = new[] { ':' };
+            foreach (string orgArg in arguments)
+            {
+                string arg = orgArg.ToLower();
+                string[] subargs = arg.Split(subArgSeparator);
+                switch (subargs[0])
+                {
                     case "on":
-                        Scene.ShowBoundingVolumes = true;
+                        Scene.ShowFrustrum = true;
                         break;
                     case "off":
-                        Scene.ShowBoundingVolumes = false;
+                        Scene.ShowFrustrum = false;
                         break;
                     case "reset":
                         //ResetLog();
@@ -328,16 +375,42 @@ namespace GameLibrary
                     case "--help":
                         host.Echo("bv [on|off]");
                         host.Echo("Options:");
-                        host.Echo("       on     Show bounding volumes.");
-                        host.Echo("       off    Hide bounding volumes.");
+                        host.Echo("       on     Show bounding frustrum.");
+                        host.Echo("       off    Hide bounding frustrum.");
                         break;
                     default:
                         break;
                 }
             }
+            Scene.CaptureFrustrum = true;
+        }
+
+
+        void SceneCommandExecute(IDebugCommandHost host, string command, IList<string> arguments)
+        {
+            if (arguments.Count == 0)
+            {
+                Scene.Dump();
+                NextScene();
+                Scene.Dump();
+                return;
+            }
+
+            char[] subArgSeparator = new[] { ':' };
+            foreach (string orgArg in arguments)
+            {
+                string arg = orgArg.ToLower();
+                string[] subargs = arg.Split(subArgSeparator);
+                switch (subargs[0])
+                {
+                    case "d":
+                        Scene.Dump();
+                        break;
+                }
+            }
+            Scene.Dump();
         }
     }
-
     class CustomControlComponent : InputController
     {
 
@@ -492,7 +565,7 @@ namespace GameLibrary
             graphics.PreferMultiSampling = true;
             graphics.ApplyChanges();
 
-            float aspectRatio = (float) newWidth / (float) newHeight;
+            float aspectRatio = (float)newWidth / (float)newHeight;
 
             //camera.Perspective(CAMERA_FOV, aspectRatio, CAMERA_ZNEAR, CAMERA_ZFAR);
         }

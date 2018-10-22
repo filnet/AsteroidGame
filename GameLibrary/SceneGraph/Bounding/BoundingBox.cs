@@ -4,16 +4,18 @@ using System;
 
 namespace GameLibrary.SceneGraph.Bounding
 {
-    public class BoundingSphere : BoundingVolume
+    public class BoundingBox : BoundingVolume
     {
 
-        private static readonly float EPSILON = 0.00001f;
-        private static readonly float RADIUS_EPSILON = 1.0f + EPSILON;
+        //private static readonly float EPSILON = 0.00001f;
+        //private static readonly float RADIUS_EPSILON = 1.0f + EPSILON;
 
+        // see http://www.yosoygames.com.ar/wp/2013/07/good-bye-axisalignedbox-hello-aabb/
+        // see https://bitbucket.org/sinbad/ogre/src/e40654a418bc10e39c97545d2a45966bb7a274d2/OgreMain/src/Math/Simple/C/OgreAabb.cpp?at=v2-0&fileviewer=file-view-default
         protected Vector3 center;
-        protected float radius;
+        protected Vector3 halfSize;
 
-        private Microsoft.Xna.Framework.BoundingSphere xnaBoundingSphere;
+        protected Microsoft.Xna.Framework.BoundingBox xnaBoundingBox;
 
         public Vector3 Center
         {
@@ -28,42 +30,35 @@ namespace GameLibrary.SceneGraph.Bounding
             }
         }
 
-        public float Radius
+        public Vector3 HalfSize
         {
-            get { return radius; }
+            get { return halfSize; }
             set
             {
-                if (radius != value)
+                if (halfSize != value)
                 {
-                    radius = value;
+                    halfSize = value;
                     dirty = true;
                 }
             }
         }
 
-        public BoundingSphere()
-        : base()
-        {
-            center = new Vector3(0, 0, 0);
-            radius = 0;
-        }
-
-        public BoundingSphere(float radius)
+        public BoundingBox()
         {
             this.center = Vector3.Zero;
-            this.radius = radius;
+            this.halfSize = Vector3.Zero; 
         }
 
-        public BoundingSphere(Vector3 center, float radius)
+        public BoundingBox(Vector3 center, Vector3 halfSize)
         {
             this.center = center;
-            this.radius = radius;
+            this.halfSize = halfSize;
         }
 
-        public BoundingSphere(BoundingSphere bs)
+        public BoundingBox(BoundingBox bb)
         {
-            center = bs.center;
-            radius = bs.Radius;
+            center = bb.center;
+            halfSize = bb.halfSize;
         }
 
         /// <summary>
@@ -72,19 +67,19 @@ namespace GameLibrary.SceneGraph.Bounding
         /// <returns>A new copy of this volume</returns>
         public override BoundingVolume Clone()
         {
-            return new BoundingSphere(this);
+            return new BoundingBox(this);
         }
 
-        private Microsoft.Xna.Framework.BoundingSphere asXnaBoundingSphere()
+        private Microsoft.Xna.Framework.BoundingBox asXnaBoundingBox()
         {
-            xnaBoundingSphere.Center = center;
-            xnaBoundingSphere.Radius = radius;
-            return xnaBoundingSphere;
+            xnaBoundingBox.Max = center + halfSize;
+            xnaBoundingBox.Min = center - halfSize;
+            return xnaBoundingBox;
         }
 
         protected override void updateWorldMatrix()
         {
-            worldMatrix = Matrix.CreateScale(Radius) * Matrix.CreateTranslation(Center);
+            worldMatrix = Matrix.CreateScale(halfSize) * Matrix.CreateTranslation(center);
         }
 
         /// <summary>
@@ -93,6 +88,7 @@ namespace GameLibrary.SceneGraph.Bounding
         /// <param name="points">Array of Vectors</param>
         public override void ComputeFromPoints(Vector3[] points)
         {
+/*
             //Vector3[] copy = new Vector3[points.Length];
             //System.Array.Copy(points, copy, points.Length);
             //CalculateWelzl(copy, copy.Length, 0, 0);
@@ -100,6 +96,7 @@ namespace GameLibrary.SceneGraph.Bounding
             SphereUtil.FromPoints(ref s, points);
             Radius = s.radius;
             Center = s.center;
+*/
         }
 
         //private void CalculateWelzl(Vector3[] points, int p, int b, int ap)
@@ -147,6 +144,7 @@ namespace GameLibrary.SceneGraph.Bounding
         /// <returns>True if is inside the volume, false otherwise</returns>
         public override bool Contains(Vector3 point)
         {
+            /*
             if (Vector3.DistanceSquared(Center, point) < Radius * Radius)
             {
                 return true;
@@ -155,6 +153,8 @@ namespace GameLibrary.SceneGraph.Bounding
             {
                 return false;
             }
+            */
+            return false;
         }
 
         /// <summary>
@@ -165,7 +165,7 @@ namespace GameLibrary.SceneGraph.Bounding
         /// <returns>Distance from neatest edge</returns>
         public override float DistanceFromEdgeTo(Vector3 point)
         {
-            return Vector3.Distance(Center, point) - Radius;
+            return 0;// Vector3.Distance(Center, point) - Radius;
         }
 
         /// <summary>
@@ -174,7 +174,7 @@ namespace GameLibrary.SceneGraph.Bounding
         /// <returns>Volume</returns>
         public override float GetVolume()
         {
-            return (float)(4 * (1 / 3) * Math.PI * Radius * Radius * Radius);
+            return 0;// (float)(4 * (1 / 3) * System.Math.PI * Radius * Radius * Radius);
         }
 
         /// <summary>
@@ -183,7 +183,7 @@ namespace GameLibrary.SceneGraph.Bounding
         /// <returns>Bounding type</returns>
         public override BoundingType GetBoundingType()
         {
-            return BoundingType.Sphere;
+            return BoundingType.AABB;
         }
 
         /// <summary>
@@ -199,7 +199,7 @@ namespace GameLibrary.SceneGraph.Bounding
             {
                 return false;
             }
-            return bv.IntersectsBoundSphere(this);
+            return false;// bv.IntersectsBoundSphere(this);
         }
 
         /// <summary>
@@ -269,17 +269,19 @@ namespace GameLibrary.SceneGraph.Bounding
             //{
             //    return false;
             //}
-
-            Vector3 diff = Center - sphere.Center;
-            float radSum = Radius + sphere.Radius;
-            if (Vector3.Dot(diff, diff) <= radSum * radSum)
-            {
-                return true;
-            }
-            else
-            {
-                return false;
-            }
+            /*
+                        Vector3 diff = Center - sphere.Center;
+                        float radSum = Radius + sphere.Radius;
+                        if (Vector3.Dot(diff, diff) <= radSum * radSum)
+                        {
+                            return true;
+                        }
+                        else
+                        {
+                            return false;
+                        }
+            */
+            return false;
         }
 
         /// <summary>
@@ -292,18 +294,19 @@ namespace GameLibrary.SceneGraph.Bounding
         //    return obb.IntersectsBoundSphere(this);
         //}
 
+
         public override ContainmentType IsContained(BoundingFrustum boundingFrustum)
         {
-            return boundingFrustum.Contains(asXnaBoundingSphere());
+            return boundingFrustum.Contains(asXnaBoundingBox());
         }
 
-    /// <summary>
-    /// Merges the two bound volumes into a brand new
-    /// bounding volume and leaves the two unchanged.
-    /// </summary>
-    /// <param name="bv">BoundVolume to merge with</param>
-    /// <returns>A new volume containing both volumes</returns>
-    public override BoundingVolume Merge(BoundingVolume bv)
+        /// <summary>
+        /// Merges the two bound volumes into a brand new
+        /// bounding volume and leaves the two unchanged.
+        /// </summary>
+        /// <param name="bv">BoundVolume to merge with</param>
+        /// <returns>A new volume containing both volumes</returns>
+        public override BoundingVolume Merge(BoundingVolume bv)
         {
             if (bv == null)
             {
@@ -317,7 +320,7 @@ namespace GameLibrary.SceneGraph.Bounding
                 //    return Merge(new Vector3(box.xExtent, box.yExtent, box.zExtent).Length(), box.Center, new BoundSphere());
                 case BoundingType.Sphere:
                     BoundingSphere sphere = bv as BoundingSphere;
-                    return Merge(sphere.Radius, sphere.Center, new BoundingSphere());
+                    return null;// Merge(sphere.Radius, sphere.Center, new BoundingSphere());
                 //case BoundingType.OBB:
                 //    OrientedBoundBox obb = bv as OrientedBoundBox;
                 //    return MergeOBB(obb, new BoundSphere());
@@ -346,7 +349,7 @@ namespace GameLibrary.SceneGraph.Bounding
                 //    return Merge(new Vector3(box.xExtent, box.yExtent, box.zExtent).Length(), box.Center, this);
                 case BoundingType.Sphere:
                     BoundingSphere sphere = bv as BoundingSphere;
-                    return Merge(sphere.Radius, sphere.Center, this);
+                    return null;// Merge(sphere.Radius, sphere.Center, this);
                 //case BoundingType.OBB:
                 //    OrientedBoundBox obb = bv as OrientedBoundBox;
                 //    return MergeOBB(obb, this);
@@ -364,45 +367,32 @@ namespace GameLibrary.SceneGraph.Bounding
         /// <param name="translation">Translation</param>
         public override BoundingVolume Transform(Vector3 scale, Quaternion rotation, Vector3 translation, ref BoundingVolume store)
         {
-            BoundingSphere rVal = store as BoundingSphere;
-            if (store == null)
-            {
-                rVal = new BoundingSphere();
-            }
-
-            rVal.Center = center * scale;
-            rVal.Center = Vector3.Transform(center, rotation);
-            rVal.Center += translation;
-            rVal.Radius = Math.Abs(GetMaxAxis(scale) * radius) + EPSILON;
-
-            return rVal;
+            Matrix m = Matrix.CreateScale(scale) * Matrix.CreateFromQuaternion(rotation) * Matrix.CreateTranslation(translation);
+            return Transform(m, ref store);
         }
 
         public override BoundingVolume Transform(Matrix m, ref BoundingVolume store)
         {
-            BoundingSphere rVal = store as BoundingSphere;
+            BoundingBox rVal = store as BoundingBox;
             if (store == null)
             {
-                rVal = new BoundingSphere();
+                rVal = new BoundingBox();
             }
 
-            Vector3 scale;// = new Vector3();
-            Quaternion rotation;// = new Quaternion(); ;
-            Vector3 translation;// = new Vector3();
-            if (m.Decompose(out scale, out rotation, out translation))
-            {
-                rVal.Center = Vector3.Transform(center, m);
-                rVal.Radius = Math.Abs(GetMaxAxis(scale) * Radius) + EPSILON;
-                return rVal;
-            }
-            return null;
+            Vector3.Transform(ref center, ref m, out rVal.center);
+
+            rVal.halfSize.X = Math.Abs(m.M11) * halfSize.X + Math.Abs(m.M12) * halfSize.Y + Math.Abs(m.M13) * halfSize.Z;
+            rVal.halfSize.Y = Math.Abs(m.M21) * halfSize.X + Math.Abs(m.M22) * halfSize.Y + Math.Abs(m.M23) * halfSize.Z;
+            rVal.halfSize.Z = Math.Abs(m.M31) * halfSize.X + Math.Abs(m.M32) * halfSize.Y + Math.Abs(m.M33) * halfSize.Z;
+
+            return rVal;
         }
 
         private static float GetMaxAxis(Vector3 scale)
         {
-            float x = global::System.Math.Abs(scale.X);
-            float y = global::System.Math.Abs(scale.Y);
-            float z = global::System.Math.Abs(scale.Z);
+            float x = Math.Abs(scale.X);
+            float y = Math.Abs(scale.Y);
+            float z = Math.Abs(scale.Z);
 
             if (x >= y)
             {
@@ -469,8 +459,10 @@ namespace GameLibrary.SceneGraph.Bounding
         //    }
         //}
 
+/*
         private BoundingSphere Merge(float radius, Vector3 center, BoundingSphere sphere)
         {
+
             Vector3 diff = center - Center;
             float radiusDiff = radius - Radius;
 
@@ -500,7 +492,7 @@ namespace GameLibrary.SceneGraph.Bounding
 
             return sphere;
         }
-
+*/
         //private BoundSphere MergeOBB(OrientedBoundBox obb, BoundSphere sphere)
         //{
 
@@ -522,17 +514,17 @@ namespace GameLibrary.SceneGraph.Bounding
             {
                 return true;
             }
-            else if (!(obj is BoundingSphere))
+            else if (!(obj is BoundingBox))
             {
                 return false;
             }
-            BoundingSphere b = obj as BoundingSphere;
-            return (Center.Equals(b.Center)) && (Radius.Equals(b.Radius));
+            BoundingBox b = obj as BoundingBox;
+            return (center.Equals(b.center)) && (halfSize.Equals(b.halfSize));
         }
 
         public override int GetHashCode()
         {
-            return Center.GetHashCode() + Radius.GetHashCode();
+            return center.GetHashCode() + halfSize.GetHashCode();
         }
 
         #endregion

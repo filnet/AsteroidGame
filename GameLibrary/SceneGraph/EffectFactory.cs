@@ -10,58 +10,63 @@ namespace GameLibrary.SceneGraph
     {
         public static Effect CreateClippingEffect(GraphicsDevice gd)
         {
-            StockEffects.ClippingEffect effect = new StockEffects.ClippingEffect(gd);
-
-            effect.ClippingPlane1 = VectorUtil.CreatePlane(Vector3.Right, 3.0f);
-            effect.ClippingPlane2 = VectorUtil.CreatePlane(Vector3.Left, 3.0f);
-            //effect.ClippingPlane2 = new Vector4(1.0f, 0.0f, 0.0f, 3.0f);
-
-            effect.ClippingPlane3 = VectorUtil.CreatePlane(Vector3.Up, 3.0f);
-            effect.ClippingPlane4 = VectorUtil.CreatePlane(Vector3.Down, 3.0f);
-
-            effect.Color = Color.White;
-
-            return effect;
+            return CreateClippingEffect(gd, Color.White);
         }
 
         public static Effect CreateBulletEffect(GraphicsDevice gd)
         {
-            StockEffects.ClippingEffect effect = new StockEffects.ClippingEffect(gd);
-
-            effect.ClippingPlane1 = VectorUtil.CreatePlane(Vector3.Right, 3.0f);
-            effect.ClippingPlane2 = VectorUtil.CreatePlane(Vector3.Left, 3.0f);
-            //effect.ClippingPlane2 = new Vector4(1.0f, 0.0f, 0.0f, 3.0f);
-
-            effect.ClippingPlane3 = VectorUtil.CreatePlane(Vector3.Up, 3.0f);
-            effect.ClippingPlane4 = VectorUtil.CreatePlane(Vector3.Down, 3.0f);
-
-            effect.Color = Color.Yellow;
-
-            return effect;
+            return CreateClippingEffect(gd, Color.Yellow);
         }
 
-        public static Effect CreateBoundingEffect(GraphicsDevice gd)
+        public static Effect CreateClippingEffect(GraphicsDevice gd, Color color)
         {
             StockEffects.ClippingEffect effect = new StockEffects.ClippingEffect(gd);
 
             effect.ClippingPlane1 = VectorUtil.CreatePlane(Vector3.Right, 3.0f);
             effect.ClippingPlane2 = VectorUtil.CreatePlane(Vector3.Left, 3.0f);
-            //effect.ClippingPlane2 = new Vector4(1.0f, 0.0f, 0.0f, 3.0f);
-
             effect.ClippingPlane3 = VectorUtil.CreatePlane(Vector3.Up, 3.0f);
             effect.ClippingPlane4 = VectorUtil.CreatePlane(Vector3.Down, 3.0f);
-
-            Color c = Color.LightGreen;
-            effect.Color = new Color((byte)c.R, (byte)c.G, (byte)c.B, (byte)128);
+            effect.Color = color;
 
             return effect;
+        }
+
+        public static Effect CreateBoundEffect(GraphicsDevice gd, bool clipping)
+        {
+            Color c = new Color(Color.LightGreen, 128);
+
+            if (!clipping)
+            {
+                return CreateBasicEffect3(gd, c);
+            }
+            return CreateClippingEffect(gd, c);
+        }
+
+        public static Effect CreateCulledBoundEffect(GraphicsDevice gd, bool clipping)
+        {
+            Color c = new Color(Color.Orange, 128);
+
+            if (!clipping)
+            {
+                return CreateBasicEffect3(gd, c);
+            }
+            return CreateClippingEffect(gd, c);
+        }
+
+        public static Effect CreateCollisionEffect(GraphicsDevice gd, bool clipping)
+        {
+            Color c = new Color(Color.Red, 128);
+
+            if (!clipping)
+            {
+                return CreateBasicEffect3(gd, c);
+            }
+            return CreateClippingEffect(gd, c);
         }
 
         public static Effect CreateBasicEffect1(GraphicsDevice gd)
         {
             BasicEffect effect = new BasicEffect(gd);
-
-            effect.World = Matrix.Identity;
 
             // primitive color
             effect.AmbientLightColor = new Vector3(0.1f, 0.1f, 0.1f);
@@ -110,8 +115,6 @@ namespace GameLibrary.SceneGraph
         {
             BasicEffect effect = new BasicEffect(gd);
 
-            effect.World = Matrix.Identity;
-
             // primitive color
             effect.AmbientLightColor = new Vector3(0.1f, 0.1f, 0.1f);
             effect.DiffuseColor = new Vector3(1.0f, 1.0f, 1.0f);
@@ -157,10 +160,7 @@ namespace GameLibrary.SceneGraph
 
         public static Effect CreateBasicEffect3(GraphicsDevice gd)
         {
-
             BasicEffect effect = new BasicEffect(gd);
-
-            effect.World = Matrix.Identity;
 
             // primitive color
             effect.AmbientLightColor = new Vector3(1f, 1f, 1f);
@@ -169,41 +169,29 @@ namespace GameLibrary.SceneGraph
             //effect.SpecularPower = 5.0f;
             //effect.Alpha = 1.0f;
 
-            effect.LightingEnabled = false;
-            if (effect.LightingEnabled)
-            {
-                // enable each light individually
-                effect.DirectionalLight0.Enabled = true;
-                if (effect.DirectionalLight0.Enabled)
-                {
-                    // x direction is red
-                    effect.DirectionalLight0.DiffuseColor = new Vector3(0.5f, 0.5f, 0.5f); // range is 0 to 1
-                    effect.DirectionalLight0.Direction = Vector3.Normalize(new Vector3(-1, -1, -1));
-                    // points from the light to the origin of the scene
-                    effect.DirectionalLight0.SpecularColor = Vector3.One;
-                }
+            return effect;
+        }
 
-                effect.DirectionalLight1.Enabled = false;
-                if (effect.DirectionalLight1.Enabled)
-                {
-                    // y direction is green
-                    effect.DirectionalLight1.DiffuseColor = new Vector3(0, 1, 0);
-                    effect.DirectionalLight1.Direction = Vector3.Normalize(new Vector3(0, -1, 0));
-                    effect.DirectionalLight1.SpecularColor = Vector3.One;
-                }
+        public static Effect CreateBasicEffect3(GraphicsDevice gd, Color color)
+        {
+            BasicEffect effect = new BasicEffect(gd);
 
-                effect.DirectionalLight2.Enabled = false;
-                if (effect.DirectionalLight2.Enabled)
-                {
-                    // z direction is blue
-                    effect.DirectionalLight2.DiffuseColor = new Vector3(0, 0, 1);
-                    effect.DirectionalLight2.Direction = Vector3.Normalize(new Vector3(0, 0, -1));
-                    effect.DirectionalLight2.SpecularColor = Vector3.One;
-                }
-            }
+            // primitive color
+            effect.VertexColorEnabled = true;
+            effect.AmbientLightColor = new Vector3(1f, 1f, 1f);
+            effect.DiffuseColor = color.ToVector3();
+            //effect.SpecularColor = new Vector3(0.25f, 0.25f, 0.25f);
+            //effect.SpecularPower = 5.0f;
+            effect.Alpha = color.A / 255.0f;
 
             return effect;
         }
 
+        public static Effect CreateInstancedEffect(GraphicsDevice gd)
+        {
+            StockEffects.InstancedEffect effect = new StockEffects.InstancedEffect(gd);
+
+            return effect;
+        }
     }
 }

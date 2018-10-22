@@ -80,6 +80,7 @@ namespace GameLibrary.SceneGraph.Common
             : base(name)
         {
             // TODO accept only transformable nodes?
+            setTransformDirty();
         }
 
         public TransformNode(TransformNode node)
@@ -89,8 +90,10 @@ namespace GameLibrary.SceneGraph.Common
             Rotation = node.Rotation;
             Translation = node.Translation;
 
-            Transform = node.Transform;
-            WorldTransform = node.WorldTransform;
+            //Transform = node.Transform;
+            //WorldTransform = node.WorldTransform;
+
+            setTransformDirty();
         }
 
         public override Node Clone()
@@ -101,14 +104,17 @@ namespace GameLibrary.SceneGraph.Common
         public override void Initialize()
         {
             base.Initialize();
-            setParentDirty(DirtyFlag.ChildTransform);
         }
 
         internal bool UpdateTransform()
         {
-            if (!isDirty(Node.DirtyFlag.Transform)) return false;
+            if (!isDirty(Node.DirtyFlag.Transform))
+            {
+                return false;
+            }
 
             Transform = Matrix.CreateScale(Scale) * Matrix.CreateFromQuaternion(Rotation) * Matrix.CreateTranslation(Translation);
+
             clearDirty(Node.DirtyFlag.Transform);
 
             return true;
@@ -116,7 +122,10 @@ namespace GameLibrary.SceneGraph.Common
 
         internal virtual bool UpdateWorldTransform(TransformNode parentTransformNode)
         {
-            if (!isDirty(Node.DirtyFlag.WorldTransform) && (parentTransformNode != null) && !parentTransformNode.isDirty(Node.DirtyFlag.ChildWorldTransform)) return false;
+            if (!isDirty(Node.DirtyFlag.WorldTransform) && (parentTransformNode == null || !parentTransformNode.isDirty(Node.DirtyFlag.ChildWorldTransform)))
+            {
+                return false;
+            }
             //if (!isDirty(Node.DirtyFlag.WorldTransform)) return false;
 
             Matrix parentWorldTransform = (parentTransformNode != null) ? parentTransformNode.WorldTransform : Matrix.Identity;

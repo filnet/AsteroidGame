@@ -59,7 +59,7 @@ namespace GameLibrary.Geometry.Common
             }
         }
 
-        public override void preDraw(GeometryNode.DrawContext dc)
+        public override void preDraw()
         {
             if (mesh.IndexBuffer != null)
             {
@@ -72,12 +72,15 @@ namespace GameLibrary.Geometry.Common
             }
         }
 
-        public override void Draw(GeometryNode.DrawContext dc)
+        public override void Draw()
         {
             //if (!owned)
             //{
             //    Console.WriteLine("Not owned");
             //}
+
+            // TODO here we can implement some logic based on time + how many primitives to draw
+            // will show the "construction" order
             if (mesh.IndexBuffer != null)
             {
                 Scene.GraphicsDevice.DrawIndexedPrimitives(mesh.PrimitiveType, 0, 0, mesh.PrimitiveCount);

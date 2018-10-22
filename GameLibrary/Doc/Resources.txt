@@ -33,12 +33,19 @@ http://www.nuclex.org/blog/gamedev/100-to-gamecomponent-or-not-to-gamecomponent
 
 Octree + portals + custom frustrum
 
+Octree Front to back traversal : http://graphicsinterface.org/wp-content/uploads/gi1991-21.pdf
+
+Very good / complete octree structures : https://geidav.wordpress.com/2014/08/18/advanced-octrees-2-node-representations/
+
 http://nomorecoins.info/blog/back-to-the-basics-scene-management/
 
 Particules
 
 http://create.msdn.com/en-US/education/catalog/sample/particle
 http://create.msdn.com/en-US/education/catalog/sample/particle_3d
+
+http://www.ramroumi.com/graphics/monogame/2016/04/11/fast-particles.html
+
 
 Frameworks
 
@@ -79,20 +86,29 @@ Combining Shaders
 
 http://blogs.msdn.com/b/shawnhar/archive/2009/08/17/combining-shaders.aspx
 
-Other
+Transparency
 
-// pass in a position and camera matrices
-// returns true if the position is on screen
-bool VertexIsOnScreen(Vector3 position3D, Matrix projMatrix, Matrix viewMatrix, Matrix worldMatrix)
-{
-  // project 3d position to 2d
-  Vector2 position2D = GraphicsDeviceManager.GraphicsDevice.ViewPort.Project(position3D, projMatrix, viewMatrix, worldMatrix);
+https://blogs.msdn.microsoft.com/shawnhar/2009/02/18/depth-sorting-alpha-blended-objects/
 
-  // check x is on screen
-  if(position2D.X < 0 || position2D.X > GraphicsDeviceManager.GraphicsDevice.PreferredBackBufferWidth) return false;
+Sorting volumes
 
-  // check y is on screen
-  if(position2D.Y < 0 || position2D.Y > GraphicsDeviceManager.GraphicsDevice.PreferredBackBufferHeight) return false;
+The 48 "rednering areas" : http://www.iquilezles.org/www/articles/volumesort/volumesort.htm
 
-  return true;
-}
+http://www.iquilezles.org/www/articles/volumesort/volumesort.htm
+http://www.realtimerendering.com/intersections.html
+good one : https://slideplayer.com/slide/13303804/
+http://15462.courses.cs.cmu.edu/spring2018/lecture/persp/slide_016
+http://www.iquilezles.org/www/articles/voxellines/voxellines.htm
+Seem very good: http://www.iquilezles.org/www/index.htm
+
+Culling
+
+https://www.braynzarsoft.net/viewtutorial/q16390-34-aabb-cpu-side-frustum-culling
+https://zeuxcg.org/2009/01/31/view-frustum-culling-optimization-introduction/
+
+https://fgiesen.wordpress.com/2010/10/17/view-frustum-culling/
+
+Bit Manipulation
+
+https://graphics.stanford.edu/~seander/bithacks.html
+https://odetocode.com/blogs/scott/archive/2015/02/19/roslyn-code-gems-counting-bits.aspx

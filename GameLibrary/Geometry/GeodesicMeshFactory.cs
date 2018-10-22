@@ -72,7 +72,7 @@ namespace GameLibrary.Geometry
 
             vertices = new Vector3[vertexCount];
 
-            this.middlePointIndexCache = new Dictionary<long, int>(vertexCount);
+            middlePointIndexCache = new Dictionary<long, int>(vertexCount);
             index = 0;
 
             Console.WriteLine("Generatic geodesic: vertices = {0}, faces = {1}, edges = {2}", vertexCount, facesCount, edgesCount);
@@ -85,9 +85,10 @@ namespace GameLibrary.Geometry
         protected virtual Mesh generateMesh(GraphicsDevice gd, TriangleIndices[] faces)
         {
             Mesh mesh;
+            VertexBufferBuilder builder;
             if (!facetted)
             {
-                VertexBufferBuilder builder = VertexBufferBuilder.createVertexPositionNormalTextureBufferBuilder(gd, vertices.Count(), faces.Count() * 3);
+                builder = VertexBufferBuilder.createVertexPositionNormalTextureBufferBuilder(gd, vertices.Count(), faces.Count() * 3);
                 foreach (Vector3 vertex in vertices)
                 {
                     Vector3 n = Vector3.Normalize(vertex);
@@ -100,11 +101,10 @@ namespace GameLibrary.Geometry
                     builder.AddIndex(tri.v3);
                 }
                 mesh = new Mesh(PrimitiveType.TriangleList, faces.Count());
-                builder.setToMesh(mesh);
             }
             else
             {
-                VertexBufferBuilder builder = VertexBufferBuilder.createVertexPositionNormalTextureBufferBuilder(gd, faces.Count() * 3, 0);
+                builder = VertexBufferBuilder.createVertexPositionNormalTextureBufferBuilder(gd, faces.Count() * 3, 0);
                 foreach (TriangleIndices tri in faces)
                 {
                     Vector3 v1 = vertices[tri.v1];
@@ -116,9 +116,9 @@ namespace GameLibrary.Geometry
                     builder.AddVertex(v3, n, Color.White, Vector2.Zero);
                 }
                 mesh = new Mesh(PrimitiveType.TriangleList, faces.Count());
-                builder.setToMesh(mesh);
             }
             mesh.BoundingVolume = new GameLibrary.SceneGraph.Bounding.BoundingSphere(Vector3.Zero, 1.0f);
+            builder.setToMesh(mesh);
             return mesh;
         }
 

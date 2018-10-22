@@ -178,18 +178,6 @@ namespace GameLibrary
         #endregion
     }
 
-    public interface ICameraComponent : Controller //: IGameComponent, IUpdateable, IDisposable
-    {
-        Matrix ViewMatrix { get; }
-        Matrix ProjectionMatrix { get; }
-
-        BoundingFrustum BoundingFrustum { get; }
-
-//        void LookAt(Vector3 eye, Vector3 target, Vector3 up);
-
-        void Perspective(float FOV, float aspect, float nearPlane, float farPlane);
-    }
-
     /// <summary>
     /// A general purpose 6DoF (six degrees of freedom) quaternion based
     /// camera. This camera class supports 4 different behaviors: first
@@ -949,7 +937,7 @@ namespace GameLibrary
                 //    updateMatrix();
                 //}
                 // TODO don't build on each call...
-                return new BoundingFrustum(ViewProjectionMatrix);
+                return null;// new BoundingFrustum(ViewProjectionMatrix);
             }
         }
 
@@ -990,7 +978,7 @@ namespace GameLibrary
     /// These actions are defined by the Actions enumeration. Methods are
     /// provided to remap the camera components default bindings.
     /// </summary>
-    public class CameraComponent : GameComponent, ICamera, ICameraComponent
+    public class DefaultCamera : GameComponent, ICamera, ICameraComponent
     {
         public enum Actions
         {
@@ -1085,7 +1073,7 @@ namespace GameLibrary
         /// z axis. An initial perspective projection matrix is created
         /// as well as setting up initial key bindings to the actions.
         /// </summary>
-        public CameraComponent(Game game)
+        public DefaultCamera(Game game)
             : base(game)
         {
             camera = new Camera();

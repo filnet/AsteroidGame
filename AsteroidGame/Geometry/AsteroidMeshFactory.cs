@@ -68,9 +68,9 @@ namespace AsteroidGame.Geometry
 
             double delta = 0.4;
 
+            Vector3 position = new Vector3();
             for (int i = 0; i < count; i++)
             {
-                Vector3 position = new Vector3();
                 //double angle = (MathHelper.TwoPi * (double) i) / (double) count;
                 //angle += MathHelper.PiOver4 * (random.NextDouble() - 0.5);
                 double length = 1.0 - delta + random.NextDouble() * delta;

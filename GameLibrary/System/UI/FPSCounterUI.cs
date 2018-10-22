@@ -20,7 +20,7 @@ using GameLibrary.Util;
 
 #endregion
 
-namespace GameLibrary.Debug
+namespace GameLibrary.System
 {
     /// <summary>
     /// Component for FPS measure and draw.
@@ -198,7 +198,7 @@ namespace GameLibrary.Debug
                     stringBuilder.Append(" (Slow!)");
                 }
                 //text += " (frames: " + totalFrames + " update: " + UpdateStopwatch.ElapsedMilliseconds + " draw: " + DrawStopwatch.ElapsedMilliseconds + ")";
-                Console.WriteLine(stringBuilder);
+                //Console.WriteLine(stringBuilder);
             }
         }
 

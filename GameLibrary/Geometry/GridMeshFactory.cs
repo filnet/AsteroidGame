@@ -42,8 +42,8 @@ namespace GameLibrary.Geometry
                 builder.AddVertex(vertex, Vector3.Zero, Color.LightGray, Vector2.Zero);
             }
             Mesh mesh = new Mesh(PrimitiveType.LineList, lineCount);
-            builder.setToMesh(mesh);
             mesh.BoundingVolume = new GameLibrary.SceneGraph.Bounding.BoundingSphere(Vector3.Zero, (float) Math.Sqrt(3 * 3 + 3 * 3));
+            builder.setToMesh(mesh);
             return mesh;
         }
 

@@ -43,6 +43,7 @@ namespace GameLibrary.Geometry
             GameLibrary.SceneGraph.Bounding.BoundingSphere boundingSphere = new GameLibrary.SceneGraph.Bounding.BoundingSphere(2);
             //boundingSphere.ComputeFromPoints(vertices);
             mesh.BoundingVolume = boundingSphere;
+            builder.setToMesh(mesh);
             return mesh;
         }
 
