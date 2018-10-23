@@ -39,15 +39,15 @@ namespace GameLibrary.Geometry.Common
             return new MeshNode(this);
         }
 
-        public override void Initialize()
+        public override void Initialize(GraphicsDevice graphicsDevice)
         {
             if (meshFactory != null)
             {
-                mesh = meshFactory.CreateMesh(Scene.GraphicsDevice);
+                mesh = meshFactory.CreateMesh(graphicsDevice);
                 BoundingVolume = mesh.BoundingVolume;
                 owned = true;
             }
-            base.Initialize();
+            base.Initialize(graphicsDevice);
         }
 
         public override void Dispose()
@@ -59,20 +59,20 @@ namespace GameLibrary.Geometry.Common
             }
         }
 
-        public override void preDraw()
+        public override void preDraw(GraphicsDevice gd)
         {
             if (mesh.IndexBuffer != null)
             {
-                Scene.GraphicsDevice.SetVertexBuffer(mesh.VertexBuffer);
-                Scene.GraphicsDevice.Indices = mesh.IndexBuffer;
+                gd.SetVertexBuffer(mesh.VertexBuffer);
+                gd.Indices = mesh.IndexBuffer;
             }
             else
             {
-                Scene.GraphicsDevice.SetVertexBuffer(mesh.VertexBuffer);
+                gd.SetVertexBuffer(mesh.VertexBuffer);
             }
         }
 
-        public override void Draw()
+        public override void Draw(GraphicsDevice gd)
         {
             //if (!owned)
             //{
@@ -83,11 +83,11 @@ namespace GameLibrary.Geometry.Common
             // will show the "construction" order
             if (mesh.IndexBuffer != null)
             {
-                Scene.GraphicsDevice.DrawIndexedPrimitives(mesh.PrimitiveType, 0, 0, mesh.PrimitiveCount);
+                gd.DrawIndexedPrimitives(mesh.PrimitiveType, 0, 0, mesh.PrimitiveCount);
             }
             else
             {
-                Scene.GraphicsDevice.DrawPrimitives(mesh.PrimitiveType, 0, mesh.PrimitiveCount);
+                gd.DrawPrimitives(mesh.PrimitiveType, 0, mesh.PrimitiveCount);
             }
         }
 

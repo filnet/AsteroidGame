@@ -32,7 +32,7 @@ namespace GameLibrary.Voxel
     {
         private const int V = 1;
 
-        private static readonly OctreeNode<T> NULL_OCTREE_NODE = new OctreeNode<T>();
+        //private static readonly OctreeNode<T> NULL_OCTREE_NODE = new OctreeNode<T>();
 
         private readonly Vector3[] OCTANT_TRANSLATIONS = new Vector3[8];
 
@@ -42,6 +42,10 @@ namespace GameLibrary.Voxel
         public Vector3 HalfSize;
 
         private readonly Dictionary<ulong, OctreeNode<T>> nodes;
+
+        public delegate T ObjectFactory(Octree<T> octree, OctreeNode<T> node);
+
+        public ObjectFactory objectFactory;
 
         public Octree() : this(Vector3.Zero, Vector3.Zero)
         {
@@ -82,6 +86,15 @@ namespace GameLibrary.Voxel
         {
             ulong locCodeChild = (node.locCode << 3) | (ulong)octant;
             return LookupNode(locCodeChild);
+        }
+
+        public void GetNodeBoundingBox(OctreeNode<T> node, ref SceneGraph.Bounding.BoundingBox boundingBox)
+        {
+            Vector3 center;
+            Vector3 halfSize;
+            GetNodeBoundingBox(node, out center, out halfSize);
+            boundingBox.Center = center;
+            boundingBox.HalfSize = halfSize;
         }
 
         public void GetNodeBoundingBox(OctreeNode<T> node, out Vector3 center, out Vector3 halfSize)
@@ -139,7 +152,7 @@ namespace GameLibrary.Voxel
             {
                 return node;
             }
-            return NULL_OCTREE_NODE;
+            return null;
         }
 
         public bool HasChild(OctreeNode<T> node, Octant octant)
@@ -205,9 +218,14 @@ namespace GameLibrary.Voxel
             }
             // create new node
             OctreeNode<T> node = new OctreeNode<T>();
-            //node.map = new FunctionVoxelMap(16);
             node.locCode = (parent.locCode << 3) | (ulong)octant;
             node.childExists = 0;
+
+            // create node object
+            if (objectFactory != null)
+            {
+                node.obj = objectFactory(this, node);
+            }
 
             // add new node to parent
             nodes.Add(node.locCode, node);
@@ -264,7 +282,7 @@ namespace GameLibrary.Voxel
   neighbors = self.find_neighbors_of_smaller_size(neighbor, direction)
   return neighbors
             */
-        public delegate bool Visitor(OctreeNode<T> node, ref Object arg);
+        public delegate bool Visitor(Octree<T> octree, OctreeNode<T> node, ref Object arg);
 
         public enum VisitType
         {
@@ -310,41 +328,48 @@ namespace GameLibrary.Voxel
             visit(preVisitor, inVisitor, postVisitor, arg);
         }
 
-        public void visit(Visitor preVisitor, Visitor inVisitor, Visitor postVisitor, Object arg)
+        internal void visit(Visitor preVisitor, Visitor inVisitor, Visitor postVisitor, Object arg)
         {
             visit(RootNode, preVisitor, inVisitor, postVisitor, arg);
         }
 
         internal virtual bool visit(OctreeNode<T> node, Visitor preVisitor, Visitor inVisitor, Visitor postVisitor, Object arg)
         {
+            if ((node.childExists == 0) && (node.obj == null))
+            {
+                // empty node
+                return false;
+            }
             // TODO iterate over sorted location codes
             bool cont = true;
             if (preVisitor != null)
             {
-                cont = cont && preVisitor(node, ref arg);
+                cont = cont && preVisitor(this, node, ref arg);
             }
-            if (cont)
+            if (cont && (node.childExists != 0))
             {
                 for (ushort i = 0; i < 8; i++)
                 {
-                    if ((node.childExists & (1L << i)) != 0)
+                    if ((node.childExists & (1L << i)) == 0)
                     {
-                        ulong locCodeChild = (node.locCode << 3) | (ulong)i;
-                        OctreeNode<T> childNode = LookupNode(locCodeChild);
-                        if (childNode.locCode > 0)
-                        {
-                            visit(childNode, preVisitor, inVisitor, postVisitor, arg);
-                            if (inVisitor != null)
-                            {
-                                inVisitor(childNode, ref arg);
-                            }
-                        }
+                        continue;
+                    }
+                    ulong childLocCode = (node.locCode << 3) | (ulong)i;
+                    OctreeNode<T> childNode = LookupNode(childLocCode);
+                    if (childNode == null)
+                    {
+                        continue;
+                    }
+                    visit(childNode, preVisitor, inVisitor, postVisitor, arg);
+                    if (inVisitor != null)
+                    {
+                        inVisitor(this, childNode, ref arg);
                     }
                 }
             }
             if (postVisitor != null)
             {
-                postVisitor(node, ref arg);
+                postVisitor(this, node, ref arg);
             }
             return cont;
         }

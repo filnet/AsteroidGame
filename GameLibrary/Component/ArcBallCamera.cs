@@ -11,18 +11,21 @@ namespace GameLibrary
 {
     public class ArcBallCamera : InputController, ICameraComponent
     {
-        private static readonly float DEFAULT_ZOOM = 8.0f;
+        public static readonly float DEFAULT_ZOOM = 8.0f;
+        public static readonly float DEFAULT_ZOOM_MIN = 0.1f;
+        public static readonly float DEFAULT_ZOOM_MAX = 50.0f;
+        public static readonly float DEFAULT_ZOOM_SPEED = 1.8f / 60f;
 
         // Set rates in world units per 1/60th second (the default fixed-step interval).
         private float rotationSpeed = 1f / 60f;
 
-        private float zoomSpeed = 1.8f / 60f;
+        public float ZoomSpeed = DEFAULT_ZOOM_SPEED;
         //float forwardSpeed = 50f / 60f;
 
         private const float verticalAngleMin = -(MathHelper.PiOver2 - 0.01f);
         private const float verticalAngleMax = MathHelper.PiOver2 - 0.01f;
-        private const float zoomMin = 0.1f;
-        private const float zoomMax = 50.0f;
+        public float ZoomMin = DEFAULT_ZOOM_MIN;
+        public float ZoomMax = DEFAULT_ZOOM_MAX;
 
         private Matrix rotation = Matrix.Identity;
         private Vector3 position = Vector3.Zero;
@@ -102,7 +105,7 @@ namespace GameLibrary
             set
             {
                 // Keep zoom within range
-                value = MathHelper.Clamp(value, zoomMin, zoomMax);
+                value = MathHelper.Clamp(value, ZoomMin, ZoomMax);
                 if (zoom != value)
                 {
                     zoom = value;
@@ -239,17 +242,20 @@ namespace GameLibrary
             {
                 // Rotate left.
                 //RotateAroundY((float) ((double) rotationSpeed * elapsed));
+                // FIXME displacement should be time related
                 TargetPosition += new Vector3(-.01f, 0, 0);
             }
             if (/*IsKeyDown(Keys.Right) ||*/ (GamePadState.DPad.Right == ButtonState.Pressed))
             {
                 // Rotate right.
                 //RotateAroundY(-(float) ((double) rotationSpeed * elapsed));
+                // FIXME displacement should be time related
                 TargetPosition += new Vector3(.01f, 0, 0);
             }
             if (/*IsKeyDown(Keys.Up) ||*/ (GamePadState.DPad.Up == ButtonState.Pressed))
             {
                 //RotateAroundX((float) ((double) rotationSpeed * elapsed));
+                // FIXME displacement should be time related
                 TargetPosition += new Vector3(0, .01f, 0);
 
                 //Matrix forwardMovement = Matrix.CreateRotationY(yaw);
@@ -261,6 +267,7 @@ namespace GameLibrary
             if (/*IsKeyDown(Keys.Down) ||*/ (GamePadState.DPad.Down == ButtonState.Pressed))
             {
                 //RotateAroundX(-(float) ((double) rotationSpeed * elapsed));
+                // FIXME displacement should be time related
                 TargetPosition += new Vector3(0, -.01f, 0);
 
                 //Matrix forwardMovement = Matrix.CreateRotationY(yaw);
@@ -288,7 +295,7 @@ namespace GameLibrary
             {
                 if (triggers.Left > 0)
                 {
-                    Zoom += (float)(zoomSpeed * elapsed * -v.Y);
+                    Zoom += (float)(ZoomSpeed * elapsed * -v.Y);
                 }
                 else
                 {

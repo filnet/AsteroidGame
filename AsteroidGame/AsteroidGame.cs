@@ -71,27 +71,48 @@ namespace AsteroidGame
         /// related content.  Calling base.Initialize will enumerate through any components
         /// and initialize them as well.
         /// </summary>
-        protected override Scene createScene(int mode)
+        protected override void createScene(int mode)
         {
+            Scene = new Scene();
+            Scene.GraphicsDevice = GraphicsDevice;
+
+            Scene.CameraComponent = CameraComponent;
+            ArcBallCamera camera = Scene.CameraComponent as ArcBallCamera;
+            if (camera != null)
+            {
+                // TODO call Reset() instead...
+                camera.Zoom = ArcBallCamera.DEFAULT_ZOOM;
+                camera.ZoomMin = ArcBallCamera.DEFAULT_ZOOM_MIN;
+                camera.ZoomMax = ArcBallCamera.DEFAULT_ZOOM_MAX;
+                camera.ZoomSpeed = ArcBallCamera.DEFAULT_ZOOM_SPEED;
+            }
+
             switch (mode)
             {
                 case 0:
-                    Scene scene = createAsteroidScene();
-                    return scene;
+                    Scene.RootNode = createAsteroidScene();
+                    break;
                 case 1:
-                    return createGeodesicTestScene();
+                    Scene.RootNode = createGeodesicTestScene();
+                    break;
                 case 2:
-                    scene = createCollisionTestScene();
-                    return scene;
+                    Scene.RootNode = createCollisionTestScene();
+                    break;
                 case 3:
-                    scene = createCubeTestScene();
-                    return scene;
+                    Scene.RootNode = createCubeTestScene();
+                    break;
                 case 4:
-                    scene = createVoxelTestScene();
-                    return scene;
-                default:
-                    return null;
+                    if (camera != null)
+                    {
+                        camera.ZoomMin = 0.1f;
+                        camera.ZoomMax = 2000f;
+                        camera.ZoomSpeed = 32f / 60f;
+                        camera.Zoom = 64f;
+                    }
+                    Scene.RootNode = createVoxelTestScene();
+                    break;
             }
+            Scene.Initialize();
         }
 
         private Node createGridNode()
@@ -107,18 +128,9 @@ namespace AsteroidGame
             return grid;
         }
 
-        private static readonly int ASTEROID_COLLISION_GROUP = 0;
-        private static readonly int PLAYER_COLLISION_GROUP = 1;
-        private static readonly int BULLET_COLLISION_GROUP = 2;
-
-        private Scene createAsteroidScene()
+        private Node createAsteroidScene()
         {
             float height = 0.25f;
-
-            Scene scene = new Scene();
-            scene.GraphicsDevice = GraphicsDevice;
-
-            scene.CameraComponent = CameraComponent;
 
             // player
             Node playerNode = createPlayerNode();
@@ -140,12 +152,12 @@ namespace AsteroidGame
             worldNode.Add(asteroidGroupNode);
 
             // root
-            GroupNode rootNode = scene.RootNode;
+            GroupNode rootNode = new GroupNode("ROOT_NODE");
             rootNode.Add(worldNode);
 
             rootNode.AddFirst(createGridNode());
 
-            return scene;
+            return rootNode;
         }
 
         private Node createPlayerNode()
@@ -192,8 +204,8 @@ namespace AsteroidGame
         {
             // player
             MeshNode playerNode = GeometryUtil.CreateCircle(name, 3);
-            playerNode.RenderGroupId = Scene.CLIPPING;
-            playerNode.CollisionGroupId = PLAYER_COLLISION_GROUP;
+            playerNode.RenderGroupId = Scene.PLAYER;
+            playerNode.CollisionGroupId = Scene.PLAYER;
             playerNode.Scale = new Vector3(0.25f);
 
             MeshNode centerNode = GeometryUtil.CreateCircle("CENTER_" + name, 32);
@@ -215,7 +227,7 @@ namespace AsteroidGame
             bulletId++;
             GeometryNode node = GeometryUtil.CreateLine("BULLET_" + bulletId);
             node.RenderGroupId = Scene.BULLET;
-            node.CollisionGroupId = BULLET_COLLISION_GROUP;
+            node.CollisionGroupId = Scene.BULLET;
             node.Scale = new Vector3(0.10f);
             node.Rotation = orientation;
             node.Translation = position;
@@ -240,9 +252,8 @@ namespace AsteroidGame
         private Node createAsteroidNode(String name, long id, ref Vector3 position, ref Quaternion orientation, Vector3 velocity, Vector3 angularVelocity)
         {
             GeometryNode node = new MeshNode(name + "_" + asteroidId, new AsteroidMeshFactory(7));
-            node.RenderGroupId = Scene.CLIPPING;
-            //node.RenderGroupId = Scene.CLIPPING;
-            node.CollisionGroupId = ASTEROID_COLLISION_GROUP;
+            node.RenderGroupId = Scene.ASTEROID;
+            node.CollisionGroupId = Scene.ASTEROID;
             node.Scale = new Vector3(0.40f);
             node.Rotation = orientation;
             node.Translation = position;
@@ -255,31 +266,17 @@ namespace AsteroidGame
             return wrapNode;
         }
 
-        private Scene createCubeTestScene()
+        private Node createCubeTestScene()
         {
-            Scene scene = new Scene();
-            scene.GraphicsDevice = GraphicsDevice;
-
-            scene.CameraComponent = CameraComponent;
-
             GeometryNode cube = GeometryUtil.CreateCube("CUBE");
             cube.RenderGroupId = Scene.THREE_LIGHTS;
             cube.Scale = new Vector3(2.0f);
 
-            // root
-            GroupNode rootNode = scene.RootNode;
-            rootNode.Add(cube);
-
-            return scene;
+            return cube;
         }
 
-        private Scene createVoxelTestScene()
+        private Node createVoxelTestScene()
         {
-            Scene scene = new Scene();
-            scene.GraphicsDevice = GraphicsDevice;
-
-            scene.CameraComponent = CameraComponent;
-
             //Node voxelMapNode = createVoxelMapNode("VOXEL", 16);
             Node octreeNode = createOctreeNode("OCTREE", 1024);
 
@@ -289,10 +286,7 @@ namespace AsteroidGame
             //node.Add(voxelMapNode);
             node.Add(octreeNode);
 
-            GroupNode rootNode = scene.RootNode;
-            rootNode.Add(node);
-
-            return scene;
+            return node;
         }
 
         private Node createOctreeNode(String name, int size)
@@ -301,65 +295,69 @@ namespace AsteroidGame
             int VOXEL_SIZE = 16;
             int DEPTH = BitUtil.Log2(SIZE / VOXEL_SIZE);
             OctreeGeometry node = new OctreeGeometry(name, SIZE);
+            node.Octree.objectFactory = createObject;
             node.RenderGroupId = Scene.OCTREE;
 
-            GroupNode groupNode = new GroupNode("GROUP_VOXEL");
-            groupNode.Enabled = true;
-            groupNode.Visible = false;
-            node.Add(groupNode);
+            int n = 6;
+            for (int x = -n; x < n; x++)
+            {
+                for (int y = -n; y < n; y++)
+                {
+                    OctreeNode<GeometryNode> onode = node.Octree.AddChild(new Vector3(16 * x, 0, 16 * y), DEPTH);
+                    //onode.obj = createOctreeVoxelMapNode(node.Octree, onode, "VOXEL", VOXEL_SIZE);
+                    // TODO don't had voxel nodes to scene...
+                    //groupNode.Add(onode.obj);
 
-            //addOctreeChildren(node.Octree, node.Octree.RootNode);
-            //node.Octree.AddChild(Vector3.Zero, 6);
-
-            //node.Octree.AddChild(new Vector3(0,0,-1), 6);
-            //node.Octree.AddChild(new Vector3(0, -1, -1), 6);
-            //node.Octree.AddChild(new Vector3(-1, -1, -1), 6);
-
-            OctreeNode<GeometryNode> onode;
-
-            onode = node.Octree.AddChild(new Vector3(0, 0, 0), DEPTH);
-            onode.obj = createOctreeVoxelMapNode(node.Octree, onode, "VOXEL", VOXEL_SIZE);
-            // TODO don't had voxel nodes to scene...
-            groupNode.Add(onode.obj);
-
-            onode = node.Octree.AddChild(new Vector3(-16, 0, 0), DEPTH);
-            onode.obj = createOctreeVoxelMapNode(node.Octree, onode, "VOXEL", VOXEL_SIZE);
-            // TODO don't had voxel nodes to scene...
-            groupNode.Add(onode.obj);
-
-            onode = node.Octree.AddChild(new Vector3(16, 0, 0), DEPTH);
-            onode.obj = createOctreeVoxelMapNode(node.Octree, onode, "VOXEL", 16);
-            // TODO don't had voxel nodes to scene...
-            groupNode.Add(onode.obj);
-
-            onode = node.Octree.AddChild(new Vector3(32, 0, 0), DEPTH);
-            onode.obj = createOctreeVoxelMapNode(node.Octree, onode, "VOXEL", VOXEL_SIZE);
-            // TODO don't had voxel nodes to scene...
-            groupNode.Add(onode.obj);
+                }
+            }
 
             return node;
         }
 
-        private GeometryNode createOctreeVoxelMapNode(Octree<GeometryNode> octree, OctreeNode<GeometryNode> onode, String name, int size)
+        private GeometryNode createObject(Octree<GeometryNode> octree, OctreeNode<GeometryNode> node)
         {
-            //voxelMap = new SimpleVoxelMap(size);
-            VoxelMap voxelMap = new FunctionVoxelMap(size);
+            GeometryNode geometryNode = null;
+            int depth = octree.GetNodeTreeDepth(node);
+            if (depth == 6)
+            {
+                // FIXME using only X...
+                int size = (int)(octree.HalfSize.X * 2) / (2 << (depth - 1));
+                //BitUtil.Log2(SIZE / VOXEL_SIZE);
 
-            //GeometryNode node = new VoxelMapGeometry(name, size);
-            //node.RenderGroupId = Scene.VOXEL_MAP;
+                VoxelMap voxelMap = new FunctionVoxelMap(size);
 
-            GeometryNode node = new MeshNode("VOXEL", new VoxelMapMeshFactory(voxelMap));
-            node.Visible = true;
-            node.RenderGroupId = Scene.VOXEL;
-            //node.Rotation = Quaternion.CreateFromYawPitchRoll(0.3f, 0, 0);
+                geometryNode = new MeshNode("VOXEL", new VoxelMapMeshFactory(voxelMap));
+                geometryNode.Initialize(Scene.GraphicsDevice);
+                geometryNode.Visible = true;
+                geometryNode.RenderGroupId = Scene.VOXEL;
+                //node.Rotation = Quaternion.CreateFromYawPitchRoll(0.3f, 0, 0);
 
-            Vector3 halfSize;
-            Vector3 center;
-            octree.GetNodeBoundingBox(onode, out center, out halfSize);
+                Vector3 halfSize;
+                Vector3 center;
+                octree.GetNodeBoundingBox(node, out center, out halfSize);
 
-            node.Translation = center;
+                geometryNode.Translation = center;
+            }
+            else
+            {
+                geometryNode = GeometryUtil.CreateCubeWF("BOUNDING_BOX", 0.5f);
+                geometryNode.Initialize(Scene.GraphicsDevice);
+                geometryNode.Visible = false;
+                geometryNode.RenderGroupId = Scene.VECTOR;
 
-            return node;
+                Vector3 halfSize;
+                Vector3 center;
+                octree.GetNodeBoundingBox(node, out center, out halfSize);
+
+                geometryNode.Scale = halfSize;
+                geometryNode.Translation = center;
+            }
+            if (geometryNode != null)
+            {
+                geometryNode.UpdateTransform();
+                geometryNode.UpdateWorldTransform(null);
+            }
+            return geometryNode;
         }
 
         private Node createVoxelMapNode(String name, int size)
@@ -393,23 +391,18 @@ namespace AsteroidGame
             }
         }
 
-        private Scene createCollisionTestScene()
+        private Node createCollisionTestScene()
         {
-            Scene scene = new Scene();
-            scene.GraphicsDevice = GraphicsDevice;
-
-            scene.CameraComponent = CameraComponent;
-
             GeometryNode node1 = new MeshNode("RECT_1", new SquareMeshFactory());
-            node1.RenderGroupId = Scene.CLIPPING;
-            node1.CollisionGroupId = ASTEROID_COLLISION_GROUP;
+            node1.RenderGroupId = Scene.ASTEROID;
+            node1.CollisionGroupId = Scene.ASTEROID;
             //node1.Scale = new Vector3(0.40f);
             //node1.Rotation = Quaternion.CreateFromAxisAngle(Vector3.UnitZ, MathHelper.PiOver4);
             //node1.Translation = position;
 
             GeometryNode node2 = new MeshNode("RECT_2", new SquareMeshFactory());
-            node2.RenderGroupId = Scene.CLIPPING;
-            node2.CollisionGroupId = ASTEROID_COLLISION_GROUP;
+            node2.RenderGroupId = Scene.ASTEROID;
+            node2.CollisionGroupId = Scene.ASTEROID;
             //node2.Rotation = Quaternion.CreateFromAxisAngle(Vector3.UnitZ, MathHelper.PiOver4);
             node2.Translation = new Vector3(0.75f, 0.75f, 0);
 
@@ -417,8 +410,8 @@ namespace AsteroidGame
                 new Vector2(0, 0), new Vector2(0, 1), new Vector2(2f, 2f)
             //new Vector2(0, 0), new Vector2(0, 0), new Vector2(0, 0)
             )));
-            node3.RenderGroupId = Scene.CLIPPING;
-            node3.CollisionGroupId = ASTEROID_COLLISION_GROUP;
+            node3.RenderGroupId = Scene.ASTEROID;
+            node3.CollisionGroupId = Scene.ASTEROID;
             //node1.Scale = new Vector3(0.40f);
             //node1.Rotation = Quaternion.CreateFromAxisAngle(Vector3.UnitZ, MathHelper.PiOver4);
             //node3.Translation = new Vector3(-2.5f, 0, 0);
@@ -427,31 +420,26 @@ namespace AsteroidGame
                 new Vector2(0, 0), new Vector2(0, 1), new Vector2(2f, 2f)
             //new Vector2(0, 0), new Vector2(0, 0), new Vector2(0, 0)
             )));
-            node4.RenderGroupId = Scene.CLIPPING;
-            node4.CollisionGroupId = ASTEROID_COLLISION_GROUP;
+            node4.RenderGroupId = Scene.ASTEROID;
+            node4.CollisionGroupId = Scene.ASTEROID;
             //node1.Scale = new Vector3(0.40f);
             //node1.Rotation = Quaternion.CreateFromAxisAngle(Vector3.UnitZ, MathHelper.PiOver4);
             node4.Translation = new Vector3(0f, 0.5f, 0);
 
             // root
-            GroupNode rootNode = scene.RootNode;
+            GroupNode rootNode = new GroupNode("ROOT_NODE");
             //rootNode.Add(node1);
             //rootNode.Add(node2);
             rootNode.Add(node3);
             rootNode.Add(node4);
 
-            return scene;
+            return rootNode;
         }
 
-        private Scene createGeodesicTestScene()
+        private Node createGeodesicTestScene()
         {
-            Scene scene = new Scene();
-            scene.GraphicsDevice = GraphicsDevice;
-
-            scene.CameraComponent = CameraComponent;
-
             // root
-            GroupNode rootNode = scene.RootNode;
+            GroupNode rootNode = new GroupNode("ROOT_NODE");
 
             bool WF = false;
 
@@ -513,7 +501,7 @@ namespace AsteroidGame
                 }
             }
 
-            return scene;
+            return rootNode;
         }
 
 

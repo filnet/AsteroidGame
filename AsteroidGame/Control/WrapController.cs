@@ -24,7 +24,6 @@ namespace AsteroidGame.Control
             //    if(it.Value.removalCondition == true)
             //        it.Value = null;
             //}
-
         }
 
         public override void Update(GameTime gameTime)

@@ -22,11 +22,11 @@ namespace GameLibrary
             this.size = size;
         }
 
-        public override void Initialize()
+        public override void Initialize(GraphicsDevice gd)
         {
             //voxelMap = new SimpleVoxelMap(size);
             voxelMap = new FunctionVoxelMap(size);
-            base.Initialize();
+            base.Initialize(gd);
         }
 
         public override void Dispose()

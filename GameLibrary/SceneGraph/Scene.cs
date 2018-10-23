@@ -16,7 +16,7 @@ namespace GameLibrary.SceneGraph
     {
         private ICameraComponent cameraComponent;
 
-        private GroupNode rootNode;
+        private Node rootNode;
 
         private readonly Dictionary<int, Renderer> renderers;
 
@@ -25,15 +25,17 @@ namespace GameLibrary.SceneGraph
 
         private MeshNode boundingSphereGeo;
         private MeshNode boundingBoxGeo;
-        public int cullCount;
-        public int renderCount;
 
         private BoundingFrustum boundingFrustum;
         private MeshNode frustrumGeo;
 
+        private Matrix previousProjectionMatrix = Matrix.Identity;
+        private Matrix previousViewMatrix = Matrix.Identity;
+
         Dictionary<int, LinkedList<Collision>> collisionCache = new Dictionary<int, LinkedList<Collision>>();
         //LinkedList<GameLibrary.Util.Intersection> intersections = new LinkedList<GameLibrary.Util.Intersection>();
 
+        // Settings 
         public Boolean Debug;
         public Boolean ShowBoundingVolumes = false;
         public Boolean ShowCulledBoundingVolumes = false;
@@ -41,11 +43,16 @@ namespace GameLibrary.SceneGraph
         public Boolean ShowFrustrum;
         public Boolean CaptureFrustrum;
 
+        // Stats
+        public int cullCount;
+        public int renderCount;
+
         public GraphicsDevice GraphicsDevice;
 
-        public GroupNode RootNode
+        public Node RootNode
         {
             get { return rootNode; }
+            set { rootNode = value; }
         }
 
         public ICameraComponent CameraComponent
@@ -56,7 +63,8 @@ namespace GameLibrary.SceneGraph
 
         public BoundingFrustum BoundingFrustum
         {
-            get {
+            get
+            {
                 if (boundingFrustum != null)
                 {
                     return boundingFrustum;
@@ -73,8 +81,8 @@ namespace GameLibrary.SceneGraph
 
             collisionGroups = new Dictionary<int, List<GeometryNode>>();
 
-            rootNode = new TransformNode("ROOT");
-            rootNode.Scene = this;
+            //rootNode = new TransformNode("ROOT");
+            //rootNode.Scene = this;
         }
 
         public static int THREE_LIGHTS = 0;
@@ -83,8 +91,10 @@ namespace GameLibrary.SceneGraph
         public static int WIRE_FRAME = 3;
         public static int VECTOR = 4;
         public static int CLIPPING = 5;
-        public static int BULLET = 6;
-        public static int ASTEROID = 7;
+
+        public static int PLAYER = 6;
+        public static int BULLET = 7;
+        public static int ASTEROID = 8;
 
         public static int VOXEL_MAP = 10;
         public static int VOXEL = 12;
@@ -104,16 +114,16 @@ namespace GameLibrary.SceneGraph
         public void Initialize()
         {
             boundingSphereGeo = GeometryUtil.CreateGeodesicWF("BOUNDING_SPHERE", 1);
-            boundingSphereGeo.Scene = this;
+            //boundingSphereGeo.Scene = this;
             //boundingGeo.Scale = new Vector3(1.05f);
             //boundingSphereGeo.RenderGroupId = VECTOR;
-            boundingSphereGeo.Initialize();
+            boundingSphereGeo.Initialize(GraphicsDevice);
 
             boundingBoxGeo = GeometryUtil.CreateCubeWF("BOUNDING_BOX", 1);
-            boundingBoxGeo.Scene = this;
+            //boundingBoxGeo.Scene = this;
             //boundingBoxGeo.Scale = new Vector3(1.05f);
             //boundingBoxGeo.RenderGroupId = VECTOR;
-            boundingBoxGeo.Initialize();
+            boundingBoxGeo.Initialize(GraphicsDevice);
 
             renderers[THREE_LIGHTS] = new EffectRenderer(EffectFactory.CreateBasicEffect1(GraphicsDevice)); // 3 lights
             renderers[ONE_LIGHT] = new EffectRenderer(EffectFactory.CreateBasicEffect2(GraphicsDevice)); // 1 light
@@ -121,8 +131,9 @@ namespace GameLibrary.SceneGraph
 
             renderers[WIRE_FRAME] = new WireFrameRenderer(EffectFactory.CreateBasicEffect3(GraphicsDevice)); // no light + wire frame
             renderers[VECTOR] = new EffectRenderer(EffectFactory.CreateBasicEffect3(GraphicsDevice)); // no light
-
             renderers[CLIPPING] = new EffectRenderer(EffectFactory.CreateClippingEffect(GraphicsDevice));
+
+            renderers[PLAYER] = new EffectRenderer(EffectFactory.CreateClippingEffect(GraphicsDevice));
             renderers[BULLET] = new EffectRenderer(EffectFactory.CreateBulletEffect(GraphicsDevice));
             renderers[ASTEROID] = new EffectRenderer(EffectFactory.CreateClippingEffect(GraphicsDevice));
 
@@ -130,7 +141,7 @@ namespace GameLibrary.SceneGraph
             //renderers[VOXEL_MAP] = new VoxelMapInstancedRenderer(EffectFactory.CreateInstancedEffect(GraphicsDevice));
 
             renderers[VOXEL] = new EffectRenderer(EffectFactory.CreateBasicEffect1(GraphicsDevice)); // 3 lights
-            renderers[VOXEL].RasterizerState = RasterizerState.CullNone;
+            //renderers[VOXEL].RasterizerState = RasterizerState.CullNone;
             //renderers[VOXEL].RasterizerState = Renderer.WireFrameRasterizer;
 
             renderers[OCTREE] = new OctreeRenderer(EffectFactory.CreateBasicEffect3(GraphicsDevice)); // no light
@@ -138,7 +149,7 @@ namespace GameLibrary.SceneGraph
 
             renderers[FRUSTRUM] = new EffectRenderer(EffectFactory.CreateBasicEffect3(GraphicsDevice)); // no light
 
-            bool clip = true;
+            bool clip = false;
             renderers[BOUNDING_SPHERE] = new BoundRenderer(EffectFactory.CreateBoundEffect(GraphicsDevice, clip), boundingSphereGeo); // clipping
             renderers[BOUNDING_BOX] = new BoundRenderer(EffectFactory.CreateBoundEffect(GraphicsDevice, clip), boundingBoxGeo); // clipping
             renderers[CULLED_BOUNDING_SPHERE] = new BoundRenderer(EffectFactory.CreateCulledBoundEffect(GraphicsDevice, clip), boundingSphereGeo); // clipping
@@ -146,8 +157,8 @@ namespace GameLibrary.SceneGraph
             renderers[COLLISION_SPHERE] = new BoundRenderer(EffectFactory.CreateCollisionEffect(GraphicsDevice, clip), boundingSphereGeo); // clipping
             renderers[COLLISION_BOX] = new BoundRenderer(EffectFactory.CreateCollisionEffect(GraphicsDevice, clip), boundingBoxGeo); // clipping
 
-            rootNode.Visit(COMMIT_VISITOR);
-            rootNode.Initialize();
+            rootNode.Visit(COMMIT_VISITOR, this);
+            rootNode.Visit(INIT_VISITOR, this);
         }
 
         public void Dispose()
@@ -173,7 +184,7 @@ namespace GameLibrary.SceneGraph
             bool structureDirty = RootNode.IsDirty(Node.DirtyFlag.Structure) || RootNode.IsDirty(Node.DirtyFlag.ChildStructure);
             if (structureDirty)
             {
-                rootNode.Visit(COMMIT_VISITOR);
+                rootNode.Visit(COMMIT_VISITOR, this);
             }
 
             // update
@@ -184,16 +195,16 @@ namespace GameLibrary.SceneGraph
             rootNode.Visit(COLLISION_GROUP_VISITOR, this);
 
             collisionCache.Clear();
-            if (collisionGroups.ContainsKey(0))
+            if (collisionGroups.ContainsKey(ASTEROID))
             {
-                checkCollisions(collisionGroups[0], collisionCache);
-                if (collisionGroups.ContainsKey(1))
+                checkCollisions(collisionGroups[ASTEROID], collisionCache);
+                if (collisionGroups.ContainsKey(PLAYER))
                 {
-                    checkCollisions(collisionGroups[0], collisionGroups[1], collisionCache);
+                    checkCollisions(collisionGroups[ASTEROID], collisionGroups[PLAYER], collisionCache);
                 }
-                if (collisionGroups.ContainsKey(2))
+                if (collisionGroups.ContainsKey(BULLET))
                 {
-                    checkCollisions(collisionGroups[0], collisionGroups[2], collisionCache);
+                    checkCollisions(collisionGroups[ASTEROID], collisionGroups[BULLET], collisionCache);
                 }
             }
             /*
@@ -213,12 +224,28 @@ namespace GameLibrary.SceneGraph
             }
             */
 
-            // TODO do the RENDER_GROUP_VISITOR only if:
+            bool cameraDirty = false;
+            cameraDirty = cameraDirty || (!previousProjectionMatrix.Equals(cameraComponent.ProjectionMatrix));
+            cameraDirty = cameraDirty || (!previousViewMatrix.Equals(cameraComponent.ViewMatrix));
+
+            bool sceneDirty = true;
+
+            // do the RENDER_GROUP_VISITOR only if:
             // - camera is dirty
+            // - TODO scene is dirty (something has moved in the scene)
             // - scene structure is dirty
-            // - something has moved in the scene
-            if (true || structureDirty || renderGroups.Count == 0)
+            if (cameraDirty || sceneDirty || structureDirty || (renderGroups.Count == 0))
             {
+                if (cameraDirty)
+                {
+                    //Console.WriteLine("Camera Dirty");
+                    previousProjectionMatrix = cameraComponent.ProjectionMatrix;
+                    previousViewMatrix = cameraComponent.ViewMatrix;
+                }
+                if (structureDirty)
+                {
+                    Console.WriteLine("Structure Dirty");
+                }
                 ClearGroups(renderGroups);
 
                 cullCount = 0;
@@ -239,11 +266,11 @@ namespace GameLibrary.SceneGraph
                 CaptureFrustrum = false;
                 boundingFrustum = CameraComponent.BoundingFrustum;
                 frustrumGeo = GeometryUtil.CreateFrustrum("FRUSTRUM", boundingFrustum);
-                frustrumGeo.Scene = this;
+                //frustrumGeo.Scene = this;
                 frustrumGeo.RenderGroupId = FRUSTRUM;
                 //frustrumGeo.Scale = new Vector3(0.9f);
                 //frustrumGeo.Translation = new Vector3(0, -1f, 0);
-                frustrumGeo.Initialize();
+                frustrumGeo.Initialize(GraphicsDevice);
                 frustrumGeo.UpdateTransform();
                 frustrumGeo.UpdateWorldTransform(null);
             }
@@ -370,13 +397,21 @@ namespace GameLibrary.SceneGraph
             return true;
         };
 
+        private static Node.Visitor INIT_VISITOR = delegate (Node node, ref Object arg)
+        {
+            Scene scene = arg as Scene;
+            node.Initialize(scene.GraphicsDevice);
+            return true;
+        };
+
         private static Node.Visitor COMMIT_VISITOR = delegate (Node node, ref Object arg)
         {
             if (!node.Enabled) return false;
             //Console.WriteLine("Commiting " + node.Name);
             if (node is GroupNode groupNode)
             {
-                groupNode.Commit();
+                Scene scene = arg as Scene;
+                groupNode.Commit(scene.GraphicsDevice);
             }
             // do we need to recurse
             bool recurse = false;
@@ -406,16 +441,17 @@ namespace GameLibrary.SceneGraph
                 octreeGeometry.Octree.Visit(OCTREE_RENDER_GROUP_VISITOR, arg);
 
                 // TODO don't add the octree to the scene...
-                Scene scene = arg as Scene;
-                scene.AddToGroups(scene.renderGroups, octreeGeometry);
+                //Scene scene = arg as Scene;
+                //scene.AddToGroups(scene.renderGroups, octreeGeometry);
 
                 return true;
             }
             if (node is GeometryNode geometryNode)
             {
                 Scene scene = arg as Scene;
-                bool cull = false;
+
                 BoundingVolume bv = geometryNode.WorldBoundingVolume;
+                bool cull = false;
                 if (bv != null)
                 {
                     BoundingFrustum boundingFrustum = scene.BoundingFrustum;
@@ -430,9 +466,11 @@ namespace GameLibrary.SceneGraph
                 if (!cull)
                 {
                     scene.AddToGroups(scene.renderGroups, geometryNode);
+                    scene.renderCount++;
+
                     if (geometryNode.BoundingVolumeVisible)
                     {
-                        Boolean collided = (scene.collisionCache != null) ? scene.collisionCache.ContainsKey(node.Id) : false;
+                        Boolean collided = (scene.collisionCache != null) ? scene.collisionCache.ContainsKey(geometryNode.Id) : false;
                         if (collided && scene.ShowCollisionVolumes)
                         {
                             if (geometryNode.BoundingVolume.GetBoundingType() == BoundingType.Sphere)
@@ -474,27 +512,63 @@ namespace GameLibrary.SceneGraph
                         }
                     }
                 }
-
-                scene.renderCount++;
             }
+            // TODO should return !cull
             return true;
         };
 
-        private static Octree<GeometryNode>.Visitor OCTREE_RENDER_GROUP_VISITOR = delegate (OctreeNode<GeometryNode> node, ref Object arg)
+        private static Octree<GeometryNode>.Visitor OCTREE_RENDER_GROUP_VISITOR = delegate (Octree<GeometryNode> octree, OctreeNode<GeometryNode> node, ref Object arg)
         {
             Scene scene = arg as Scene;
 
-            /*
-            Vector3 halfSize;
-            Vector3 center;
-            renderer.octreeGeometry.Octree.GetNodeBoundingBox(octreeNode, out center, out halfSize);
-            */
+            Bounding.BoundingBox bv = new Bounding.BoundingBox();
+            octree.GetNodeBoundingBox(node, ref bv);
 
-            if (node.obj != null && node.obj.Visible)
+            BoundingFrustum boundingFrustum = scene.BoundingFrustum;
+            //Console.WriteLine(boundingFrustum);
+            bool cull = false;
+            if (bv.IsContained(boundingFrustum) == ContainmentType.Disjoint)
             {
-                scene.AddToGroups(scene.renderGroups, node.obj);
+                //Console.WriteLine("Culling " + node.Name);
+                //cull = true;
+                scene.cullCount++;
             }
-            return true;
+            GeometryNode geometryNode = node.obj;
+            if (geometryNode != null)
+            {
+                if (!cull)
+                {
+                    if (geometryNode.Visible)
+                    {
+                        scene.AddToGroups(scene.renderGroups, geometryNode);
+                        scene.renderCount++;
+                    }
+                    if (geometryNode.BoundingVolumeVisible)
+                    {
+                        Boolean collided = (scene.collisionCache != null) ? scene.collisionCache.ContainsKey(geometryNode.Id) : false;
+                        if (collided && scene.ShowCollisionVolumes)
+                        {
+                            scene.AddToGroups(scene.renderGroups, COLLISION_BOX, geometryNode);
+                        }
+                        else if (scene.ShowBoundingVolumes)
+                        {
+                            scene.AddToGroups(scene.renderGroups, BOUNDING_BOX, geometryNode);
+                        }
+                    }
+                }
+                else
+                {
+                    // handle culled nodes
+                    if (geometryNode.BoundingVolumeVisible)
+                    {
+                        if (scene.ShowCulledBoundingVolumes)
+                        {
+                            scene.AddToGroups(scene.renderGroups, CULLED_BOUNDING_BOX, geometryNode);
+                        }
+                    }
+                }
+            }
+            return !cull;
         };
 
         private static Node.Visitor COLLISION_GROUP_VISITOR = delegate (Node node, ref Object arg)

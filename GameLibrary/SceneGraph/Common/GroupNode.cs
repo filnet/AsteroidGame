@@ -142,7 +142,7 @@ namespace GameLibrary.SceneGraph.Common
             setStructureDirty();
         }
 
-        public void Commit()
+        public void Commit(GraphicsDevice graphicsDevice)
         {
             if (!isDirty(DirtyFlag.Structure))
             {
@@ -160,9 +160,9 @@ namespace GameLibrary.SceneGraph.Common
                         case EventType.ADDED:
                             added = true;
                             node.ParentNode = this;
-                            setSceneRecursive(node);
+                            //setSceneRecursive(node);
                             nodes.AddLast(node);
-                            node.Initialize();
+                            node.Initialize(graphicsDevice);
                             if (node.IsDirty(DirtyFlag.Transform))
                             {
                                 node.setDirty(DirtyFlag.ChildTransform);
@@ -175,9 +175,9 @@ namespace GameLibrary.SceneGraph.Common
                         case EventType.ADDED_FIRST:
                             added = true;
                             node.ParentNode = this;
-                            setSceneRecursive(node);
+                            //setSceneRecursive(node);
                             nodes.AddFirst(node);
-                            node.Initialize();
+                            node.Initialize(graphicsDevice);
                             if (node.IsDirty(DirtyFlag.Transform))
                             {
                                 node.setDirty(DirtyFlag.ChildTransform);
@@ -259,6 +259,7 @@ namespace GameLibrary.SceneGraph.Common
 
         #region Private Methods
 
+            /*
         private void setSceneRecursive(Node node)
         {
             node.Scene = node.ParentNode.Scene;
@@ -271,7 +272,7 @@ namespace GameLibrary.SceneGraph.Common
                 }
             }
         }
-
+        */
         #endregion
     }
 

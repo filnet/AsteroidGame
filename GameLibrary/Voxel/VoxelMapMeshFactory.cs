@@ -44,7 +44,7 @@ namespace GameLibrary.Geometry
             private readonly float d = 0.5f;
             private int size;
 
-            private bool scale = true;
+            private bool scale = false;
             private float s = 0.75f;
 
             public int primitiveCount;

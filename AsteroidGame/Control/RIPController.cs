@@ -34,8 +34,6 @@ namespace AsteroidGame.Control
             age += gameTime.ElapsedGameTime;
             if (age.TotalSeconds > lifeTime)
             {
-                //drawableComponent.Enabled = false;
-                //drawableComponent.Visible = false;
                 Node.Enabled = false;
                 Node.Visible = false;
                 Node.Remove();

@@ -101,9 +101,9 @@ namespace GameLibrary.SceneGraph.Common
             return new TransformNode(this);
         }
 
-        public override void Initialize()
+        public override void Initialize(GraphicsDevice graphicsDevice)
         {
-            base.Initialize();
+            base.Initialize(graphicsDevice);
         }
 
         internal bool UpdateTransform()

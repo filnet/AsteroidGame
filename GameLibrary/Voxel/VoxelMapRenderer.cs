@@ -31,9 +31,6 @@ namespace GameLibrary.SceneGraph
 
         public VoxelMapRenderer(Effect effect) : base(effect)
         {
-            // FIXME need to call cubeGeometry.Dispose() at some point...
-            //cubeGeometry = new CubeGeometry("VOXEL_CUBE");
-            cubeGeometry = GeometryUtil.CreateCube("VOXEL_CUBE");
             drawVisitor = new DrawVisitor(this);
 
             RasterizerState = RasterizerState.CullNone;
@@ -64,15 +61,16 @@ namespace GameLibrary.SceneGraph
 
         private void render(GraphicsContext gc, VoxelMapGeometry voxelMapGeometry)
         {
-            if (cubeGeometry.Scene == null)
+            if (cubeGeometry == null)
             {
-                cubeGeometry.Scene = voxelMapGeometry.Scene;
-                cubeGeometry.Initialize();
+                // FIXME need to call cubeGeometry.Dispose() at some point...
+                cubeGeometry = GeometryUtil.CreateCube("VOXEL_CUBE");
+                cubeGeometry.Initialize(gc.GraphicsDevice);
             }
 
             worldMatrix = voxelMapGeometry.WorldTransform;
 
-            cubeGeometry.preDraw();
+            cubeGeometry.preDraw(gc.GraphicsDevice);
             foreach (EffectPass pass in effect.CurrentTechnique.Passes)
             {
                 this.pass = pass;
@@ -108,7 +106,7 @@ namespace GameLibrary.SceneGraph
                 }
                 parent.pass.Apply();
 
-                parent.cubeGeometry.Draw();
+                parent.cubeGeometry.Draw(null);
 
                 return true;
             }

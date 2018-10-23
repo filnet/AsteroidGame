@@ -13,21 +13,21 @@ namespace GameLibrary
     public class OctreeGeometry : GeometryNode
     {
         private int halfSize;
+
         public Octree<GeometryNode> Octree;
 
         public OctreeGeometry(String name, int size)
             : base(name)
         {
-            //number_of_vertices = verticesCount;
             halfSize = size / 2;
             Octree = new Octree<GeometryNode>(Vector3.Zero, new Vector3(halfSize));
         }
 
-        public override void Initialize()
+        public override void Initialize(GraphicsDevice gd)
         {
             //Octree = new SimpleOctree(size);
             BoundingVolume = new GameLibrary.SceneGraph.Bounding.BoundingBox(Vector3.Zero, new Vector3(halfSize));
-            base.Initialize();
+            base.Initialize(gd);
         }
 
         public override void Dispose()

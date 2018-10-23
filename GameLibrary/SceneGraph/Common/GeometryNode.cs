@@ -116,15 +116,15 @@ namespace GameLibrary.SceneGraph.Common
             return false;
         }
 
-        public virtual void preDraw()
+        public virtual void preDraw(GraphicsDevice gd)
         {
         }
 
-        public virtual void Draw()
+        public virtual void Draw(GraphicsDevice gd)
         {
         }
 
-        public virtual void postDraw()
+        public virtual void postDraw(GraphicsDevice gd)
         {
         }
 

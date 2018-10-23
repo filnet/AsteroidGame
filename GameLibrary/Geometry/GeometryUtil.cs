@@ -37,7 +37,7 @@ namespace GameLibrary.Geometry
             return new MeshNode(name, new CubeMeshFactory());
         }
 
-        public static MeshNode CreateCubeWF(String name, int size)
+        public static MeshNode CreateCubeWF(String name, float size)
         {
             return new MeshNode(name, new CubeWFMeshFactory(size));
         }

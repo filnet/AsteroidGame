@@ -17,8 +17,9 @@ namespace GameLibrary.SceneGraph
     {
         private GeometryNode boundingBoxGeo;
 
-        private OctreeGeometry octreeGeometry;
+        //private OctreeGeometry octreeGeometry;
         private Matrix worldMatrix;
+        private GraphicsContext gc;
 
         private EffectPass pass;
 
@@ -33,7 +34,7 @@ namespace GameLibrary.SceneGraph
             // FIXME need to call cubeGeometry.Dispose() at some point...
             //cubeGeometry = GeometryUtil.CreateCube("VOXEL_CUBE");
 
-            boundingBoxGeo = GeometryUtil.CreateCubeWF("BOUNDING_BOX", 1);
+            //boundingBoxGeo = GeometryUtil.CreateCubeWF("BOUNDING_BOX", 1);
             //boundingBoxGeo.Scene = this;
             //boundingBoxGeo.Scale = new Vector3(1.05f);
             //boundingBoxGeo.RenderGroupId = VECTOR;
@@ -68,16 +69,18 @@ namespace GameLibrary.SceneGraph
 
         private void render(GraphicsContext gc, OctreeGeometry octreeGeometry)
         {
-            if (boundingBoxGeo.Scene == null)
+            if (boundingBoxGeo == null)
             {
-                boundingBoxGeo.Scene = octreeGeometry.Scene;
-                boundingBoxGeo.Initialize();
+                // FIXME need to call boundingBoxGeo.Dispose() at some point...
+                boundingBoxGeo = GeometryUtil.CreateCubeWF("BOUNDING_BOX", 1);
+                boundingBoxGeo.Initialize(gc.GraphicsDevice);
             }
 
-            this.octreeGeometry = octreeGeometry;
+            //this.octreeGeometry = octreeGeometry;
             worldMatrix = octreeGeometry.WorldTransform;
+            this.gc = gc;
 
-            boundingBoxGeo.preDraw();
+            boundingBoxGeo.preDraw(gc.GraphicsDevice);
             foreach (EffectPass pass in effect.CurrentTechnique.Passes)
             {
                 this.pass = pass;
@@ -85,7 +88,7 @@ namespace GameLibrary.SceneGraph
             }
         }
 
-        private static Octree<GeometryNode>.Visitor _GROUP_VISITOR = delegate (OctreeNode<GeometryNode> octreeNode, ref Object arg)
+        private static Octree<GeometryNode>.Visitor _GROUP_VISITOR = delegate (Octree<GeometryNode> octree, OctreeNode<GeometryNode> node, ref Object arg)
         {
             OctreeRenderer renderer = arg as OctreeRenderer;
             /*
@@ -97,33 +100,34 @@ namespace GameLibrary.SceneGraph
                 scene.AddToGroups(scene.collisionGroups, geometryNode.CollisionGroupId, geometryNode);
             }
             */
-
             if (renderer.effectMatrices != null)
             {
                 // TOOO move bbox rendering to elsewhere !!!
-                if (false && octreeNode.obj != null)
+                if (false && node.obj != null)
                 {
-                    Vector3 halfSize;
                     Vector3 center;
-                    renderer.octreeGeometry.Octree.GetNodeBoundingBox(octreeNode, out center, out halfSize);
+                    Vector3 halfSize;
+                    octree.GetNodeBoundingBox(node, out center, out halfSize);
 
                     Matrix localMatrix = Matrix.CreateTranslation(center);
                     renderer.effectMatrices.World = localMatrix * renderer.worldMatrix;
                     renderer.pass.Apply();
-                    octreeNode.obj.preDraw();
-                    octreeNode.obj.Draw();
-                    octreeNode.obj.postDraw();
+                    GraphicsContext gc = renderer.gc;
+                    node.obj.preDraw(gc.GraphicsDevice);
+                    node.obj.Draw(gc.GraphicsDevice);
+                    node.obj.postDraw(gc.GraphicsDevice);
                 }
                 if (true)
                 {
                     Vector3 halfSize;
                     Vector3 center;
-                    renderer.octreeGeometry.Octree.GetNodeBoundingBox(octreeNode, out center, out halfSize);
+                    octree.GetNodeBoundingBox(node, out center, out halfSize);
 
                     Matrix localMatrix = Matrix.CreateScale(halfSize) * Matrix.CreateTranslation(center);
                     renderer.effectMatrices.World = localMatrix * renderer.worldMatrix;
                     renderer.pass.Apply();
-                    renderer.boundingBoxGeo.Draw();
+                    GraphicsContext gc = renderer.gc;
+                    renderer.boundingBoxGeo.Draw(gc.GraphicsDevice);
                 }
             }
 

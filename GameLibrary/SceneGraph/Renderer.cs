@@ -77,14 +77,14 @@ namespace GameLibrary.SceneGraph
                         effectMatrices.World = node.WorldTransform;
                     }
                     pass.Apply();
-                    node.preDraw();
-                    node.Draw();
-                    node.postDraw();
+                    node.preDraw(gc.GraphicsDevice);
+                    node.Draw(gc.GraphicsDevice);
+                    node.postDraw(gc.GraphicsDevice);
                 }
             }
         }
 
-        private void renderOld(List<GeometryNode> nodeList)
+        private void renderOld(GraphicsContext gc, List<GeometryNode> nodeList)
         {
             foreach (GeometryNode node in nodeList)
             {
@@ -92,7 +92,7 @@ namespace GameLibrary.SceneGraph
                 {
                     effectMatrices.World = node.WorldTransform;
                 }
-                node.preDraw();
+                node.preDraw(gc.GraphicsDevice);
                 // TODO in case of multiple passes, it might be more efficient
                 // to loop over passes then over geometries and not the other
                 // way around as is currently done
@@ -101,9 +101,9 @@ namespace GameLibrary.SceneGraph
                 {
                     pass.Apply();
                     //dc.pass = pass;
-                    node.Draw();
+                    node.Draw(gc.GraphicsDevice);
                 }
-                node.postDraw();
+                node.postDraw(gc.GraphicsDevice);
             }
         }
     }
@@ -140,7 +140,7 @@ namespace GameLibrary.SceneGraph
                 effectMatrices.View = gc.Camera.ViewMatrix;
             }
 
-            boundingGeometry.preDraw();
+            boundingGeometry.preDraw(gc.GraphicsDevice);
             foreach (EffectPass pass in effect.CurrentTechnique.Passes)
             {
                 foreach (GeometryNode node in nodeList)
@@ -150,10 +150,10 @@ namespace GameLibrary.SceneGraph
                         effectMatrices.World = node.WorldBoundingVolume.WorldMatrix;
                     }
                     pass.Apply();
-                    boundingGeometry.Draw();
+                    boundingGeometry.Draw(gc.GraphicsDevice);
                 }
             }
-            boundingGeometry.postDraw();
+            boundingGeometry.postDraw(gc.GraphicsDevice);
         }
     }
 

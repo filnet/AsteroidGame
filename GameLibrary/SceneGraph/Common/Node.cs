@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using GameLibrary.Control;
 using GameLibrary.Util;
+using Microsoft.Xna.Framework.Graphics;
 
 namespace GameLibrary.SceneGraph.Common
 {
@@ -15,7 +16,7 @@ namespace GameLibrary.SceneGraph.Common
             return nextNodeID;
         }
 
-        public enum DirtyFlag : int { Structure, ChildStructure, Transform, ChildTransform, WorldTransform, ChildWorldTransform };
+        public enum DirtyFlag : int { Initialized, Structure, ChildStructure, Transform, ChildTransform, WorldTransform, ChildWorldTransform};
 
         #region Fields
 
@@ -23,7 +24,7 @@ namespace GameLibrary.SceneGraph.Common
 
         private String name;
 
-        private int dirty;
+        private int dirtyFlags;
 
         private List<Controller> controllers;
 
@@ -41,7 +42,7 @@ namespace GameLibrary.SceneGraph.Common
 
         public GroupNode ParentNode { get; set; }
 
-        internal Scene Scene { get; set; }
+        //internal Scene Scene { get; set; }
 
         public List<Controller> Controllers
         {
@@ -58,7 +59,7 @@ namespace GameLibrary.SceneGraph.Common
             this.name = name;
             if (this.name == null)
             {
-                name = "NODE_" + id;
+                name = "NODE_#" + id;
             }
             Enabled = true;
             Visible = true;
@@ -78,8 +79,8 @@ namespace GameLibrary.SceneGraph.Common
             }
             Enabled = node.Enabled;
             Visible = node.Visible;
-            // 
-            Scene = node.Scene;
+            //Scene = node.Scene;
+
             // don't clone controllers !?
             controllers = new List<Controller>();
         }
@@ -90,9 +91,10 @@ namespace GameLibrary.SceneGraph.Common
 
         public abstract Node Clone();
 
-        public virtual void Initialize()
+        public virtual void Initialize(GraphicsDevice graphicsDevice)
         {
             Console.WriteLine("Initializing " + name);
+            setDirty(DirtyFlag.Initialized);
         }
 
         public virtual void Dispose()
@@ -111,22 +113,22 @@ namespace GameLibrary.SceneGraph.Common
 
         public String DirtyFlagsAsString()
         {
-            return dirty.ToBinaryString();
+            return dirtyFlags.ToBinaryString();
         }
 
         protected bool isDirty(DirtyFlag dirtyFlag)
         {
-            return dirty.IsBitSet((int) dirtyFlag);
+            return dirtyFlags.IsBitSet((int) dirtyFlag);
         }
 
         internal void setDirty(DirtyFlag dirtyFlag)
         {
-            dirty = dirty.SetBit((int) dirtyFlag);
+            dirtyFlags = dirtyFlags.SetBit((int) dirtyFlag);
         }
 
         internal void clearDirty(DirtyFlag dirtyFlag)
         {
-            dirty = dirty.UnsetBit((int) dirtyFlag);
+            dirtyFlags = dirtyFlags.UnsetBit((int) dirtyFlag);
         }
 
         protected void setParentDirty(DirtyFlag dirtyFlag)

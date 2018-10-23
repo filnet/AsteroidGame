@@ -73,9 +73,8 @@ namespace GameLibrary
             IsMouseVisible = false;
         }
 
-        protected virtual Scene createScene(int mode)
+        protected virtual void createScene(int mode)
         {
-            return null;
         }
 
 
@@ -162,8 +161,7 @@ namespace GameLibrary
 
             fpsComponent.Initialize();
 
-            scene = createScene(mode);
-            scene.Initialize();
+            createScene(mode);
 
             // initialize self. will initialize all added components
             base.Initialize();
@@ -194,8 +192,7 @@ namespace GameLibrary
                 scene.Dispose();
             }
             mode = (mode + 1) % 5;
-            scene = createScene(mode);
-            scene.Initialize();
+            createScene(mode);
         }
 
         /// <summary>
