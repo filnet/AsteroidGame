@@ -278,86 +278,22 @@ namespace AsteroidGame
         private Node createVoxelTestScene()
         {
             //Node voxelMapNode = createVoxelMapNode("VOXEL", 16);
-            Node octreeNode = createOctreeNode("OCTREE", 1024);
+            Node voxelOctreeNode = createVoxelOctreeNode("OCTREE", 1024);
 
             // root
             TransformNode node = new TransformNode("SCENE");
             node.Scale = new Vector3(0.10f);
             //node.Add(voxelMapNode);
-            node.Add(octreeNode);
+            node.Add(voxelOctreeNode);
 
             return node;
         }
 
-        private Node createOctreeNode(String name, int size)
+        private Node createVoxelOctreeNode(String name, int size)
         {
-            int SIZE = 1024;
-            int VOXEL_SIZE = 16;
-            int DEPTH = BitUtil.Log2(SIZE / VOXEL_SIZE);
-            OctreeGeometry node = new OctreeGeometry(name, SIZE);
-            node.Octree.objectFactory = createObject;
-            node.RenderGroupId = Scene.OCTREE;
-
-            int n = 6;
-            for (int x = -n; x < n; x++)
-            {
-                for (int y = -n; y < n; y++)
-                {
-                    OctreeNode<GeometryNode> onode = node.Octree.AddChild(new Vector3(16 * x, 0, 16 * y), DEPTH);
-                    //onode.obj = createOctreeVoxelMapNode(node.Octree, onode, "VOXEL", VOXEL_SIZE);
-                    // TODO don't had voxel nodes to scene...
-                    //groupNode.Add(onode.obj);
-
-                }
-            }
-
-            return node;
-        }
-
-        private GeometryNode createObject(Octree<GeometryNode> octree, OctreeNode<GeometryNode> node)
-        {
-            GeometryNode geometryNode = null;
-            int depth = octree.GetNodeTreeDepth(node);
-            if (depth == 6)
-            {
-                // FIXME using only X...
-                int size = (int)(octree.HalfSize.X * 2) / (2 << (depth - 1));
-                //BitUtil.Log2(SIZE / VOXEL_SIZE);
-
-                VoxelMap voxelMap = new FunctionVoxelMap(size);
-
-                geometryNode = new MeshNode("VOXEL", new VoxelMapMeshFactory(voxelMap));
-                geometryNode.Initialize(Scene.GraphicsDevice);
-                geometryNode.Visible = true;
-                geometryNode.RenderGroupId = Scene.VOXEL;
-                //node.Rotation = Quaternion.CreateFromYawPitchRoll(0.3f, 0, 0);
-
-                Vector3 halfSize;
-                Vector3 center;
-                octree.GetNodeBoundingBox(node, out center, out halfSize);
-
-                geometryNode.Translation = center;
-            }
-            else
-            {
-                geometryNode = GeometryUtil.CreateCubeWF("BOUNDING_BOX", 0.5f);
-                geometryNode.Initialize(Scene.GraphicsDevice);
-                geometryNode.Visible = false;
-                geometryNode.RenderGroupId = Scene.VECTOR;
-
-                Vector3 halfSize;
-                Vector3 center;
-                octree.GetNodeBoundingBox(node, out center, out halfSize);
-
-                geometryNode.Scale = halfSize;
-                geometryNode.Translation = center;
-            }
-            if (geometryNode != null)
-            {
-                geometryNode.UpdateTransform();
-                geometryNode.UpdateWorldTransform(null);
-            }
-            return geometryNode;
+            VoxelOctreeGeometry voxelOctreeGeometry = new VoxelOctreeGeometry(name, size);
+            voxelOctreeGeometry.RenderGroupId = Scene.OCTREE;
+            return voxelOctreeGeometry;
         }
 
         private Node createVoxelMapNode(String name, int size)

@@ -20,6 +20,11 @@ namespace GameLibrary.Voxel
         TopRightBack = 0b111
     }
 
+    public enum Direction
+    {
+        Left, Right, Bottom, Top, Back, Front
+    }
+
     public class OctreeNode<T>
     {
         internal T obj;
@@ -32,9 +37,44 @@ namespace GameLibrary.Voxel
     {
         private const int V = 1;
 
-        //private static readonly OctreeNode<T> NULL_OCTREE_NODE = new OctreeNode<T>();
+        private static readonly Vector3[] OCTANT_TRANSLATIONS = new Vector3[] {
+            new Vector3(-1, -1, 1),
+            new Vector3(1, -1, 1),
+            new Vector3(-1, -1, -1),
+            new Vector3(1, -1, -1),
+            new Vector3(-1, 1, 1),
+            new Vector3(1, 1, 1),
+            new Vector3(-1, 1, -1),
+            new Vector3(1, 1, -1),
+        };
 
-        private readonly Vector3[] OCTANT_TRANSLATIONS = new Vector3[8];
+        struct DirData
+        {
+            public Direction dir;
+            public readonly int mask;
+            public readonly int value;
+            public DirData(Direction dir, int mask) : this(dir, mask, mask)
+            {
+            }
+            public DirData(Direction dir, int mask, int value)
+            {
+                this.dir = dir;
+                this.mask = mask;
+                this.value = value;
+            }
+        }
+
+        private static readonly DirData[] DIR_DATA = new DirData[] {
+            new DirData(Direction.Left, 0b001, 0b000),
+            new DirData(Direction.Right, 0b001),
+            new DirData(Direction.Bottom, 0b100, 0b000),
+            new DirData(Direction.Top, 0b100),
+            new DirData(Direction.Back, 0b010),
+            new DirData(Direction.Front, 0b010, 0b000),
+        };
+
+        private static readonly ulong LEAF_MASK = 0b111;
+        private static readonly ulong PARENT_MASK = ~LEAF_MASK;
 
         public OctreeNode<T> RootNode;
 
@@ -46,11 +86,6 @@ namespace GameLibrary.Voxel
         public delegate T ObjectFactory(Octree<T> octree, OctreeNode<T> node);
 
         public ObjectFactory objectFactory;
-
-        public Octree() : this(Vector3.Zero, Vector3.Zero)
-        {
-
-        }
 
         public Octree(Vector3 center, Vector3 halfSize)
         {
@@ -66,20 +101,27 @@ namespace GameLibrary.Voxel
 
             nodes = new Dictionary<ulong, OctreeNode<T>>();
 
-            OCTANT_TRANSLATIONS[(int)Octant.BottomLeftFront] = new Vector3(-1, -1, 1);
-            OCTANT_TRANSLATIONS[(int)Octant.BottomRightFront] = new Vector3(1, -1, 1);
-            OCTANT_TRANSLATIONS[(int)Octant.BottomLeftBack] = new Vector3(-1, -1, -1);
-            OCTANT_TRANSLATIONS[(int)Octant.BottomRightBack] = new Vector3(1, -1, -1);
-            OCTANT_TRANSLATIONS[(int)Octant.TopLeftFront] = new Vector3(-1, 1, 1);
-            OCTANT_TRANSLATIONS[(int)Octant.TopRightFront] = new Vector3(1, 1, 1);
-            OCTANT_TRANSLATIONS[(int)Octant.TopLeftBack] = new Vector3(-1, 1, -1);
-            OCTANT_TRANSLATIONS[(int)Octant.TopRightBack] = new Vector3(1, 1, -1);
+            nodes.Add(RootNode.locCode, RootNode);
         }
 
         public OctreeNode<T> GetParentNode(OctreeNode<T> node)
         {
-            ulong locCodeParent = node.locCode >> 3;
-            return LookupNode(locCodeParent);
+            return GetParentNode(node.locCode);
+        }
+
+        public OctreeNode<T> GetParentNode(ulong locCode)
+        {
+            return LookupNode(GetParentLocCode(locCode));
+        }
+
+        public ulong GetParentLocCode(ulong locCode)
+        {
+            return locCode >> 3;
+        }
+
+        public bool HasChild(OctreeNode<T> node, Octant octant)
+        {
+            return ((node.childExists & (1 << (int)octant)) != 0);
         }
 
         public OctreeNode<T> GetChildNode(OctreeNode<T> node, Octant octant)
@@ -103,6 +145,7 @@ namespace GameLibrary.Voxel
             halfSize = HalfSize;
 
             int depth = GetNodeTreeDepth(node);
+            ulong locCode = node.locCode;
             for (int d = depth - 1; d >= 0; d--)
             {
                 Octant octant = (Octant)((node.locCode >> (d * 3)) & 0b111);
@@ -115,6 +158,26 @@ namespace GameLibrary.Voxel
                 c.Z *= halfSize.Z;
                 center += c;
             }
+        }
+
+
+        public Octant GetOctant(OctreeNode<T> node)
+        {
+            return GetOctant(node.locCode);
+        }
+
+        public Octant GetOctant(ulong locCode)
+        {
+            return (Octant)(locCode & LEAF_MASK);
+        }
+
+        public Octant GetOctant(Vector3 center, Vector3 point)
+        {
+            Octant octant = 0;
+            if (point.X >= center.X) octant = (Octant)(((int)octant) | 0b001);
+            if (point.Y >= center.Y) octant = (Octant)(((int)octant) | 0b100);
+            if (point.Z < center.Z) octant = (Octant)(((int)octant) | 0b010);
+            return octant;
         }
 
         public void GetNodeHalfSize(OctreeNode<T> node, out Vector3 halfSize)
@@ -145,28 +208,18 @@ namespace GameLibrary.Voxel
             return depth;
         }
 
-        private OctreeNode<T> LookupNode(ulong locCode)
+        public OctreeNode<T> LookupNode(ulong locCode)
         {
+            if (locCode == 1)
+            {
+                return RootNode;
+            }
             OctreeNode<T> node;
             if (nodes.TryGetValue(locCode, out node))
             {
                 return node;
             }
             return null;
-        }
-
-        public bool HasChild(OctreeNode<T> node, Octant octant)
-        {
-            return ((node.childExists & (1 << (int)octant)) != 0);
-        }
-
-        public Octant GetOctant(Vector3 center, Vector3 point)
-        {
-            Octant octant = 0;
-            if (point.X >= center.X) octant = (Octant)(((int)octant) | 0b001);
-            if (point.Y >= center.Y) octant = (Octant)(((int)octant) | 0b100);
-            if (point.Z < center.Z) octant = (Octant)(((int)octant) | 0b010);
-            return octant;
         }
 
         public OctreeNode<T> AddChild(Vector3 point, int depth)
@@ -234,54 +287,153 @@ namespace GameLibrary.Voxel
             return node;
         }
 
+        public ulong GetNeighborOfGreaterOrEqualSize(ulong nodeLocCode, Direction direction)
+        {
+            //String nodeLocCodeString = Convert.ToString((long)nodeLocCode, 2);
+            if (nodeLocCode == 1)
+            {
+                // reached root
+                return 0;
+            }
+
+            DirData dirData = DIR_DATA[(int)direction];
+            Octant nodeOctant = (Octant)(nodeLocCode & 0b111);
+
+            // check if neighbour is in same parent node
+            if (((int)nodeOctant & dirData.mask) != dirData.value)
+            {
+                OctreeNode<T> parent = GetParentNode(nodeLocCode);
+                Octant neighbourOctant = (Octant)((int)nodeOctant ^ dirData.mask);
+                return HasChild(parent, neighbourOctant) ? (nodeLocCode & PARENT_MASK) | (ulong)neighbourOctant : 0;
+            }
+            // not the case, go up...
+            ulong l = GetNeighborOfGreaterOrEqualSize(nodeLocCode >> 3, direction);
+            //String lString = Convert.ToString((long)l, 2);
+            if (l == 0)
+            {
+                return 0;
+            }
+            OctreeNode<T> n = LookupNode(l);
+            if (n.childExists == 0)
+            {
+                // leaf node
+                return l;
+            }
+            if (((int)nodeOctant & dirData.mask) == dirData.value)
+            {
+                Octant neighbourOctant = (Octant)((int)nodeOctant ^ dirData.mask);
+                return HasChild(n, neighbourOctant) ? (l << 3) | (ulong)neighbourOctant : 0;
+            }
+            return 0;
+        }
+
+        public ulong GetNeighborOfGreaterOrEqualSize2(ulong nodeLocCode, Direction direction)
+        {
+            //String nodeLocCodeString = Convert.ToString((long)nodeLocCode, 2);
+            if (nodeLocCode == 1)
+            {
+                // reached root
+                return 0;
+            }
+            switch (direction)
+            {
+                case Direction.Left:
+                    Octant nodeOctant = (Octant)(nodeLocCode & 0b111);
+                    OctreeNode<T> parent;
+                    switch (nodeOctant)
+                    {
+                        case Octant.BottomRightBack:
+                            parent = GetParentNode(nodeLocCode);
+                            return HasChild(parent, Octant.BottomLeftBack) ? (nodeLocCode & PARENT_MASK) | (int)Octant.BottomLeftBack : 0;
+                        case Octant.BottomRightFront:
+                            parent = GetParentNode(nodeLocCode);
+                            return HasChild(parent, Octant.BottomLeftFront) ? (nodeLocCode & PARENT_MASK) | (int)Octant.BottomLeftFront : 0;
+                        case Octant.TopRightBack:
+                            parent = GetParentNode(nodeLocCode);
+                            return HasChild(parent, Octant.TopLeftBack) ? (nodeLocCode & PARENT_MASK) | (int)Octant.TopLeftBack : 0;
+                        case Octant.TopRightFront:
+                            parent = GetParentNode(nodeLocCode);
+                            return HasChild(parent, Octant.TopLeftFront) ? (nodeLocCode & PARENT_MASK) | (int)Octant.TopLeftFront : 0;
+                        default:
+                            ulong l = GetNeighborOfGreaterOrEqualSize(nodeLocCode >> 3, direction);
+                            //String lString = Convert.ToString((long)l, 2);
+                            if (l == 0)
+                            {
+                                return 0;
+                            }
+                            OctreeNode<T> n = LookupNode(l);
+                            if (n.childExists == 0)
+                            {
+                                // leaf node
+                                return l;
+                            }
+                            // node is guaranteed to be a left child
+                            switch (nodeOctant)
+                            {
+                                case Octant.BottomLeftBack:
+                                    return HasChild(n, Octant.BottomRightBack) ? (l << 3) | (int)Octant.BottomRightBack : 0;
+                                case Octant.BottomLeftFront:
+                                    return HasChild(n, Octant.BottomRightFront) ? (l << 3) | (int)Octant.BottomRightFront : 0;
+                                case Octant.TopLeftBack:
+                                    return HasChild(n, Octant.TopRightBack) ? (l << 3) | (int)Octant.TopRightBack : 0;
+                                case Octant.TopLeftFront:
+                                    return HasChild(n, Octant.TopRightFront) ? (l << 3) | (int)Octant.TopRightFront : 0;
+                                default:
+                                    // unreachable...
+                                    return 0;
+                            }
+                    }
+            }
+            return 0;
+        }
+
         /*
         def get_neighbor_of_greater_or_equal_size(self, direction):   
-  if direction == self.Direction.N:       
-    if self.parent is None: # Reached root?
-      return None
-    if self.parent.children[self.Child.SW] == self: # Is 'self' SW child?
-      return self.parent.children[self.Child.NW]
-    if self.parent.children[self.Child.SE] == self: # Is 'self' SE child?
-      return self.parent.children[self.Child.NE]
+          if direction == self.Direction.N:       
+            if self.parent is None: # Reached root?
+              return None
+            if self.parent.children[self.Child.SW] == self: # Is 'self' SW child?
+              return self.parent.children[self.Child.NW]
+            if self.parent.children[self.Child.SE] == self: # Is 'self' SE child?
+              return self.parent.children[self.Child.NE]
 
-    node = self.parent.get_neighbor_of_greater_or_same_size(direction)
-    if node is None or node.is_leaf():
-      return node
- 
-    # 'self' is guaranteed to be a north child
-    return (node.children[self.Child.SW]
-            if self.parent.children[self.Child.NW] == self # Is 'self' NW child?
-            else node.children[self.Child.SE])
-  else:
-    # TODO: implement symmetric to NORTH case
+            node = self.parent.get_neighbor_of_greater_or_same_size(direction)
+            if node is None or node.is_leaf():
+              return node
 
-
-            def find_neighbors_of_smaller_size(self, neighbor, direction):   
-  candidates = [] if neighbor is None else [neighbor]
-  neighbors = []
- 
-  if direction == self.Direction.N:
-    while len(candidates) > 0:
-      if candidates[0].is_leaf():
-        neighbors.append(candidates[0])
-      else:
-        candidates.append(candidates[0].children[self.Child.SW])
-        candidates.append(candidates[0].children[self.Child.SE])
- 
-      candidates.remove(candidates[0])
- 
-    return neighbors
-  else:
-    # TODO: implement other directions symmetric to NORTH case
+            # 'self' is guaranteed to be a north child
+            return (node.children[self.Child.SW]
+                    if self.parent.children[self.Child.NW] == self # Is 'self' NW child?
+                    else node.children[self.Child.SE])
+          else:
+            # TODO: implement symmetric to NORTH case
 
 
+        def find_neighbors_of_smaller_size(self, neighbor, direction):   
+          candidates = [] if neighbor is None else [neighbor]
+          neighbors = []
+
+          if direction == self.Direction.N:
+            while len(candidates) > 0:
+              if candidates[0].is_leaf():
+                neighbors.append(candidates[0])
+              else:
+                candidates.append(candidates[0].children[self.Child.SW])
+                candidates.append(candidates[0].children[self.Child.SE])
+
+              candidates.remove(candidates[0])
+
+            return neighbors
+          else:
+            # TODO: implement other directions symmetric to NORTH case
 
 
-    def get_neighbors(self, direction):   
-  neighbor = self.get_neighbor_of_greater_or_equal_size(direction)
-  neighbors = self.find_neighbors_of_smaller_size(neighbor, direction)
-  return neighbors
-            */
+        def get_neighbors(self, direction):   
+          neighbor = self.get_neighbor_of_greater_or_equal_size(direction)
+          neighbors = self.find_neighbors_of_smaller_size(neighbor, direction)
+          return neighbors
+        */
+
         public delegate bool Visitor(Octree<T> octree, OctreeNode<T> node, ref Object arg);
 
         public enum VisitType

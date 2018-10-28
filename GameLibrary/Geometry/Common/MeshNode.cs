@@ -85,7 +85,7 @@ namespace GameLibrary.Geometry.Common
             {
                 gd.DrawIndexedPrimitives(mesh.PrimitiveType, 0, 0, mesh.PrimitiveCount);
             }
-            else
+            else if (mesh.PrimitiveCount > 0)
             {
                 gd.DrawPrimitives(mesh.PrimitiveType, 0, mesh.PrimitiveCount);
             }

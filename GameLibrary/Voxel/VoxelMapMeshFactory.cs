@@ -13,12 +13,18 @@ namespace GameLibrary.Geometry
     public class VoxelMapMeshFactory : IMeshFactory
     {
         private VoxelMap map;
+        private VoxelMap[] neighbours;
 
         private readonly DrawVisitor drawVisitor;
 
-        public VoxelMapMeshFactory(VoxelMap map)
+        public VoxelMapMeshFactory(VoxelMap map) : this(map, null)
+        {
+        }
+
+        public VoxelMapMeshFactory(VoxelMap map, VoxelMap[] neighbours)
         {
             this.map = map;
+            this.neighbours = neighbours;
             drawVisitor = new DrawVisitor(this);
         }
 
@@ -26,7 +32,17 @@ namespace GameLibrary.Geometry
         {
             drawVisitor.builder = VertexBufferBuilder.createVertexPositionNormalTextureBufferBuilder(gd, 0, 0);
 
-            map.Visit(drawVisitor);
+            VoxelMapIterator ite;
+            if (neighbours == null)
+            {
+                ite = new SimpleVoxelMapIterator(map);
+            }
+            else
+            {
+                ite = new DefaultVoxelMapIterator(map, neighbours);
+            }
+
+            map.Visit(drawVisitor, ite);
 
             Mesh mesh = new Mesh(PrimitiveType.TriangleList, drawVisitor.primitiveCount);
             mesh.BoundingVolume = drawVisitor.GetBoundingVolume();
@@ -38,14 +54,14 @@ namespace GameLibrary.Geometry
         {
             //private static float DEFAULT_VOXEL_SIZE = 0.5773502692f; // 1 over the square root of 3
 
-            private readonly VoxelMapMeshFactory parent;
+            private readonly VoxelMapMeshFactory factory;
             public VertexBufferBuilder builder;
 
             private readonly float d = 0.5f;
             private int size;
 
             private bool scale = false;
-            private float s = 0.75f;
+            private Vector3 s = new Vector3(0.75f, 0.75f, 0.75f);
 
             public int primitiveCount;
 
@@ -89,9 +105,9 @@ namespace GameLibrary.Geometry
             Vector3 leftNormal = new Vector3(-1.0f, 0.0f, 0.0f);
             Vector3 rightNormal = new Vector3(1.0f, 0.0f, 0.0f);
 
-            public DrawVisitor(VoxelMapMeshFactory parent)
+            public DrawVisitor(VoxelMapMeshFactory factory)
             {
-                this.parent = parent;
+                this.factory = factory;
 
                 // top face vertices
                 topLeftFront = new Vector3(-d, d, d);
@@ -107,11 +123,11 @@ namespace GameLibrary.Geometry
 
                 if (!scale)
                 {
-                    s = 1;
+                    s = Vector3.One;
                 }
-                scaleXY = new Vector3(s, s, 1);
-                scaleXZ = new Vector3(s, 1, s);
-                scaleYZ = new Vector3(1, s, s);
+                scaleXY = new Vector3(s.X, s.Y, 1);
+                scaleXZ = new Vector3(s.X, 1, s.Z);
+                scaleYZ = new Vector3(1, s.Y, s.Z);
 
             }
 
@@ -193,7 +209,7 @@ namespace GameLibrary.Geometry
                     primitiveCount += 2;
                 }
                 // top face
-                if ((ite.Neighbours & (int)Neighbour.Top) == 0)
+                if (true && (ite.Neighbours & (int)Neighbour.Top) == 0)
                 {
                     Vector3.Multiply(ref topLeftFront, ref scaleXZ, out _topLeftFront);
                     Vector3.Multiply(ref topLeftBack, ref scaleXZ, out _topLeftBack);
@@ -214,7 +230,7 @@ namespace GameLibrary.Geometry
                     primitiveCount += 2;
                 }
                 // bottom face
-                if ((ite.Neighbours & (int)Neighbour.Bottom) == 0)
+                if (true && (ite.Neighbours & (int)Neighbour.Bottom) == 0)
                 {
                     Vector3.Multiply(ref bottomLeftFront, ref scaleXZ, out _bottomLeftFront);
                     Vector3.Multiply(ref bottomLeftBack, ref scaleXZ, out _bottomLeftBack);

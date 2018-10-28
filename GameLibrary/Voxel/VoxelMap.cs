@@ -24,19 +24,20 @@ namespace GameLibrary.Voxel
         void Set(int x, int y, int z, int v);
         void SetSafe(int x, int y, int z, int v);
 
+
         void Visit(Visitor visitor);
+        void Visit(Visitor visitor, VoxelMapIterator ite);
     }
 
     abstract class AbstractVoxelMap : VoxelMap
     {
         private readonly int size;
 
-        private readonly VoxelMapIterator ite;
+        public bool Debug = true;
 
         public AbstractVoxelMap(int size)
         {
             this.size = size;
-            ite = new DirectVoxelMapIterator(this);
         }
 
         public int Size()
@@ -69,6 +70,11 @@ namespace GameLibrary.Voxel
         }
 
         public void Visit(Visitor visitor)
+        {
+            Visit(visitor, new SimpleVoxelMapIterator(this));
+        }
+
+        public void Visit(Visitor visitor, VoxelMapIterator ite)
         {
             int instanceCount = size * size * size;
 
@@ -120,9 +126,12 @@ namespace GameLibrary.Voxel
             visitor.End();
             int voxelsCount = size * size * size;
             int facesCount = voxelsCount * 6;
-            Console.Out.WriteLine(String.Format("Empty voxels  {0} / {1} ({2:P0})", emptyVoxelsCount, voxelsCount, emptyVoxelsCount / (float)voxelsCount));
-            Console.Out.WriteLine(String.Format("Culled voxels {0} / {1} ({2:P0})", culledVoxelsCount, voxelsCount, culledVoxelsCount / (float)voxelsCount));
-            Console.Out.WriteLine(String.Format("Culled faces  {0} / {1} ({2:P0})", culledFacesCount, facesCount, culledFacesCount / (float)facesCount));
+            if (Debug)
+            {
+                Console.Out.WriteLine(String.Format("Empty voxels  {0} / {1} ({2:P0})", emptyVoxelsCount, voxelsCount, emptyVoxelsCount / (float)voxelsCount));
+                Console.Out.WriteLine(String.Format("Culled voxels {0} / {1} ({2:P0})", culledVoxelsCount, voxelsCount, culledVoxelsCount / (float)voxelsCount));
+                Console.Out.WriteLine(String.Format("Culled faces  {0} / {1} ({2:P0})", culledFacesCount, facesCount, culledFacesCount / (float)facesCount));
+            }
         }
 
     }
@@ -208,6 +217,107 @@ namespace GameLibrary.Voxel
             count = c;
         }
 
+    }
+
+    class DefaultVoxelMapIterator : VoxelMapIterator
+    {
+        private VoxelMap[] neighboursMap;
+
+        public DefaultVoxelMapIterator(VoxelMap map, VoxelMap[] neighboursMap) : base(map)
+        {
+            this.neighboursMap = neighboursMap;
+        }
+
+        public override void Set(int x0, int y0, int z0)
+        {
+            this.x0 = x0;
+            this.y0 = y0;
+            this.z0 = z0;
+            update();
+        }
+
+        public override void TranslateX()
+        {
+            x0 += 1;
+            update();
+        }
+
+        public override void TranslateY()
+        {
+            y0 += 1;
+            update();
+        }
+
+        public override void TranslateZ()
+        {
+            z0 += 1;
+            update();
+        }
+
+        public override int Self()
+        {
+            return map.Get(x0, y0, z0);
+        }
+
+        public override int Left()
+        {
+            if (x0 > 0)
+            {
+                return map.Get(x0 - 1, y0, z0);
+            }
+            VoxelMap nMap = neighboursMap[(int)Direction.Left];
+            return (nMap != null) ? nMap.Get(Size - 1, y0, z0) : 0;
+        }
+
+        public override int Right()
+        {
+            if (x0 < Size - 1)
+            {
+                return map.Get(x0 + 1, y0, z0);
+            }
+            VoxelMap nMap = neighboursMap[(int)Direction.Right];
+            return (nMap != null) ? nMap.Get(0, y0, z0) : 0;
+        }
+
+        public override int Bottom()
+        {
+            if (y0 > 0)
+            {
+                return map.Get(x0, y0 - 1, z0);
+            }
+            VoxelMap nMap = neighboursMap[(int)Direction.Bottom];
+            return (nMap != null) ? nMap.Get(x0, Size - 1, z0) : 0;
+        }
+
+        public override int Top()
+        {
+            if (y0 < Size - 1)
+            {
+                return map.Get(x0, y0 + 1, z0);
+            }
+            VoxelMap nMap = neighboursMap[(int)Direction.Top];
+            return (nMap != null) ? nMap.Get(x0, 0, z0) : 0;
+        }
+
+        public override int Back()
+        {
+            if (z0 > 0)
+            {
+                return map.Get(x0, y0, z0 - 1);
+            }
+            VoxelMap nMap = neighboursMap[(int)Direction.Back];
+            return (nMap != null) ? nMap.Get(x0, y0, Size - 1) : 0;
+        }
+
+        public override int Front()
+        {
+            if (z0 < Size - 1)
+            {
+                return map.Get(x0, y0, z0 + 1);
+            }
+            VoxelMap nMap = neighboursMap[(int)Direction.Front];
+            return (nMap != null) ? nMap.Get(x0, y0, 0) : 0;
+        }
     }
 
     class CachedVoxelMapIterator : VoxelMapIterator
@@ -319,9 +429,9 @@ namespace GameLibrary.Voxel
 
     }
 
-    class DirectVoxelMapIterator : VoxelMapIterator
+    class SimpleVoxelMapIterator : VoxelMapIterator
     {
-        public DirectVoxelMapIterator(VoxelMap map) : base(map)
+        public SimpleVoxelMapIterator(VoxelMap map) : base(map)
         {
         }
 
@@ -391,7 +501,7 @@ namespace GameLibrary.Voxel
     {
         int size;
         private int[,,] map;
-        
+
         public SimpleVoxelMap(int size) : base(size)
         {
             if (size > 16)
@@ -442,7 +552,7 @@ namespace GameLibrary.Voxel
 
         public override int Get(int x, int y, int z)
         {
-            return f4(x, y, z);
+            return f5(x, y, z);
         }
 
         private int f0(int x, int y, int z)
@@ -478,6 +588,12 @@ namespace GameLibrary.Voxel
         private int f4(int x, int y, int z)
         {
             return ((x == 0) || (y == 0) || (z == 0)) ? 1 : 0;
+
+        }
+
+        private int f5(int x, int y, int z)
+        {
+            return ((y == 0)) ? 1 : 0;
 
         }
 

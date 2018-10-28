@@ -33,7 +33,7 @@ namespace GameLibrary.SceneGraph
 
         public static Effect CreateBoundEffect(GraphicsDevice gd, bool clipping)
         {
-            Color c = new Color(Color.LightGreen, 128);
+            Color c = new Color(Color.Green, 128);
 
             if (!clipping)
             {
@@ -44,7 +44,7 @@ namespace GameLibrary.SceneGraph
 
         public static Effect CreateCulledBoundEffect(GraphicsDevice gd, bool clipping)
         {
-            Color c = new Color(Color.Orange, 128);
+            Color c = new Color(Color.Blue, 128);
 
             if (!clipping)
             {

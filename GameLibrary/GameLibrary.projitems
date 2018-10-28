@@ -50,14 +50,10 @@
     <Compile Include="$(MSBuildThisFileDirectory)SceneGraph\Renderer.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)StockEffects\C#\InstancingEffect.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Util\BitUtil.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)Voxel\VoxelOctreeGeometry.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)Voxel\VoxelOctree.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Voxel\Octree.cs" />
-    <Compile Include="$(MSBuildThisFileDirectory)Voxel\OctreeGeometry.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Voxel\VoxelMapMeshFactory.cs" />
-    <Compile Include="$(MSBuildThisFileDirectory)Voxel\VoxelMapInstancedRenderer.cs" />
-    <Compile Include="$(MSBuildThisFileDirectory)Voxel\SimpleVoxelMapRenderer.cs" />
-    <Compile Include="$(MSBuildThisFileDirectory)Voxel\OctreeRenderer.cs" />
-    <Compile Include="$(MSBuildThisFileDirectory)Voxel\VoxelMapRenderer.cs" />
-    <Compile Include="$(MSBuildThisFileDirectory)Voxel\VoxelMapGeometry.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Physics\Integrator.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)SceneGraph\Bounding\BoundingSphere.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)SceneGraph\Bounding\BoundingVolume.cs" />

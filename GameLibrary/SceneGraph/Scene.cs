@@ -96,7 +96,7 @@ namespace GameLibrary.SceneGraph
         public static int BULLET = 7;
         public static int ASTEROID = 8;
 
-        public static int VOXEL_MAP = 10;
+        //public static int VOXEL_MAP = 10;
         public static int VOXEL = 12;
         public static int OCTREE = 15;
 
@@ -137,14 +137,14 @@ namespace GameLibrary.SceneGraph
             renderers[BULLET] = new EffectRenderer(EffectFactory.CreateBulletEffect(GraphicsDevice));
             renderers[ASTEROID] = new EffectRenderer(EffectFactory.CreateClippingEffect(GraphicsDevice));
 
-            renderers[VOXEL_MAP] = new VoxelMapRenderer(EffectFactory.CreateBasicEffect1(GraphicsDevice));
+            //renderers[VOXEL_MAP] = new VoxelMapRenderer(EffectFactory.CreateBasicEffect1(GraphicsDevice));
             //renderers[VOXEL_MAP] = new VoxelMapInstancedRenderer(EffectFactory.CreateInstancedEffect(GraphicsDevice));
 
             renderers[VOXEL] = new EffectRenderer(EffectFactory.CreateBasicEffect1(GraphicsDevice)); // 3 lights
             //renderers[VOXEL].RasterizerState = RasterizerState.CullNone;
             //renderers[VOXEL].RasterizerState = Renderer.WireFrameRasterizer;
 
-            renderers[OCTREE] = new OctreeRenderer(EffectFactory.CreateBasicEffect3(GraphicsDevice)); // no light
+            //renderers[OCTREE] = new OctreeRenderer(EffectFactory.CreateBasicEffect3(GraphicsDevice)); // no light
             //renderers[OCTREE] = new OctreeRenderer(EffectFactory.CreateBasicEffect1(GraphicsDevice)); // 3 lights
 
             renderers[FRUSTRUM] = new EffectRenderer(EffectFactory.CreateBasicEffect3(GraphicsDevice)); // no light
@@ -158,7 +158,6 @@ namespace GameLibrary.SceneGraph
             renderers[COLLISION_BOX] = new BoundRenderer(EffectFactory.CreateCollisionEffect(GraphicsDevice, clip), boundingBoxGeo); // clipping
 
             rootNode.Visit(COMMIT_VISITOR, this);
-            rootNode.Visit(INIT_VISITOR, this);
         }
 
         public void Dispose()
@@ -397,13 +396,6 @@ namespace GameLibrary.SceneGraph
             return true;
         };
 
-        private static Node.Visitor INIT_VISITOR = delegate (Node node, ref Object arg)
-        {
-            Scene scene = arg as Scene;
-            node.Initialize(scene.GraphicsDevice);
-            return true;
-        };
-
         private static Node.Visitor COMMIT_VISITOR = delegate (Node node, ref Object arg)
         {
             if (!node.Enabled) return false;
@@ -436,17 +428,12 @@ namespace GameLibrary.SceneGraph
         private static Node.Visitor RENDER_GROUP_VISITOR = delegate (Node node, ref Object arg)
         {
             if (!node.Visible) return false;
-            if (node is OctreeGeometry octreeGeometry)
+            if (node is VoxelOctreeGeometry voxelOctreeGeometry)
             {
-                octreeGeometry.Octree.Visit(OCTREE_RENDER_GROUP_VISITOR, arg);
-
-                // TODO don't add the octree to the scene...
-                //Scene scene = arg as Scene;
-                //scene.AddToGroups(scene.renderGroups, octreeGeometry);
-
+                voxelOctreeGeometry.voxelOctree.Visit(VOXEL_OCTREE_RENDER_GROUP_VISITOR, arg);
                 return true;
             }
-            if (node is GeometryNode geometryNode)
+            else if (node is GeometryNode geometryNode)
             {
                 Scene scene = arg as Scene;
 
@@ -517,7 +504,7 @@ namespace GameLibrary.SceneGraph
             return true;
         };
 
-        private static Octree<GeometryNode>.Visitor OCTREE_RENDER_GROUP_VISITOR = delegate (Octree<GeometryNode> octree, OctreeNode<GeometryNode> node, ref Object arg)
+        private static VoxelOctree.Visitor VOXEL_OCTREE_RENDER_GROUP_VISITOR = delegate (Octree<VoxelObject> octree, OctreeNode<VoxelObject> node, ref Object arg)
         {
             Scene scene = arg as Scene;
 
@@ -530,10 +517,10 @@ namespace GameLibrary.SceneGraph
             if (bv.IsContained(boundingFrustum) == ContainmentType.Disjoint)
             {
                 //Console.WriteLine("Culling " + node.Name);
-                //cull = true;
+                cull = true;
                 scene.cullCount++;
             }
-            GeometryNode geometryNode = node.obj;
+            GeometryNode geometryNode = node.obj.GeometryNode;
             if (geometryNode != null)
             {
                 if (!cull)
