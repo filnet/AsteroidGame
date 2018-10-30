@@ -91,6 +91,11 @@ namespace GameLibrary.Geometry
             Vector3 scaleXZ;
             Vector3 scaleYZ;
 
+            // FIXME texture coordinates can be computed from xyz and surface normals
+            // see https://0fps.net/2013/07/09/texture-atlases-wrapping-and-mip-mapping/
+            // vec2 tileUV = vec2(dot(normal.zxy, position), 
+            // dot(normal.yzx, position))
+            // vec2 texCoord = tileOffset + tileSize * fract(tileUV)
             // textures
             Vector2 textureTopLeft = new Vector2(0.0f, 0.0f);
             Vector2 textureTopRight = new Vector2(1.0f, 0.0f);

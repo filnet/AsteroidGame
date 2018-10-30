@@ -22,6 +22,7 @@ namespace GameLibrary.SceneGraph
         protected BlendState BlendState;
         protected DepthStencilState DepthStencilState;
         public RasterizerState RasterizerState;
+        public SamplerState SamplerState;
 
         public static RasterizerState WireFrameRasterizer = new RasterizerState()
         {
@@ -34,6 +35,7 @@ namespace GameLibrary.SceneGraph
             BlendState = BlendState.Opaque;
             DepthStencilState = DepthStencilState.Default;
             RasterizerState = RasterizerState.CullClockwise;
+            SamplerState = SamplerState.LinearWrap;
         }
 
         public abstract void Render(GraphicsContext gc, List<GeometryNode> nodeList);
@@ -56,7 +58,7 @@ namespace GameLibrary.SceneGraph
             gc.GraphicsDevice.BlendState = BlendState;
             gc.GraphicsDevice.DepthStencilState = DepthStencilState;
             gc.GraphicsDevice.RasterizerState = RasterizerState;
-            gc.GraphicsDevice.SamplerStates[0] = SamplerState.LinearWrap;
+            gc.GraphicsDevice.SamplerStates[0] = SamplerState;
 
             if (effectMatrices != null)
             {
@@ -132,7 +134,7 @@ namespace GameLibrary.SceneGraph
             gc.GraphicsDevice.BlendState = BlendState;
             gc.GraphicsDevice.DepthStencilState = DepthStencilState;
             gc.GraphicsDevice.RasterizerState = RasterizerState;
-            gc.GraphicsDevice.SamplerStates[0] = SamplerState.LinearWrap;
+            gc.GraphicsDevice.SamplerStates[0] = SamplerState;
 
             if (effectMatrices != null)
             {

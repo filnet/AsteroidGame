@@ -140,7 +140,8 @@ namespace GameLibrary.SceneGraph
             //renderers[VOXEL_MAP] = new VoxelMapRenderer(EffectFactory.CreateBasicEffect1(GraphicsDevice));
             //renderers[VOXEL_MAP] = new VoxelMapInstancedRenderer(EffectFactory.CreateInstancedEffect(GraphicsDevice));
 
-            renderers[VOXEL] = new EffectRenderer(EffectFactory.CreateBasicEffect1(GraphicsDevice)); // 3 lights
+            renderers[VOXEL] = new EffectRenderer(EffectFactory.CreateVoxelEffect(GraphicsDevice)); // 1 light + texture
+            //renderers[VOXEL] = new EffectRenderer(EffectFactory.CreateBasicEffect1(GraphicsDevice)); // 3 lights
             //renderers[VOXEL].RasterizerState = RasterizerState.CullNone;
             //renderers[VOXEL].RasterizerState = Renderer.WireFrameRasterizer;
 
@@ -508,6 +509,7 @@ namespace GameLibrary.SceneGraph
         {
             Scene scene = arg as Scene;
 
+            // FIXME this is a performance bottleneck
             Bounding.BoundingBox bv = new Bounding.BoundingBox();
             octree.GetNodeBoundingBox(node, ref bv);
 

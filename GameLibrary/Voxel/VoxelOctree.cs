@@ -29,14 +29,18 @@ namespace GameLibrary.Voxel
             int x1 = 6;
             int y0 = -6;
             int y1 = 6;
-            int z = 0;
+            int z0 = 0;
+            int z1 = 0;
             objectFactory = createObject;
             RootNode.obj = createObject(this, RootNode);
             for (int x = x0; x <= x1; x++)
             {
                 for (int y = y0; y <= y1; y++)
                 {
-                    AddChild(new Vector3(chunkSize * x, chunkSize * z, chunkSize * y), depth);
+                    for (int z = z0; z <= z1; z++)
+                    {
+                        AddChild(new Vector3(chunkSize * x, chunkSize * y, chunkSize * z), depth);
+                    }
                 }
             }
         }

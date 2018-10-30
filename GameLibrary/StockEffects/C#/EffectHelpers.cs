@@ -1,17 +1,17 @@
-#region File Description
+//#region File Description
 //-----------------------------------------------------------------------------
 // EffectHelpers.cs
 //
 // Microsoft XNA Community Game Platform
 // Copyright (C) Microsoft Corporation. All rights reserved.
 //-----------------------------------------------------------------------------
-#endregion
+//#endregion
 
-#region Using Statements
-using System;
+//#region Using Statements
 using Microsoft.Xna.Framework;
 using Microsoft.Xna.Framework.Graphics;
-#endregion
+using System;
+//#endregion
 
 namespace StockEffects
 {
@@ -21,15 +21,15 @@ namespace StockEffects
     [Flags]
     internal enum EffectDirtyFlags
     {
-        WorldViewProj = 1,
-        World = 2,
-        EyePosition = 4,
-        MaterialColor = 8,
-        Fog = 16,
-        FogEnable = 32,
-        AlphaTest = 64,
-        ShaderIndex = 128,
-        ClippingPlane = 256,
+        WorldViewProj   = 1,
+        World           = 2,
+        EyePosition     = 4,
+        MaterialColor   = 8,
+        Fog             = 16,
+        FogEnable       = 32,
+        AlphaTest       = 64,
+        ShaderIndex     = 128,
+        ClippingPlane   = 256,
         All = -1
     }
 
@@ -67,6 +67,52 @@ namespace StockEffects
         }
 
 
+        /// <summary>
+        /// Lazily recomputes the world+view+projection matrix and
+        /// fog vector based on the current effect parameter settings.
+        /// </summary>
+        internal static EffectDirtyFlags SetWorldViewProjAndFog(EffectDirtyFlags dirtyFlags,
+                                                                ref Matrix world, ref Matrix view, ref Matrix projection, ref Matrix worldView,
+                                                                bool fogEnabled, float fogStart, float fogEnd,
+                                                                EffectParameter worldViewProjParam, EffectParameter fogVectorParam)
+        {
+            // Recompute the world+view+projection matrix?
+            if ((dirtyFlags & EffectDirtyFlags.WorldViewProj) != 0)
+            {
+                Matrix worldViewProj;
+                
+                Matrix.Multiply(ref world, ref view, out worldView);
+                Matrix.Multiply(ref worldView, ref projection, out worldViewProj);
+                
+                worldViewProjParam.SetValue(worldViewProj);
+                
+                dirtyFlags &= ~EffectDirtyFlags.WorldViewProj;
+            }
+
+            if (fogEnabled)
+            {
+                // Recompute the fog vector?
+                if ((dirtyFlags & (EffectDirtyFlags.Fog | EffectDirtyFlags.FogEnable)) != 0)
+                {
+                    SetFogVector(ref worldView, fogStart, fogEnd, fogVectorParam);
+
+                    dirtyFlags &= ~(EffectDirtyFlags.Fog | EffectDirtyFlags.FogEnable);
+                }
+            }
+            else
+            {
+                // When fog is disabled, make sure the fog vector is reset to zero.
+                if ((dirtyFlags & EffectDirtyFlags.FogEnable) != 0)
+                {
+                    fogVectorParam.SetValue(Vector4.Zero);
+
+                    dirtyFlags &= ~EffectDirtyFlags.FogEnable;
+                }
+            }
+
+            return dirtyFlags;
+        }
+
         internal static EffectDirtyFlags SetWorldViewProj(EffectDirtyFlags dirtyFlags,
                                                          ref Matrix world, ref Matrix view, ref Matrix projection, ref Matrix worldView,
                                                          EffectParameter worldViewProjParam, EffectParameter worldParam)
@@ -102,52 +148,6 @@ namespace StockEffects
         }
 
         /// <summary>
-        /// Lazily recomputes the world+view+projection matrix and
-        /// fog vector based on the current effect parameter settings.
-        /// </summary>
-        internal static EffectDirtyFlags SetWorldViewProjAndFog(EffectDirtyFlags dirtyFlags,
-                                                                ref Matrix world, ref Matrix view, ref Matrix projection, ref Matrix worldView,
-                                                                bool fogEnabled, float fogStart, float fogEnd,
-                                                                EffectParameter worldViewProjParam, EffectParameter fogVectorParam)
-        {
-            // Recompute the world+view+projection matrix?
-            if ((dirtyFlags & EffectDirtyFlags.WorldViewProj) != 0)
-            {
-                Matrix worldViewProj;
-
-                Matrix.Multiply(ref world, ref view, out worldView);
-                Matrix.Multiply(ref worldView, ref projection, out worldViewProj);
-
-                worldViewProjParam.SetValue(worldViewProj);
-
-                dirtyFlags &= ~EffectDirtyFlags.WorldViewProj;
-            }
-
-            if (fogEnabled)
-            {
-                // Recompute the fog vector?
-                if ((dirtyFlags & (EffectDirtyFlags.Fog | EffectDirtyFlags.FogEnable)) != 0)
-                {
-                    SetFogVector(ref worldView, fogStart, fogEnd, fogVectorParam);
-
-                    dirtyFlags &= ~(EffectDirtyFlags.Fog | EffectDirtyFlags.FogEnable);
-                }
-            }
-            else
-            {
-                // When fog is disabled, make sure the fog vector is reset to zero.
-                if ((dirtyFlags & EffectDirtyFlags.FogEnable) != 0)
-                {
-                    fogVectorParam.SetValue(Vector4.Zero);
-
-                    dirtyFlags &= ~EffectDirtyFlags.FogEnable;
-                }
-            }
-            return dirtyFlags;
-        }
-
-
-        /// <summary>
         /// Sets a vector which can be dotted with the object space vertex position to compute fog amount.
         /// </summary>
         static void SetFogVector(ref Matrix worldView, float fogStart, float fogEnd, EffectParameter fogVectorParam)
@@ -163,7 +163,7 @@ namespace StockEffects
                 // Z value, then scale and offset according to the fog start/end distances.
                 // Because we only care about the Z component, the shader can do all this
                 // with a single dot product, using only the Z row of the world+view matrix.
-
+                
                 float scale = 1f / (fogStart - fogEnd);
 
                 Vector4 fogVector = new Vector4();
@@ -190,13 +190,13 @@ namespace StockEffects
             {
                 Matrix worldTranspose;
                 Matrix worldInverseTranspose;
-
+                
                 Matrix.Invert(ref world, out worldTranspose);
                 Matrix.Transpose(ref worldTranspose, out worldInverseTranspose);
-
+                
                 worldParam.SetValue(world);
                 worldInverseTransposeParam.SetValue(worldInverseTranspose);
-
+                
                 dirtyFlags &= ~EffectDirtyFlags.World;
             }
 
@@ -204,7 +204,7 @@ namespace StockEffects
             if ((dirtyFlags & EffectDirtyFlags.EyePosition) != 0)
             {
                 Matrix viewInverse;
-
+                
                 Matrix.Invert(ref view, out viewInverse);
 
                 eyePositionParam.SetValue(viewInverse.Translation);
@@ -243,12 +243,12 @@ namespace StockEffects
             //
             // For futher optimization goodness, we merge material alpha with the diffuse
             // color parameter, and premultiply all color values by this alpha.
-
+            
             if (lightingEnabled)
             {
                 Vector4 diffuse = new Vector4();
                 Vector3 emissive = new Vector3();
-
+                
                 diffuse.X = diffuseColor.X * alpha;
                 diffuse.Y = diffuseColor.Y * alpha;
                 diffuse.Z = diffuseColor.Z * alpha;
@@ -264,7 +264,7 @@ namespace StockEffects
             else
             {
                 Vector4 diffuse = new Vector4();
-
+                
                 diffuse.X = (diffuseColor.X + emissiveColor.X) * alpha;
                 diffuse.Y = (diffuseColor.Y + emissiveColor.Y) * alpha;
                 diffuse.Z = (diffuseColor.Z + emissiveColor.Z) * alpha;

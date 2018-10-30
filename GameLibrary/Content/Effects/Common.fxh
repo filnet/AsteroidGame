@@ -55,3 +55,4 @@ CommonVSOutput ComputeCommonVSOutput(float4 position)
 #define SetCommonVSOutputParamsNoFog \
     vout.PositionPS = cout.Pos_ps; \
     vout.Diffuse = cout.Diffuse;
+

@@ -144,6 +144,7 @@ namespace GameLibrary.Voxel
             center = Center;
             halfSize = HalfSize;
 
+            // TODO compute x,y,z (in voxel space) by de-interlacing loc code
             int depth = GetNodeTreeDepth(node);
             ulong locCode = node.locCode;
             for (int d = depth - 1; d >= 0; d--)
@@ -171,15 +172,6 @@ namespace GameLibrary.Voxel
             return (Octant)(locCode & LEAF_MASK);
         }
 
-        public Octant GetOctant(Vector3 center, Vector3 point)
-        {
-            Octant octant = 0;
-            if (point.X >= center.X) octant = (Octant)(((int)octant) | 0b001);
-            if (point.Y >= center.Y) octant = (Octant)(((int)octant) | 0b100);
-            if (point.Z < center.Z) octant = (Octant)(((int)octant) | 0b010);
-            return octant;
-        }
-
         public void GetNodeHalfSize(OctreeNode<T> node, out Vector3 halfSize)
         {
             int depth = GetNodeTreeDepth(node);
@@ -195,7 +187,7 @@ namespace GameLibrary.Voxel
             return msbPosition / 3;
         }
 
-        public int GetNodeTreeDepthSlow(OctreeNode<T> node)
+        public int GetNodeTreeDepth2(OctreeNode<T> node)
         {
             // at least flag bit must be set
             Debug.Assert(node.locCode != 0);
@@ -220,44 +212,6 @@ namespace GameLibrary.Voxel
                 return node;
             }
             return null;
-        }
-
-        public OctreeNode<T> AddChild(Vector3 point, int depth)
-        {
-            // from root down
-            // compute center
-            // flip bit Front/back if z > 0 etc
-            OctreeNode<T> parent = RootNode;
-
-            Vector3 center = Center;
-            Vector3 halfSize = HalfSize;
-
-            ulong locCode = 1;
-            for (int d = 0; d < depth; d++)
-            {
-                Octant octant = GetOctant(center, point);
-
-                locCode = (locCode << 3) | (ulong)octant;
-                if (HasChild(parent, octant))
-                {
-                    parent = LookupNode(locCode);
-                }
-                else
-                {
-                    parent = AddChild(parent, octant);
-                }
-                if (d < depth - 1)
-                {
-                    halfSize /= 2f;
-
-                    Vector3 c = OCTANT_TRANSLATIONS[(int)octant];
-                    c.X *= halfSize.X;
-                    c.Y *= halfSize.Y;
-                    c.Z *= halfSize.Z;
-                    center += c;
-                }
-            }
-            return parent;
         }
 
         public OctreeNode<T> AddChild(OctreeNode<T> parent, Octant octant)
@@ -285,6 +239,54 @@ namespace GameLibrary.Voxel
             parent.childExists |= (uint)(1 << (int)octant);
 
             return node;
+        }
+
+        public OctreeNode<T> AddChild(Vector3 point, int depth)
+        {
+            // from root down
+            // compute center
+            // flip bit Front/back if z > 0 etc
+            OctreeNode<T> parent = RootNode;
+
+            Vector3 center = Center;
+            Vector3 halfSize = HalfSize;
+
+            // TODO compute loc code by interlacing x, y, z bits (in voxel world)
+            ulong locCode = 1;
+            for (int d = 0; d < depth; d++)
+            {
+                Octant octant = GetOctantForPoint(center, point);
+
+                locCode = (locCode << 3) | (ulong)octant;
+                if (HasChild(parent, octant))
+                {
+                    parent = LookupNode(locCode);
+                }
+                else
+                {
+                    parent = AddChild(parent, octant);
+                }
+                if (d < depth - 1)
+                {
+                    halfSize /= 2f;
+
+                    Vector3 c = OCTANT_TRANSLATIONS[(int)octant];
+                    c.X *= halfSize.X;
+                    c.Y *= halfSize.Y;
+                    c.Z *= halfSize.Z;
+                    center += c;
+                }
+            }
+            return parent;
+        }
+
+        public Octant GetOctantForPoint(Vector3 center, Vector3 point)
+        {
+            Octant octant = 0;
+            if (point.X >= center.X) octant = (Octant)(((int)octant) | 0b001);
+            if (point.Y >= center.Y) octant = (Octant)(((int)octant) | 0b100);
+            if (point.Z < center.Z) octant = (Octant)(((int)octant) | 0b010);
+            return octant;
         }
 
         public ulong GetNeighborOfGreaterOrEqualSize(ulong nodeLocCode, Direction direction)

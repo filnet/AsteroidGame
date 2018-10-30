@@ -552,7 +552,7 @@ namespace GameLibrary.Voxel
 
         public override int Get(int x, int y, int z)
         {
-            return f5(x, y, z);
+            return f0(x, y, z);
         }
 
         private int f0(int x, int y, int z)
@@ -593,7 +593,7 @@ namespace GameLibrary.Voxel
 
         private int f5(int x, int y, int z)
         {
-            return ((y == 0)) ? 1 : 0;
+            return ((z == 0)) ? 1 : 0;
 
         }
 

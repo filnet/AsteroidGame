@@ -10,6 +10,7 @@
 #region Using Statements
 using Microsoft.Xna.Framework;
 using Microsoft.Xna.Framework.Graphics;
+using System;
 #endregion
 
 namespace StockEffects
@@ -32,7 +33,6 @@ namespace StockEffects
         EffectParameter worldParam;
         EffectParameter worldInverseTransposeParam;
         EffectParameter worldViewProjParam;
-        EffectParameter shaderIndexParam;
 
         #endregion
 
@@ -67,7 +67,7 @@ namespace StockEffects
         EffectDirtyFlags dirtyFlags = EffectDirtyFlags.All;
 
         #endregion
-
+        
         #region Public Properties
 
 
@@ -180,10 +180,7 @@ namespace StockEffects
             }
         }
 
-
-        /// <summary>
-        /// Gets or sets the lighting enable flag.
-        /// </summary>
+        /// <inheritdoc/>
         public bool LightingEnabled
         {
             get { return lightingEnabled; }
@@ -217,9 +214,7 @@ namespace StockEffects
         }
 
 
-        /// <summary>
-        /// Gets or sets the ambient light color (range 0 to 1).
-        /// </summary>
+        /// <inheritdoc/>
         public Vector3 AmbientLightColor
         {
             get { return ambientLightColor; }
@@ -232,27 +227,19 @@ namespace StockEffects
         }
 
 
-        /// <summary>
-        /// Gets the first directional light.
-        /// </summary>
+        /// <inheritdoc/>
         public DirectionalLight DirectionalLight0 { get { return light0; } }
 
 
-        /// <summary>
-        /// Gets the second directional light.
-        /// </summary>
+        /// <inheritdoc/>
         public DirectionalLight DirectionalLight1 { get { return light1; } }
 
 
-        /// <summary>
-        /// Gets the third directional light.
-        /// </summary>
+        /// <inheritdoc/>
         public DirectionalLight DirectionalLight2 { get { return light2; } }
 
 
-        /// <summary>
-        /// Gets or sets the fog enable flag.
-        /// </summary>
+        /// <inheritdoc/>
         public bool FogEnabled
         {
             get { return fogEnabled; }
@@ -268,9 +255,7 @@ namespace StockEffects
         }
 
 
-        /// <summary>
-        /// Gets or sets the fog start distance.
-        /// </summary>
+        /// <inheritdoc/>
         public float FogStart
         {
             get { return fogStart; }
@@ -283,9 +268,7 @@ namespace StockEffects
         }
 
 
-        /// <summary>
-        /// Gets or sets the fog end distance.
-        /// </summary>
+        /// <inheritdoc/>
         public float FogEnd
         {
             get { return fogEnd; }
@@ -298,9 +281,7 @@ namespace StockEffects
         }
 
 
-        /// <summary>
-        /// Gets or sets the fog color.
-        /// </summary>
+        /// <inheritdoc/>
         public Vector3 FogColor
         {
             get { return fogColorParam.GetValueVector3(); }
@@ -358,21 +339,18 @@ namespace StockEffects
 
         #region Methods
 
-
         /// <summary>
         /// Creates a new BasicEffect with default parameter settings.
         /// </summary>
         public BasicEffect(GraphicsDevice device)
-            : base(AsteroidGame.AsteroidGame.Instance().Content.Load<Effect>("BasicEffect"))
+            : base(AsteroidGame.AsteroidGame.Instance().Content.Load<Effect>("Effects/BasicEffect"))
         {
             CacheEffectParameters(null);
 
             DirectionalLight0.Enabled = true;
-
             SpecularColor = Vector3.One;
             SpecularPower = 16;
         }
-
 
         /// <summary>
         /// Creates a new BasicEffect by cloning parameter settings from an existing instance.
@@ -384,7 +362,7 @@ namespace StockEffects
 
             lightingEnabled = cloneSource.lightingEnabled;
             preferPerPixelLighting = cloneSource.preferPerPixelLighting;
-            fogEnabled = cloneSource.fogEnabled;
+            fogEnabled = cloneSource.fogEnabled;            
             textureEnabled = cloneSource.textureEnabled;
             vertexColorEnabled = cloneSource.vertexColorEnabled;
 
@@ -412,9 +390,7 @@ namespace StockEffects
         }
 
 
-        /// <summary>
-        /// Sets up the standard key/fill/back lighting rig.
-        /// </summary>
+        /// <inheritdoc/>
         public void EnableDefaultLighting()
         {
             LightingEnabled = true;
@@ -439,7 +415,6 @@ namespace StockEffects
             worldParam                  = Parameters["World"];
             worldInverseTransposeParam  = Parameters["WorldInverseTranspose"];
             worldViewProjParam          = Parameters["WorldViewProj"];
-            shaderIndexParam            = Parameters["ShaderIndex"];
 
             light0 = new DirectionalLight(Parameters["DirLight0Direction"],
                                           Parameters["DirLight0DiffuseColor"],
@@ -478,6 +453,7 @@ namespace StockEffects
             {
                 // Recompute the world inverse transpose and eye position?
                 dirtyFlags = EffectHelpers.SetLightingMatrices(dirtyFlags, ref world, ref view, worldParam, worldInverseTransposeParam, eyePositionParam);
+
                 
                 // Check if we can use the only-bother-with-the-first-light shader optimization.
                 bool newOneLight = !light1.Enabled && !light2.Enabled;
@@ -513,9 +489,9 @@ namespace StockEffects
                         shaderIndex += 8;
                 }
 
-                shaderIndexParam.SetValue(shaderIndex);
-
                 dirtyFlags &= ~EffectDirtyFlags.ShaderIndex;
+
+                CurrentTechnique = Techniques[shaderIndex];
             }
         }
 
