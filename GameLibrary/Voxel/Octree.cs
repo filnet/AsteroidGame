@@ -22,7 +22,15 @@ namespace GameLibrary.Voxel
 
     public enum Direction
     {
-        Left, Right, Bottom, Top, Back, Front
+        // 6-connected
+        Left, Right, Bottom, Top, Back, Front,
+        // 18-connected
+        BottomLeft, BottomRight, BottomFront, BottomBack,
+        LeftFront, RightFront, LeftBack, RightBack,
+        TopLeft, TopRight, TopFront, TopBack,
+        // 26-connected
+        BottomLeftFront, BottomRightFront, BottomLeftBack, BottomRightBack,
+        TopLeftFront, TopRightFront, TopLeftBack, TopRightBack,
     }
 
     public class OctreeNode<T>
@@ -38,39 +46,80 @@ namespace GameLibrary.Voxel
         private const int V = 1;
 
         private static readonly Vector3[] OCTANT_TRANSLATIONS = new Vector3[] {
-            new Vector3(-1, -1, 1),
-            new Vector3(1, -1, 1),
-            new Vector3(-1, -1, -1),
-            new Vector3(1, -1, -1),
-            new Vector3(-1, 1, 1),
-            new Vector3(1, 1, 1),
-            new Vector3(-1, 1, -1),
-            new Vector3(1, 1, -1),
+            new Vector3(-1, -1, +1), // BottomLeftFront
+            new Vector3(+1, -1, +1), // BottomRightFront
+            new Vector3(-1, -1, -1), // BottomLeftBack
+            new Vector3(+1, -1, -1), // BottomRightBack
+            new Vector3(-1, +1, +1), // TopLeftFront
+            new Vector3(+1, +1, +1), // TopRightFront
+            new Vector3(-1, +1, -1), // TopLeftBack
+            new Vector3(+1, +1, -1), // TopRightBack
         };
 
-        struct DirData
+        private static readonly int MASK_X = 0b001;
+        private static readonly int MASK_Y = 0b100;
+        private static readonly int MASK_Z = 0b010;
+        private static readonly int MASK_XY = MASK_X | MASK_Y;
+        private static readonly int MASK_YZ = MASK_Y | MASK_Z;
+        private static readonly int MASK_XZ = MASK_X | MASK_Z;
+        private static readonly int MASK_XYZ = MASK_X | MASK_Y | MASK_Z;
+
+        private static readonly int LEFT = 0b000;
+        private static readonly int RIGHT = 0b001;
+        private static readonly int BOTTOM = 0b000;
+        private static readonly int TOP = 0b100;
+        private static readonly int BACK = 0b010;
+        private static readonly int FRONT = 0b000;
+
+        public class DirData
         {
-            public Direction dir;
+            public readonly Direction dir;
             public readonly int mask;
             public readonly int value;
-            public DirData(Direction dir, int mask) : this(dir, mask, mask)
-            {
-            }
+            public readonly int dX;
+            public readonly int dY;
+            public readonly int dZ;
             public DirData(Direction dir, int mask, int value)
             {
                 this.dir = dir;
                 this.mask = mask;
                 this.value = value;
+                dX = ((mask & MASK_X) != 0) ? ((value & MASK_X) != 0) ? +1 : -1 : 0;
+                dY = ((mask & MASK_Y) != 0) ? ((value & MASK_Y) != 0) ? +1 : -1 : 0;
+                dZ = ((mask & MASK_Z) != 0) ? ((value & MASK_Z) != 0) ? -1 : +1 : 0;
             }
         }
 
-        private static readonly DirData[] DIR_DATA = new DirData[] {
-            new DirData(Direction.Left, 0b001, 0b000),
-            new DirData(Direction.Right, 0b001),
-            new DirData(Direction.Bottom, 0b100, 0b000),
-            new DirData(Direction.Top, 0b100),
-            new DirData(Direction.Back, 0b010),
-            new DirData(Direction.Front, 0b010, 0b000),
+        public static readonly DirData[] DIR_DATA = new DirData[] {
+            // 6-connected
+            new DirData(Direction.Left, MASK_X, LEFT),
+            new DirData(Direction.Right, MASK_X, RIGHT),
+            new DirData(Direction.Bottom, MASK_Y, BOTTOM),
+            new DirData(Direction.Top, MASK_Y, TOP),
+            new DirData(Direction.Back, MASK_Z, BACK),
+            new DirData(Direction.Front, MASK_Z, FRONT),
+            // 18-connected
+            new DirData(Direction.BottomLeft, MASK_XY, BOTTOM | LEFT),
+            new DirData(Direction.BottomRight, MASK_XY, BOTTOM | RIGHT),
+            new DirData(Direction.BottomFront, MASK_YZ, BOTTOM | FRONT),
+            new DirData(Direction.BottomBack, MASK_YZ, BOTTOM | BACK),
+            new DirData(Direction.LeftFront, MASK_XZ, LEFT | FRONT),
+            new DirData(Direction.RightFront, MASK_XZ, RIGHT | FRONT),
+            new DirData(Direction.LeftBack, MASK_XZ, LEFT | BACK),
+            new DirData(Direction.RightBack, MASK_XZ, RIGHT | BACK),
+            new DirData(Direction.TopLeft, MASK_XY, TOP | LEFT),
+            new DirData(Direction.TopRight, MASK_XY, TOP | RIGHT),
+            new DirData(Direction.TopFront, MASK_YZ, TOP | FRONT),
+            new DirData(Direction.TopBack, MASK_YZ, TOP | BACK),
+            // 26-connected
+            new DirData(Direction.BottomLeftFront, MASK_XYZ, BOTTOM | LEFT | FRONT),
+            new DirData(Direction.BottomRightFront, MASK_XYZ, BOTTOM | RIGHT | FRONT),
+            new DirData(Direction.BottomLeftBack, MASK_XYZ, BOTTOM | LEFT | BACK),
+            new DirData(Direction.BottomRightBack, MASK_XYZ, BOTTOM | RIGHT | BACK),
+            new DirData(Direction.TopLeftFront, MASK_XYZ, TOP | LEFT | FRONT),
+            new DirData(Direction.TopRightFront, MASK_XYZ, TOP | RIGHT | FRONT),
+            new DirData(Direction.TopLeftBack, MASK_XYZ, TOP | LEFT | BACK),
+            new DirData(Direction.TopRightBack, MASK_XYZ, TOP | RIGHT | BACK),
         };
 
         private static readonly ulong LEAF_MASK = 0b111;
@@ -302,7 +351,7 @@ namespace GameLibrary.Voxel
             Octant nodeOctant = (Octant)(nodeLocCode & 0b111);
 
             // check if neighbour is in same parent node
-            if (((int)nodeOctant & dirData.mask) != dirData.value)
+            if ((((int)nodeOctant & dirData.mask) ^ dirData.mask) == dirData.value)
             {
                 OctreeNode<T> parent = GetParentNode(nodeLocCode);
                 Octant neighbourOctant = (Octant)((int)nodeOctant ^ dirData.mask);
@@ -321,70 +370,10 @@ namespace GameLibrary.Voxel
                 // leaf node
                 return l;
             }
-            if (((int)nodeOctant & dirData.mask) == dirData.value)
+            if ((((int)nodeOctant & dirData.mask) ^ dirData.mask) == dirData.value)
             {
                 Octant neighbourOctant = (Octant)((int)nodeOctant ^ dirData.mask);
                 return HasChild(n, neighbourOctant) ? (l << 3) | (ulong)neighbourOctant : 0;
-            }
-            return 0;
-        }
-
-        public ulong GetNeighborOfGreaterOrEqualSize2(ulong nodeLocCode, Direction direction)
-        {
-            //String nodeLocCodeString = Convert.ToString((long)nodeLocCode, 2);
-            if (nodeLocCode == 1)
-            {
-                // reached root
-                return 0;
-            }
-            switch (direction)
-            {
-                case Direction.Left:
-                    Octant nodeOctant = (Octant)(nodeLocCode & 0b111);
-                    OctreeNode<T> parent;
-                    switch (nodeOctant)
-                    {
-                        case Octant.BottomRightBack:
-                            parent = GetParentNode(nodeLocCode);
-                            return HasChild(parent, Octant.BottomLeftBack) ? (nodeLocCode & PARENT_MASK) | (int)Octant.BottomLeftBack : 0;
-                        case Octant.BottomRightFront:
-                            parent = GetParentNode(nodeLocCode);
-                            return HasChild(parent, Octant.BottomLeftFront) ? (nodeLocCode & PARENT_MASK) | (int)Octant.BottomLeftFront : 0;
-                        case Octant.TopRightBack:
-                            parent = GetParentNode(nodeLocCode);
-                            return HasChild(parent, Octant.TopLeftBack) ? (nodeLocCode & PARENT_MASK) | (int)Octant.TopLeftBack : 0;
-                        case Octant.TopRightFront:
-                            parent = GetParentNode(nodeLocCode);
-                            return HasChild(parent, Octant.TopLeftFront) ? (nodeLocCode & PARENT_MASK) | (int)Octant.TopLeftFront : 0;
-                        default:
-                            ulong l = GetNeighborOfGreaterOrEqualSize(nodeLocCode >> 3, direction);
-                            //String lString = Convert.ToString((long)l, 2);
-                            if (l == 0)
-                            {
-                                return 0;
-                            }
-                            OctreeNode<T> n = LookupNode(l);
-                            if (n.childExists == 0)
-                            {
-                                // leaf node
-                                return l;
-                            }
-                            // node is guaranteed to be a left child
-                            switch (nodeOctant)
-                            {
-                                case Octant.BottomLeftBack:
-                                    return HasChild(n, Octant.BottomRightBack) ? (l << 3) | (int)Octant.BottomRightBack : 0;
-                                case Octant.BottomLeftFront:
-                                    return HasChild(n, Octant.BottomRightFront) ? (l << 3) | (int)Octant.BottomRightFront : 0;
-                                case Octant.TopLeftBack:
-                                    return HasChild(n, Octant.TopRightBack) ? (l << 3) | (int)Octant.TopRightBack : 0;
-                                case Octant.TopLeftFront:
-                                    return HasChild(n, Octant.TopRightFront) ? (l << 3) | (int)Octant.TopRightFront : 0;
-                                default:
-                                    // unreachable...
-                                    return 0;
-                            }
-                    }
             }
             return 0;
         }

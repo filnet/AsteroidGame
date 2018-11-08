@@ -140,8 +140,7 @@ namespace GameLibrary.SceneGraph
             //renderers[VOXEL_MAP] = new VoxelMapRenderer(EffectFactory.CreateBasicEffect1(GraphicsDevice));
             //renderers[VOXEL_MAP] = new VoxelMapInstancedRenderer(EffectFactory.CreateInstancedEffect(GraphicsDevice));
 
-            renderers[VOXEL] = new EffectRenderer(EffectFactory.CreateVoxelEffect(GraphicsDevice)); // 1 light + texture
-            //renderers[VOXEL] = new EffectRenderer(EffectFactory.CreateBasicEffect1(GraphicsDevice)); // 3 lights
+            renderers[VOXEL] = new EffectRenderer(VoxelUtil.CreateVoxelEffect(GraphicsDevice));
             //renderers[VOXEL].RasterizerState = RasterizerState.CullNone;
             //renderers[VOXEL].RasterizerState = Renderer.WireFrameRasterizer;
 
@@ -158,6 +157,7 @@ namespace GameLibrary.SceneGraph
             renderers[COLLISION_SPHERE] = new BoundRenderer(EffectFactory.CreateCollisionEffect(GraphicsDevice, clip), boundingSphereGeo); // clipping
             renderers[COLLISION_BOX] = new BoundRenderer(EffectFactory.CreateCollisionEffect(GraphicsDevice, clip), boundingBoxGeo); // clipping
 
+            rootNode.Initialize(GraphicsDevice);
             rootNode.Visit(COMMIT_VISITOR, this);
         }
 

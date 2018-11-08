@@ -102,12 +102,14 @@ namespace AsteroidGame
                     Scene.RootNode = createCubeTestScene();
                     break;
                 case 4:
+                default:
                     if (camera != null)
                     {
                         camera.ZoomMin = 0.1f;
                         camera.ZoomMax = 2000f;
                         camera.ZoomSpeed = 32f / 60f;
                         camera.Zoom = 64f;
+                        camera.VerticalAngle = -MathHelper.PiOver4;
                     }
                     Scene.RootNode = createVoxelTestScene();
                     break;

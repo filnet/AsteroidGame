@@ -31,6 +31,10 @@ http://www.slideshare.net/Chris_G/goblin-xna-slides
 
 http://www.nuclex.org/blog/gamedev/100-to-gamecomponent-or-not-to-gamecomponent
 
+Voxel
+
+http://codeflow.org/entries/2010/dec/09/minecraft-like-rendering-experiments-in-opengl-4/#ambient-occlusion
+
 Octree + portals + custom frustrum
 
 Octree Front to back traversal : http://graphicsinterface.org/wp-content/uploads/gi1991-21.pdf
@@ -42,6 +46,15 @@ http://nomorecoins.info/blog/back-to-the-basics-scene-management/
 Voxel Meshing
 
 https://0fps.net/2012/06/30/meshing-in-a-minecraft-game/
+
+https://0fps.net/2012/07/07/meshing-minecraft-part-2/
+
+https://people.eecs.berkeley.edu/~jrs/mesh/
+
+3D Perlyn noise
+
+https://gamedev.stackexchange.com/questions/12603/how-is-a-3d-perlin-noise-function-used-to-generate-terrain
+
 
 Texture Atlas & Mip mapping
 

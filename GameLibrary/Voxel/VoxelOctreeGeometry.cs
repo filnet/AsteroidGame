@@ -10,7 +10,7 @@ using GameLibrary.Voxel;
 using GameLibrary.Geometry.Common;
 using GameLibrary.Geometry;
 
-namespace GameLibrary
+namespace GameLibrary.Voxel
 {
     public class VoxelOctreeGeometry : GeometryNode
     {
@@ -50,12 +50,13 @@ namespace GameLibrary
                 VoxelMap voxelMap = node.obj.VoxelMap;
 
                 // FIXME garbage generation here...
-                VoxelMap[] neighbours = new VoxelMap[6];
+                int n = Enum.GetNames(typeof(Direction)).Length;
+                VoxelMap[] neighbours = new VoxelMap[n];
                 foreach (Direction direction in Enum.GetValues(typeof(Direction)).Cast<Direction>())
                 {
                     ulong l = octree.GetNeighborOfGreaterOrEqualSize(node.locCode, direction);
-                    OctreeNode<VoxelObject> n = octree.LookupNode(l);
-                    neighbours[(int)direction] = (n != null) ? n.obj.VoxelMap : null;
+                    OctreeNode<VoxelObject> neighbourNode = octree.LookupNode(l);
+                    neighbours[(int)direction] = (neighbourNode != null) ? neighbourNode.obj.VoxelMap : null;
                 }
 
                 geometryNode = new MeshNode("VOXEL", new VoxelMapMeshFactory(voxelMap, neighbours));

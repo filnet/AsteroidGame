@@ -25,12 +25,12 @@ namespace GameLibrary.Voxel
             this.chunkSize = chunkSize;
             depth = BitUtil.Log2(size / chunkSize);
 
-            int x0 = -6;
-            int x1 = 6;
-            int y0 = -6;
-            int y1 = 6;
+            int x0 = 0;
+            int x1 = 1;
+            int y0 = 0;
+            int y1 = 1;
             int z0 = 0;
-            int z1 = 0;
+            int z1 = 1;
             objectFactory = createObject;
             RootNode.obj = createObject(this, RootNode);
             for (int x = x0; x <= x1; x++)

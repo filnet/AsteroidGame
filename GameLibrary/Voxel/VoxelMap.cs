@@ -5,7 +5,17 @@ using System.Text;
 
 namespace GameLibrary.Voxel
 {
-    enum Neighbour { None = 0, Left = 1 << 0, Right = 1 << 1, Bottom = 1 << 2, Top = 1 << 3, Back = 1 << 4, Front = 1 << 5, All = Left | Right | Bottom | Top | Back | Front }
+    enum Neighbour
+    {
+        None = 0,
+        Left = 1 << 0,
+        Right = 1 << 1,
+        Bottom = 1 << 2,
+        Top = 1 << 3,
+        Back = 1 << 4,
+        Front = 1 << 5,
+        All = Left | Right | Bottom | Top | Back | Front
+    }
 
     public interface Visitor
     {
@@ -99,7 +109,7 @@ namespace GameLibrary.Voxel
                     ite.Set(0, y, z);
                     for (int x = 0; x < size; x++)
                     {
-                        int v = ite.Self();
+                        int v = ite.Value();
                         if (v != 0)
                         {
                             if (ite.Neighbours != (int)Neighbour.All)
@@ -168,47 +178,42 @@ namespace GameLibrary.Voxel
         public abstract void TranslateY();
         public abstract void TranslateZ();
 
-        public abstract int Self();
-        public abstract int Left();
-        public abstract int Right();
-        public abstract int Bottom();
-        public abstract int Top();
-        public abstract int Back();
-        public abstract int Front();
+        public abstract int Value();
+        public abstract int Value(Direction direction);
 
         protected void update()
         {
             int f = 0;
             int c = 0;
 
-            if (Left() > 0)
+            if (Value(Direction.Left) > 0)
             {
                 f |= (int)Neighbour.Left;
                 c++;
             }
-            if (Right() > 0)
+            if (Value(Direction.Right) > 0)
             {
                 f |= (int)Neighbour.Right;
                 c++;
             }
 
-            if (Bottom() > 0)
+            if (Value(Direction.Bottom) > 0)
             {
                 f |= (int)Neighbour.Bottom;
                 c++;
             }
-            if (Top() > 0)
+            if (Value(Direction.Top) > 0)
             {
                 f |= (int)Neighbour.Top;
                 c++;
             }
 
-            if (Back() > 0)
+            if (Value(Direction.Back) > 0)
             {
                 f |= (int)Neighbour.Back;
                 c++;
             }
-            if (Front() > 0)
+            if (Value(Direction.Front) > 0)
             {
                 f |= (int)Neighbour.Front;
                 c++;
@@ -226,6 +231,32 @@ namespace GameLibrary.Voxel
         public DefaultVoxelMapIterator(VoxelMap map, VoxelMap[] neighboursMap) : base(map)
         {
             this.neighboursMap = neighboursMap;
+        }
+
+        public override int Value()
+        {
+            return map.Get(x0, y0, z0);
+        }
+
+        public override int Value(Direction direction)
+        {
+            VoxelOctree.DirData dirData = VoxelOctree.DIR_DATA[(int)direction];
+            int x = x0 + dirData.dX;
+            int y = y0 + dirData.dY;
+            int z = z0 + dirData.dZ;
+            if (x >= 0 && x < Size && y >= 0 && y < Size && z >= 0 && z < Size)
+            {
+                return map.Get(x, y, z);
+            }
+            VoxelMap nMap = neighboursMap[(int)direction];
+            if (nMap == null)
+            {
+                return 0;
+            }
+            x = (x + Size) % Size;
+            y = (y + Size) % Size;
+            z = (z + Size) % Size;
+            return nMap.Get(x, y, z);
         }
 
         public override void Set(int x0, int y0, int z0)
@@ -254,70 +285,6 @@ namespace GameLibrary.Voxel
             update();
         }
 
-        public override int Self()
-        {
-            return map.Get(x0, y0, z0);
-        }
-
-        public override int Left()
-        {
-            if (x0 > 0)
-            {
-                return map.Get(x0 - 1, y0, z0);
-            }
-            VoxelMap nMap = neighboursMap[(int)Direction.Left];
-            return (nMap != null) ? nMap.Get(Size - 1, y0, z0) : 0;
-        }
-
-        public override int Right()
-        {
-            if (x0 < Size - 1)
-            {
-                return map.Get(x0 + 1, y0, z0);
-            }
-            VoxelMap nMap = neighboursMap[(int)Direction.Right];
-            return (nMap != null) ? nMap.Get(0, y0, z0) : 0;
-        }
-
-        public override int Bottom()
-        {
-            if (y0 > 0)
-            {
-                return map.Get(x0, y0 - 1, z0);
-            }
-            VoxelMap nMap = neighboursMap[(int)Direction.Bottom];
-            return (nMap != null) ? nMap.Get(x0, Size - 1, z0) : 0;
-        }
-
-        public override int Top()
-        {
-            if (y0 < Size - 1)
-            {
-                return map.Get(x0, y0 + 1, z0);
-            }
-            VoxelMap nMap = neighboursMap[(int)Direction.Top];
-            return (nMap != null) ? nMap.Get(x0, 0, z0) : 0;
-        }
-
-        public override int Back()
-        {
-            if (z0 > 0)
-            {
-                return map.Get(x0, y0, z0 - 1);
-            }
-            VoxelMap nMap = neighboursMap[(int)Direction.Back];
-            return (nMap != null) ? nMap.Get(x0, y0, Size - 1) : 0;
-        }
-
-        public override int Front()
-        {
-            if (z0 < Size - 1)
-            {
-                return map.Get(x0, y0, z0 + 1);
-            }
-            VoxelMap nMap = neighboursMap[(int)Direction.Front];
-            return (nMap != null) ? nMap.Get(x0, y0, 0) : 0;
-        }
     }
 
     class CachedVoxelMapIterator : VoxelMapIterator
@@ -326,6 +293,17 @@ namespace GameLibrary.Voxel
 
         public CachedVoxelMapIterator(VoxelMap map) : base(map)
         {
+        }
+
+        public override int Value()
+        {
+            return n[1, 1, 1];
+        }
+
+        public override int Value(Direction direction)
+        {
+            VoxelOctree.DirData dirData = VoxelOctree.DIR_DATA[(int)direction];
+            return n[1 + dirData.dX, 1 + dirData.dY, 1 + dirData.dZ];
         }
 
         public override void Set(int x0, int y0, int z0)
@@ -392,47 +370,26 @@ namespace GameLibrary.Voxel
             update();
         }
 
-        public override int Self()
-        {
-            return n[1, 1, 1];
-        }
-
-        public override int Left()
-        {
-            return n[0, 1, 1];
-        }
-
-        public override int Right()
-        {
-            return n[2, 1, 1];
-        }
-
-        public override int Bottom()
-        {
-            return n[1, 0, 1];
-        }
-
-        public override int Top()
-        {
-            return n[1, 2, 1];
-        }
-
-        public override int Back()
-        {
-            return n[1, 1, 0];
-        }
-
-        public override int Front()
-        {
-            return n[1, 1, 2];
-        }
-
     }
 
     class SimpleVoxelMapIterator : VoxelMapIterator
     {
         public SimpleVoxelMapIterator(VoxelMap map) : base(map)
         {
+        }
+
+        public override int Value()
+        {
+            return map.Get(x0, y0, z0);
+        }
+
+        public override int Value(Direction direction)
+        {
+            VoxelOctree.DirData dirData = VoxelOctree.DIR_DATA[(int)direction];
+            int x = x0 + dirData.dX;
+            int y = y0 + dirData.dY;
+            int z = z0 + dirData.dZ;
+            return map.GetSafe(x, y, z);
         }
 
         public override void Set(int x0, int y0, int z0)
@@ -461,40 +418,6 @@ namespace GameLibrary.Voxel
             update();
         }
 
-        public override int Self()
-        {
-            return map.Get(x0, y0, z0);
-        }
-
-        public override int Left()
-        {
-            return map.GetSafe(x0 - 1, y0, z0);
-        }
-
-        public override int Right()
-        {
-            return map.GetSafe(x0 + 1, y0, z0);
-        }
-
-        public override int Bottom()
-        {
-            return map.GetSafe(x0, y0 - 1, z0);
-        }
-
-        public override int Top()
-        {
-            return map.GetSafe(x0, y0 + 1, z0);
-        }
-
-        public override int Back()
-        {
-            return map.GetSafe(x0, y0, z0 - 1);
-        }
-
-        public override int Front()
-        {
-            return map.GetSafe(x0, y0, z0 + 1);
-        }
     }
 
     class SimpleVoxelMap : AbstractVoxelMap
@@ -523,25 +446,6 @@ namespace GameLibrary.Voxel
             map[x, y, z] = v;
         }
 
-        /*
-        public void Visit(Visitor visitor)
-        {
-            int instanceCount = size * size * size;
-            visitor.Begin(size, instanceCount, instanceCount);
-            for (int x = 0; x < size; x++)
-            {
-                for (int y = 0; y < size; y++)
-                {
-                    for (int z = 0; z < size; z++)
-                    {
-                        int v = map[x, y, z];
-                        visitor.Visit(x, y, z, v, 1);
-                    }
-                }
-            }
-            visitor.End();
-        }
-        */
     }
 
     class FunctionVoxelMap : AbstractVoxelMap
@@ -552,7 +456,7 @@ namespace GameLibrary.Voxel
 
         public override int Get(int x, int y, int z)
         {
-            return f0(x, y, z);
+            return f7(x, y, z);
         }
 
         private int f0(int x, int y, int z)
@@ -597,24 +501,28 @@ namespace GameLibrary.Voxel
 
         }
 
+        private int f6(int x, int y, int z)
+        {
+            if (y == 0 && x >= 5 && x <= 8 && z >= 2 && z <= 3) return 1;
+            if (y == 1 && x >= 6 && x <= 7 && z >= 2 && z <= 2) return 1;
+            return 0;
+        }
+
+        private int f7(int x, int y, int z)
+        {
+            //if (x < 1) return 0;
+            //if (z < 1) return 0;
+            if (y < 4) return 2;
+            if (y > 14) return 2;
+            if (y < 5 && x > 3 && x < Size() - 3 && z > 3 && z < Size() - 3) return 2;
+            if (y < 7 && x > 6 && x < Size() - 6 && z > 6 && z < Size() - 6) return 3;
+            if (y < 8 && x > 7 && x < Size() - 7 && z > 7 && z < Size() - 7) return 4;
+            if (y == 12 && x > 7 && x < Size() - 7 && z > 7 && z < Size() - 7) return 4;
+            if (y == 13 && x > 6 && x < Size() - 6 && z > 6 && z < Size() - 6) return 3;
+            if (y == 14 && x > 4 && x < Size() - 4 && z > 4 && z < Size() - 4) return 3;
+            if (y == 9 && x == 8 && z == 8) return 5;
+            return 0;
+        }
     }
 
-
-    /*
-        class Layer
-        {
-            //private int[] rleData;
-        }
-
-        class LayeredVoxelMap : VoxelMap
-        {
-            //private Layer[] layers;
-            public void Visit(Visitor visitor)
-            {
-
-            }
-            int Value(int x, int y, int z);
-            int ValueSafe(int x, int y, int z);
-        }
-    */
 }

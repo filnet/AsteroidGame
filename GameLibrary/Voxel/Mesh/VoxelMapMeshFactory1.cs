@@ -8,20 +8,20 @@ using GameLibrary.Component.Util;
 using GameLibrary.Util;
 using GameLibrary.Voxel;
 
-namespace GameLibrary.Geometry
+namespace GameLibrary.Voxel
 {
-    public class VoxelMapMeshFactory : IMeshFactory
+    public class VoxelMapMeshFactory1 : IMeshFactory
     {
         private VoxelMap map;
         private VoxelMap[] neighbours;
 
         private readonly DrawVisitor drawVisitor;
 
-        public VoxelMapMeshFactory(VoxelMap map) : this(map, null)
+        public VoxelMapMeshFactory1(VoxelMap map) : this(map, null)
         {
         }
 
-        public VoxelMapMeshFactory(VoxelMap map, VoxelMap[] neighbours)
+        public VoxelMapMeshFactory1(VoxelMap map, VoxelMap[] neighbours)
         {
             this.map = map;
             this.neighbours = neighbours;
@@ -30,7 +30,7 @@ namespace GameLibrary.Geometry
 
         public Mesh CreateMesh(GraphicsDevice gd)
         {
-            drawVisitor.builder = VertexBufferBuilder.createVertexPositionNormalTextureBufferBuilder(gd, 0, 0);
+            drawVisitor.builder = VertexBufferBuilder.createVertexPositionColorNormalTextureArrayBufferBuilder(gd, 0, 0);
 
             VoxelMapIterator ite;
             if (neighbours == null)
@@ -54,7 +54,7 @@ namespace GameLibrary.Geometry
         {
             //private static float DEFAULT_VOXEL_SIZE = 0.5773502692f; // 1 over the square root of 3
 
-            private readonly VoxelMapMeshFactory factory;
+            private readonly VoxelMapMeshFactory1 factory;
             public VertexBufferBuilder builder;
 
             private readonly float d = 0.5f;
@@ -110,7 +110,7 @@ namespace GameLibrary.Geometry
             Vector3 leftNormal = new Vector3(-1.0f, 0.0f, 0.0f);
             Vector3 rightNormal = new Vector3(1.0f, 0.0f, 0.0f);
 
-            public DrawVisitor(VoxelMapMeshFactory factory)
+            public DrawVisitor(VoxelMapMeshFactory1 factory)
             {
                 this.factory = factory;
 
@@ -147,8 +147,22 @@ namespace GameLibrary.Geometry
                 return true;
             }
 
+            //static int c = 0;
+
             public bool Visit(VoxelMapIterator ite)
             {
+                //c++;
+                //if (c > 6) return false;
+                int tile = ite.Value() - 1;
+                int topTile = tile;
+                int sideTile = tile;
+                if (tile == 1) sideTile = 0;
+                if (tile == 3) sideTile = 2;
+                int bottomTile = tile;
+
+                Color topColor = Color.White;
+                Color bottomColor = Color.White;
+
                 Matrix m = Matrix.Identity; // Matrix.CreateScale(0.95f);
                 Vector3 t;
                 t.X = 2 * d * (ite.X - (size - 1) / 2f);
@@ -158,21 +172,8 @@ namespace GameLibrary.Geometry
                 //m = m * Matrix.CreateTranslation(d * (2 * ite.X - size) / size, d * (2 * ite.Y - size) / size, d * (2 * ite.Z - size) / size);
                 //Console.Out.WriteLine(2 * d * (ite.X - (size - 1) / 2f) + " " + 2 * d * (ite.Y - (size - 1) / 2f) + " " + 2 * d * (ite.Z - (size - 1) / 2f));
 
-                /*
-                // top face vertices
-                Vector3.Add(ref topLeftFront, ref t, out _topLeftFront);
-                Vector3.Add(ref topLeftBack, ref t, out _topLeftBack);
-                Vector3.Add(ref topRightFront, ref t, out _topRightFront);
-                Vector3.Add(ref topRightBack, ref t, out _topRightBack);
-
-                // bottom face vertices
-                Vector3.Add(ref bottomLeftFront, ref t, out _bottomLeftFront);
-                Vector3.Add(ref bottomLeftBack, ref t, out _bottomLeftBack);
-                Vector3.Add(ref bottomRightFront, ref t, out _bottomRightFront);
-                Vector3.Add(ref bottomRightBack, ref t, out _bottomRightBack);
-                */
                 // front face
-                if ((ite.Neighbours & (int)Neighbour.Front) == 0)
+                if (false && (ite.Neighbours & (int)Neighbour.Front) == 0)
                 {
                     Vector3.Multiply(ref topLeftFront, ref scaleXY, out _topLeftFront);
                     Vector3.Multiply(ref bottomLeftFront, ref scaleXY, out _bottomLeftFront);
@@ -184,16 +185,16 @@ namespace GameLibrary.Geometry
                     Vector3.Add(ref _topRightFront, ref t, out _topRightFront);
                     Vector3.Add(ref _bottomRightFront, ref t, out _bottomRightFront);
 
-                    builder.AddVertex(_topLeftFront, frontNormal, Color.White, textureTopLeft);
-                    builder.AddVertex(_bottomLeftFront, frontNormal, Color.White, textureBottomLeft);
-                    builder.AddVertex(_topRightFront, frontNormal, Color.White, textureTopRight);
-                    builder.AddVertex(_bottomLeftFront, frontNormal, Color.White, textureBottomLeft);
-                    builder.AddVertex(_bottomRightFront, frontNormal, Color.White, textureBottomRight);
-                    builder.AddVertex(_topRightFront, frontNormal, Color.White, textureTopRight);
+                    builder.AddVertex(_topLeftFront, frontNormal, topColor, textureTopLeft, sideTile);
+                    builder.AddVertex(_bottomLeftFront, frontNormal, bottomColor, textureBottomLeft, sideTile);
+                    builder.AddVertex(_topRightFront, frontNormal, topColor, textureTopRight, sideTile);
+                    builder.AddVertex(_bottomLeftFront, frontNormal, bottomColor, textureBottomLeft, sideTile);
+                    builder.AddVertex(_bottomRightFront, frontNormal, bottomColor, textureBottomRight, sideTile);
+                    builder.AddVertex(_topRightFront, frontNormal, topColor, textureTopRight, sideTile);
                     primitiveCount += 2;
                 }
                 // back face
-                if ((ite.Neighbours & (int)Neighbour.Back) == 0)
+                if (false && (ite.Neighbours & (int)Neighbour.Back) == 0)
                 {
                     Vector3.Multiply(ref topLeftBack, ref scaleXY, out _topLeftBack);
                     Vector3.Multiply(ref topRightBack, ref scaleXY, out _topRightBack);
@@ -205,12 +206,12 @@ namespace GameLibrary.Geometry
                     Vector3.Add(ref _bottomLeftBack, ref t, out _bottomLeftBack);
                     Vector3.Add(ref _bottomRightBack, ref t, out _bottomRightBack);
 
-                    builder.AddVertex(_topLeftBack, backNormal, Color.White, textureTopRight);
-                    builder.AddVertex(_topRightBack, backNormal, Color.White, textureTopLeft);
-                    builder.AddVertex(_bottomLeftBack, backNormal, Color.White, textureBottomRight);
-                    builder.AddVertex(_bottomLeftBack, backNormal, Color.White, textureBottomRight);
-                    builder.AddVertex(_topRightBack, backNormal, Color.White, textureTopLeft);
-                    builder.AddVertex(_bottomRightBack, backNormal, Color.White, textureBottomLeft);
+                    builder.AddVertex(_topLeftBack, backNormal, topColor, textureTopRight, sideTile);
+                    builder.AddVertex(_topRightBack, backNormal, topColor, textureTopLeft, sideTile);
+                    builder.AddVertex(_bottomLeftBack, backNormal, bottomColor, textureBottomRight, sideTile);
+                    builder.AddVertex(_bottomLeftBack, backNormal, bottomColor, textureBottomRight, sideTile);
+                    builder.AddVertex(_topRightBack, backNormal, topColor, textureTopLeft, sideTile);
+                    builder.AddVertex(_bottomRightBack, backNormal, bottomColor, textureBottomLeft, sideTile);
                     primitiveCount += 2;
                 }
                 // top face
@@ -226,16 +227,46 @@ namespace GameLibrary.Geometry
                     Vector3.Add(ref _topRightFront, ref t, out _topRightFront);
                     Vector3.Add(ref _topRightBack, ref t, out _topRightBack);
 
-                    builder.AddVertex(_topLeftFront, topNormal, Color.White, textureBottomLeft);
-                    builder.AddVertex(_topRightBack, topNormal, Color.White, textureTopRight);
-                    builder.AddVertex(_topLeftBack, topNormal, Color.White, textureTopLeft);
-                    builder.AddVertex(_topLeftFront, topNormal, Color.White, textureBottomLeft);
-                    builder.AddVertex(_topRightFront, topNormal, Color.White, textureBottomRight);
-                    builder.AddVertex(_topRightBack, topNormal, Color.White, textureTopRight);
+                    // TopLeftFront
+                    int a00 = VoxelUtil.VertexAmbientOcclusion(ite.Value(Direction.TopLeft) != 0, ite.Value(Direction.TopFront) != 0, ite.Value(Direction.TopLeftFront) != 0);
+                    // TopLeftBack
+                    int a01 = VoxelUtil.VertexAmbientOcclusion(ite.Value(Direction.TopLeft) != 0, ite.Value(Direction.TopBack) != 0, ite.Value(Direction.TopLeftBack) != 0);
+                    // TopRightFront
+                    int a10 = VoxelUtil.VertexAmbientOcclusion(ite.Value(Direction.TopRight) != 0, ite.Value(Direction.TopFront) != 0, ite.Value(Direction.TopRightFront) != 0);
+                    // TopRightBack
+                    int a11 = VoxelUtil.VertexAmbientOcclusion(ite.Value(Direction.TopRight) != 0, ite.Value(Direction.TopBack) != 0, ite.Value(Direction.TopRightBack) != 0); ;
+
+                    Color c00 = VoxelUtil.AmbientOcclusionColor(a00);
+                    Color c01 = VoxelUtil.AmbientOcclusionColor(a01);
+                    Color c10 = VoxelUtil.AmbientOcclusionColor(a10);
+                    Color c11 = VoxelUtil.AmbientOcclusionColor(a11);
+
+                    if (a00 + a11 > a01 + a10)
+                    {
+                        // generate flipped quad
+                        builder.AddVertex(_topLeftBack, topNormal, c01, textureTopLeft, topTile);
+                        builder.AddVertex(_topLeftFront, topNormal, c00, textureBottomLeft, topTile);
+                        builder.AddVertex(_topRightBack, topNormal, c11, textureTopRight, topTile);
+
+                        builder.AddVertex(_topRightFront, topNormal, c10, textureBottomRight, topTile);
+                        builder.AddVertex(_topRightBack, topNormal, c11, textureTopRight, topTile);
+                        builder.AddVertex(_topLeftFront, topNormal, c00, textureBottomLeft, topTile);
+                    }
+                    else
+                    {
+                        // generate normal quad
+                        builder.AddVertex(_topLeftFront, topNormal, c00, textureBottomLeft, topTile);
+                        builder.AddVertex(_topRightFront, topNormal, c10, textureBottomRight, topTile);
+                        builder.AddVertex(_topLeftBack, topNormal, c01, textureTopLeft, topTile);
+
+                        builder.AddVertex(_topRightBack, topNormal, c11, textureTopRight, topTile);
+                        builder.AddVertex(_topLeftBack, topNormal, c01, textureTopLeft, topTile);
+                        builder.AddVertex(_topRightFront, topNormal, c10, textureBottomRight, topTile);
+                    }
                     primitiveCount += 2;
                 }
                 // bottom face
-                if (true && (ite.Neighbours & (int)Neighbour.Bottom) == 0)
+                if (false && (ite.Neighbours & (int)Neighbour.Bottom) == 0)
                 {
                     Vector3.Multiply(ref bottomLeftFront, ref scaleXZ, out _bottomLeftFront);
                     Vector3.Multiply(ref bottomLeftBack, ref scaleXZ, out _bottomLeftBack);
@@ -247,16 +278,16 @@ namespace GameLibrary.Geometry
                     Vector3.Add(ref _bottomRightFront, ref t, out _bottomRightFront);
                     Vector3.Add(ref _bottomRightBack, ref t, out _bottomRightBack);
 
-                    builder.AddVertex(_bottomLeftFront, bottomNormal, Color.White, textureTopLeft);
-                    builder.AddVertex(_bottomLeftBack, bottomNormal, Color.White, textureBottomLeft);
-                    builder.AddVertex(_bottomRightBack, bottomNormal, Color.White, textureBottomRight);
-                    builder.AddVertex(_bottomLeftFront, bottomNormal, Color.White, textureTopLeft);
-                    builder.AddVertex(_bottomRightBack, bottomNormal, Color.White, textureBottomRight);
-                    builder.AddVertex(_bottomRightFront, bottomNormal, Color.White, textureTopRight);
+                    builder.AddVertex(_bottomLeftFront, bottomNormal, bottomColor, textureTopLeft, bottomTile);
+                    builder.AddVertex(_bottomLeftBack, bottomNormal, bottomColor, textureBottomLeft, bottomTile);
+                    builder.AddVertex(_bottomRightBack, bottomNormal, bottomColor, textureBottomRight, bottomTile);
+                    builder.AddVertex(_bottomLeftFront, bottomNormal, bottomColor, textureTopLeft, bottomTile);
+                    builder.AddVertex(_bottomRightBack, bottomNormal, bottomColor, textureBottomRight, bottomTile);
+                    builder.AddVertex(_bottomRightFront, bottomNormal, bottomColor, textureTopRight, bottomTile);
                     primitiveCount += 2;
                 }
                 // left face
-                if ((ite.Neighbours & (int)Neighbour.Left) == 0)
+                if (false && (ite.Neighbours & (int)Neighbour.Left) == 0)
                 {
                     Vector3.Multiply(ref topLeftFront, ref scaleYZ, out _topLeftFront);
                     Vector3.Multiply(ref bottomLeftBack, ref scaleYZ, out _bottomLeftBack);
@@ -268,16 +299,16 @@ namespace GameLibrary.Geometry
                     Vector3.Add(ref _bottomLeftFront, ref t, out _bottomLeftFront);
                     Vector3.Add(ref _topLeftBack, ref t, out _topLeftBack);
 
-                    builder.AddVertex(_topLeftFront, leftNormal, Color.White, textureTopRight);
-                    builder.AddVertex(_bottomLeftBack, leftNormal, Color.White, textureBottomLeft);
-                    builder.AddVertex(_bottomLeftFront, leftNormal, Color.White, textureBottomRight);
-                    builder.AddVertex(_topLeftBack, leftNormal, Color.White, textureTopLeft);
-                    builder.AddVertex(_bottomLeftBack, leftNormal, Color.White, textureBottomLeft);
-                    builder.AddVertex(_topLeftFront, leftNormal, Color.White, textureTopRight);
+                    builder.AddVertex(_topLeftFront, leftNormal, topColor, textureTopRight, sideTile);
+                    builder.AddVertex(_bottomLeftBack, leftNormal, bottomColor, textureBottomLeft, sideTile);
+                    builder.AddVertex(_bottomLeftFront, leftNormal, bottomColor, textureBottomRight, sideTile);
+                    builder.AddVertex(_topLeftBack, leftNormal, topColor, textureTopLeft, sideTile);
+                    builder.AddVertex(_bottomLeftBack, leftNormal, bottomColor, textureBottomLeft, sideTile);
+                    builder.AddVertex(_topLeftFront, leftNormal, topColor, textureTopRight, sideTile);
                     primitiveCount += 2;
                 }
                 // right face
-                if ((ite.Neighbours & (int)Neighbour.Right) == 0)
+                if (false && (ite.Neighbours & (int)Neighbour.Right) == 0)
                 {
                     Vector3.Multiply(ref topRightFront, ref scaleYZ, out _topRightFront);
                     Vector3.Multiply(ref bottomRightBack, ref scaleYZ, out _bottomRightBack);
@@ -289,12 +320,12 @@ namespace GameLibrary.Geometry
                     Vector3.Add(ref _bottomRightFront, ref t, out _bottomRightFront);
                     Vector3.Add(ref _topRightBack, ref t, out _topRightBack);
 
-                    builder.AddVertex(_topRightFront, rightNormal, Color.White, textureTopLeft);
-                    builder.AddVertex(_bottomRightFront, rightNormal, Color.White, textureBottomLeft);
-                    builder.AddVertex(_bottomRightBack, rightNormal, Color.White, textureBottomRight);
-                    builder.AddVertex(_topRightBack, rightNormal, Color.White, textureTopRight);
-                    builder.AddVertex(_topRightFront, rightNormal, Color.White, textureTopLeft);
-                    builder.AddVertex(_bottomRightBack, rightNormal, Color.White, textureBottomRight);
+                    builder.AddVertex(_topRightFront, rightNormal, topColor, textureTopLeft, sideTile);
+                    builder.AddVertex(_bottomRightFront, rightNormal, bottomColor, textureBottomLeft, sideTile);
+                    builder.AddVertex(_bottomRightBack, rightNormal, bottomColor, textureBottomRight, sideTile);
+                    builder.AddVertex(_topRightBack, rightNormal, topColor, textureTopRight, sideTile);
+                    builder.AddVertex(_topRightFront, rightNormal, topColor, textureTopLeft, sideTile);
+                    builder.AddVertex(_bottomRightBack, rightNormal, bottomColor, textureBottomRight, sideTile);
                     primitiveCount += 2;
                 }
                 return true;
@@ -304,7 +335,6 @@ namespace GameLibrary.Geometry
             {
                 return true;
             }
-
         }
     }
 }

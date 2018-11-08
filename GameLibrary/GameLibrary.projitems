@@ -24,6 +24,11 @@
     <Compile Include="$(MSBuildThisFileDirectory)Control\PhysicsController.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)CustomGame.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)CustomGraphicsDeviceManager.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)Geometry\Common\VoxelVertex.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)Geometry\Common\VertexPositionColorNormalTextureArray.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)Geometry\Common\VertexPositionNormalTextureArray.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)Voxel\Effect\VoxelEffect1.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)Voxel\Effect\VoxelEffect.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)System\DebugManager.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)System\DebugSystem.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)System\IDebugCommandHost.cs" />
@@ -50,10 +55,12 @@
     <Compile Include="$(MSBuildThisFileDirectory)SceneGraph\Renderer.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)StockEffects\C#\InstancingEffect.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Util\BitUtil.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)Voxel\Mesh\VoxelMapMeshFactory1.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)Voxel\VoxelUtil.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Voxel\VoxelOctreeGeometry.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Voxel\VoxelOctree.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Voxel\Octree.cs" />
-    <Compile Include="$(MSBuildThisFileDirectory)Voxel\VoxelMapMeshFactory.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)Voxel\Mesh\VoxelMapMeshFactory.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Physics\Integrator.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)SceneGraph\Bounding\BoundingSphere.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)SceneGraph\Bounding\BoundingVolume.cs" />
@@ -96,10 +103,16 @@
   </ItemGroup>
   <ItemGroup>
     <None Include="$(MSBuildThisFileDirectory)Content\Content.mgcb" />
+    <None Include="$(MSBuildThisFileDirectory)Content\Effects\Common.fxh" />
+    <None Include="$(MSBuildThisFileDirectory)Content\Effects\Lighting.fxh" />
+    <None Include="$(MSBuildThisFileDirectory)Content\Effects\Structures.fxh" />
+    <None Include="$(MSBuildThisFileDirectory)Content\Effects\VoxelEffect1.fx" />
+    <None Include="$(MSBuildThisFileDirectory)Content\Effects\VoxelEffect.fx" />
     <None Include="$(MSBuildThisFileDirectory)Content\Effects\BasicEffect.fx" />
     <None Include="$(MSBuildThisFileDirectory)Content\Effects\ClippingEffect.fx" />
     <None Include="$(MSBuildThisFileDirectory)Content\Effects\InstancedModel.fx" />
     <None Include="$(MSBuildThisFileDirectory)Content\Effects\Macros.fxh" />
+    <None Include="$(MSBuildThisFileDirectory)Content\Effects\VoxelStructures.fxh" />
     <None Include="$(MSBuildThisFileDirectory)Content\Fonts\Arial-12pt.spritefont" />
     <None Include="$(MSBuildThisFileDirectory)Content\DemoFont12pt.xnb">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
