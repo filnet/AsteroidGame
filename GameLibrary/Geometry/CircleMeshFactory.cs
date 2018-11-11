@@ -30,7 +30,7 @@ namespace GameLibrary.Geometry
 
         protected virtual Mesh generateMesh(GraphicsDevice gd)
         {
-            VertexBufferBuilder builder = VertexBufferBuilder.createVertexPositionColorBufferBuilder(gd, vertices.Count(), 0);
+            VertexBufferBuilder<VertexPositionColor> builder = VertexBufferBuilder<VertexPositionColor>.createVertexPositionColorBufferBuilder(gd, vertices.Count(), 0);
             foreach (Vector3 vertex in vertices)
             {
                 builder.AddVertex(vertex, Vector3.Zero, Color.White, Vector2.Zero);

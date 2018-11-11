@@ -30,7 +30,7 @@ namespace GameLibrary.Voxel
 
         public Mesh CreateMesh(GraphicsDevice gd)
         {
-            drawVisitor.builder = VertexBufferBuilder.createVertexPositionColorNormalTextureArrayBufferBuilder(gd, 0, 0);
+            drawVisitor.builder = VertexBufferBuilder<VertexPositionColorNormalTextureArray>.createVertexPositionColorNormalTextureArrayBufferBuilder(gd, 0, 0);
 
             VoxelMapIterator ite;
             if (neighbours == null)
@@ -55,7 +55,7 @@ namespace GameLibrary.Voxel
             //private static float DEFAULT_VOXEL_SIZE = 0.5773502692f; // 1 over the square root of 3
 
             private readonly VoxelMapMeshFactory1 factory;
-            public VertexBufferBuilder builder;
+            public VertexBufferBuilder<VertexPositionColorNormalTextureArray> builder;
 
             private readonly float d = 0.5f;
             private int size;

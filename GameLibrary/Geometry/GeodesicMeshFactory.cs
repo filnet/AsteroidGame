@@ -13,11 +13,11 @@ namespace GameLibrary.Geometry
     {
         protected struct TriangleIndices
         {
-            public int v1;
-            public int v2;
-            public int v3;
+            public short v1;
+            public short v2;
+            public short v3;
 
-            public TriangleIndices(int v1, int v2, int v3)
+            public TriangleIndices(short v1, short v2, short v3)
             {
                 this.v1 = v1;
                 this.v2 = v2;
@@ -40,9 +40,9 @@ namespace GameLibrary.Geometry
         protected Vector3[] vertices;
         private TriangleIndices[] faces;
 
-        private int index;
+        private short index;
 
-        private Dictionary<Int64, int> middlePointIndexCache;
+        private Dictionary<Int64, short> middlePointIndexCache;
 
         public GeodesicMeshFactory(int depth)
             : this(depth, false, false)
@@ -72,7 +72,7 @@ namespace GameLibrary.Geometry
 
             vertices = new Vector3[vertexCount];
 
-            middlePointIndexCache = new Dictionary<long, int>(vertexCount);
+            middlePointIndexCache = new Dictionary<long, short>(vertexCount);
             index = 0;
 
             Console.WriteLine("Generatic geodesic: vertices = {0}, faces = {1}, edges = {2}", vertexCount, facesCount, edgesCount);
@@ -85,10 +85,10 @@ namespace GameLibrary.Geometry
         protected virtual Mesh generateMesh(GraphicsDevice gd, TriangleIndices[] faces)
         {
             Mesh mesh;
-            VertexBufferBuilder builder;
+            VertexBufferBuilder<VertexPositionNormalTexture> builder;
             if (!facetted)
             {
-                builder = VertexBufferBuilder.createVertexPositionNormalTextureBufferBuilder(gd, vertices.Count(), faces.Count() * 3);
+                builder = VertexBufferBuilder<VertexPositionNormalTexture>.createVertexPositionNormalTextureBufferBuilder(gd, vertices.Count(), faces.Count() * 3);
                 foreach (Vector3 vertex in vertices)
                 {
                     Vector3 n = Vector3.Normalize(vertex);
@@ -104,7 +104,7 @@ namespace GameLibrary.Geometry
             }
             else
             {
-                builder = VertexBufferBuilder.createVertexPositionNormalTextureBufferBuilder(gd, faces.Count() * 3, 0);
+                builder = VertexBufferBuilder<VertexPositionNormalTexture>.createVertexPositionNormalTextureBufferBuilder(gd, faces.Count() * 3, 0);
                 foreach (TriangleIndices tri in faces)
                 {
                     Vector3 v1 = vertices[tri.v1];
@@ -152,9 +152,9 @@ namespace GameLibrary.Geometry
                 foreach (TriangleIndices tri in faces)
                 {
                     // replace triangle by 4 triangles
-                    int a = getMiddlePoint(tri.v1, tri.v2);
-                    int b = getMiddlePoint(tri.v2, tri.v3);
-                    int c = getMiddlePoint(tri.v3, tri.v1);
+                    short a = getMiddlePoint(tri.v1, tri.v2);
+                    short b = getMiddlePoint(tri.v2, tri.v3);
+                    short c = getMiddlePoint(tri.v3, tri.v1);
 
                     faces2[f++] = new TriangleIndices(a, b, c);
                     faces2[f++] = new TriangleIndices(tri.v1, a, c);
@@ -166,7 +166,7 @@ namespace GameLibrary.Geometry
         }
 
         // add vertex to mesh, fix position to be on unit sphere, return index
-        private int addVertex(Vector3 p)
+        private short addVertex(Vector3 p)
         {
             if (!flat)
             {
@@ -177,11 +177,11 @@ namespace GameLibrary.Geometry
         }
 
         // return index of point in the middle of p1 and p2
-        private int getMiddlePoint(int p1, int p2)
+        private short getMiddlePoint(short p1, short p2)
         {
             // first check if we have it already
             Int64 key = IntegerUtil.createInt64Key(p1, p2);
-            int ret;
+            short ret;
             if (middlePointIndexCache.TryGetValue(key, out ret))
             {
                 return ret;
@@ -193,7 +193,7 @@ namespace GameLibrary.Geometry
             Vector3 middle = (v1 + v2) / 2;
 
             // add vertex makes sure point is on unit sphere
-            int index = addVertex(middle);
+            short index = addVertex(middle);
 
             // store it, return index
             middlePointIndexCache.Add(key, index);
@@ -202,7 +202,7 @@ namespace GameLibrary.Geometry
 
         private TriangleIndices[] createIcosahedron()
         {
-            float t = (float) ((1.0 + Math.Sqrt(5.0)) / 2.0);
+            float t = (float)((1.0 + Math.Sqrt(5.0)) / 2.0);
 
             // create 12 vertices of a icosahedron
             addVertex(Vector3.Normalize(new Vector3(-1, t, 0)));
@@ -253,7 +253,7 @@ namespace GameLibrary.Geometry
 
         private TriangleIndices[] createHexahedron()
         {
-            float d = (float) (1.0 / Math.Sqrt(3));
+            float d = (float)(1.0 / Math.Sqrt(3));
 
             // 0 topLeftFront 
             addVertex(new Vector3(-d, d, d));

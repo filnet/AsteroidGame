@@ -5,6 +5,7 @@ using System.Text;
 
 namespace GameLibrary.Util
 {
+    // for more bit manipulations see http://programming.sirrida.de/bit_perm.html
     class BitUtil
     {
 

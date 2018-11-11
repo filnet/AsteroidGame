@@ -29,9 +29,9 @@ namespace GameLibrary
         }
 
         // Converts a rotation vector into a rotation matrix
-        public static Matrix Vector3ToMatrix(Vector3 Rotation)
+        public static Matrix Vector3ToMatrix(Vector3 rotation)
         {
-            return Matrix.CreateFromYawPitchRoll(Rotation.Y, Rotation.X, Rotation.Z);
+            return Matrix.CreateFromYawPitchRoll(rotation.Y, rotation.X, rotation.Z);
         }
 
         // Returns Euler angles that point from one point to another
@@ -40,8 +40,8 @@ namespace GameLibrary
             Vector3 angle = new Vector3();
             Vector3 v3 = Vector3.Normalize(location - from);
 
-            angle.X = (float) Math.Asin(v3.Y);
-            angle.Y = (float) Math.Atan2((double) -v3.X, (double) -v3.Z);
+            angle.X = (float)Math.Asin(v3.Y);
+            angle.Y = (float)Math.Atan2((double)-v3.X, (double)-v3.Z);
 
             return angle;
         }
@@ -64,6 +64,53 @@ namespace GameLibrary
             return new Vector4(A, B, C, D);
         }
 
+        public delegate void Permute<T>(T x, T y, T z, out T px, out T py, out T pz);
+        //public delegate int Permute3Bits(int 3bits);
 
+        public static readonly Permute<int>[] PERMUTATIONS = new Permute<int>[] {
+            delegate(int x, int y, int z, out int px, out int py, out int pz) {  px = x; py = y; pz = z; }, // x y z
+            delegate(int x, int y, int z, out int px, out int py, out int pz) {  px = x; py = z; pz = y; }, // x z y
+            delegate(int x, int y, int z, out int px, out int py, out int pz) {  px = y; py = x; pz = z; }, // y x z
+            delegate(int x, int y, int z, out int px, out int py, out int pz) {  px = z; py = x; pz = y; }, // y z x
+            delegate(int x, int y, int z, out int px, out int py, out int pz) {  px = y; py = z; pz = x; }, // z x y
+            delegate(int x, int y, int z, out int px, out int py, out int pz) {  px = z; py = y; pz = x; }  // z y x
+        };
+
+        // taken from http://www.iquilezles.org/www/articles/volumesort/volumesort.htm
+        public static int visitOrder(Vector3 dir)
+        {
+            int sx = (dir.X < 0.0f) ? 1 : 0;
+            int sy = (dir.Y < 0.0f) ? 1 : 0;
+            int sz = (dir.Z < 0.0f) ? 1 : 0;
+            float ax = Math.Abs(dir.X);
+            float ay = Math.Abs(dir.Y);
+            float az = Math.Abs(dir.Z);
+
+            int signs;
+            if (ax > ay && ax > az)
+            {
+                if (ay > az)
+                    signs = 0 + ((sx << 2) | (sy << 1) | sz);
+                else
+                    signs = 8 + ((sx << 2) | (sz << 1) | sy);
+            }
+            else if (ay > ax && ay > az)
+            {
+                if (ax > az)
+                    signs = 16 + ((sy << 2) | (sx << 1) | sz);
+                else
+                    signs = 24 + ((sy << 2) | (sz << 1) | sx);
+            }
+            else
+            {
+                if (ax > ay)
+                    signs = 32 + ((sz << 2) | (sx << 1) | sy);
+                else
+                    signs = 40 + ((sz << 2) | (sy << 1) | sx);
+            }
+
+            return signs;
+        }
     }
+
 }

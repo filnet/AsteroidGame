@@ -29,7 +29,7 @@ namespace GameLibrary.Geometry
             int verticeCount = 8;
             int lineCount = 12;
 
-            VertexBufferBuilder builder = VertexBufferBuilder.createVertexPositionColorBufferBuilder(gd, verticeCount, lineCount);
+            VertexBufferBuilder<VertexPositionColor> builder = VertexBufferBuilder<VertexPositionColor>.createVertexPositionColorBufferBuilder(gd, verticeCount, lineCount);
 
             float d = size;
 

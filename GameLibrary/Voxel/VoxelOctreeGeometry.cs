@@ -30,7 +30,7 @@ namespace GameLibrary.Voxel
         {
             BoundingVolume = new GameLibrary.SceneGraph.Bounding.BoundingBox(center, halfSize);
 
-            voxelOctree.Visit(CREATE_GEOMETRY_VISITOR, gd);
+            voxelOctree.Visit(0, CREATE_GEOMETRY_VISITOR, gd);
 
             base.Initialize(gd);
         }

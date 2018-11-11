@@ -73,7 +73,7 @@ namespace GameLibrary.Voxel
 
         public Mesh CreateMesh(GraphicsDevice gd)
         {
-            drawVisitor.builder = VertexBufferBuilder.createVoxelVertexBufferBuilder(gd, 0, 0);
+            drawVisitor.builder = VertexBufferBuilder<VoxelVertex>.createVoxelVertexBufferBuilder(gd, 0, 0);
 
             VoxelMapIterator ite;
             if (neighbours == null)
@@ -98,7 +98,7 @@ namespace GameLibrary.Voxel
             //private static float DEFAULT_VOXEL_SIZE = 0.5773502692f; // 1 over the square root of 3
 
             private readonly VoxelMapMeshFactory factory;
-            public VertexBufferBuilder builder;
+            public VertexBufferBuilder<VoxelVertex> builder;
 
             private readonly float d = 0.5f;
             private int size;
@@ -106,7 +106,8 @@ namespace GameLibrary.Voxel
             private bool scale = false;
             private Vector3 s = new Vector3(0.75f, 0.75f, 0.75f);
 
-            public int primitiveCount;
+            public short vertexCount;
+            public short primitiveCount;
 
             // top face vertices
             Vector3 topLeftFront;
@@ -191,7 +192,6 @@ namespace GameLibrary.Voxel
                 scaleXY = new Vector3(s.X, s.Y, 1);
                 scaleXZ = new Vector3(s.X, 1, s.Z);
                 scaleYZ = new Vector3(1, s.Y, s.Z);
-
             }
 
             public GameLibrary.SceneGraph.Bounding.BoundingVolume GetBoundingVolume()
@@ -253,14 +253,20 @@ namespace GameLibrary.Voxel
                         ite.Value(Direction.RightFront) != 0, ite.Value(Direction.TopFront) != 0, ite.Value(Direction.TopRightFront) != 0); ;
                     int ao = VoxelUtil.CombineVertexAmbientOcclusion(a00, a01, a10, a11);
 
-                    builder.AddVertex(_topLeftFront, frontNormal, Color.White, tex01, tile, ao);
                     builder.AddVertex(_bottomLeftFront, frontNormal, Color.White, tex00, tile, ao);
-                    builder.AddVertex(_topRightFront, frontNormal, Color.White, tex11, tile, ao);
-
+                    builder.AddVertex(_topLeftFront, frontNormal, Color.White, tex01, tile, ao);
                     builder.AddVertex(_bottomRightFront, frontNormal, Color.White, tex10, tile, ao);
                     builder.AddVertex(_topRightFront, frontNormal, Color.White, tex11, tile, ao);
-                    builder.AddVertex(_bottomLeftFront, frontNormal, Color.White, tex00, tile, ao);
 
+                    builder.AddIndex((short)(vertexCount + 1));
+                    builder.AddIndex((short)(vertexCount + 0));
+                    builder.AddIndex((short)(vertexCount + 3));
+
+                    builder.AddIndex((short)(vertexCount + 2));
+                    builder.AddIndex((short)(vertexCount + 3));
+                    builder.AddIndex((short)(vertexCount + 0));
+
+                    vertexCount += 4;
                     primitiveCount += 2;
                 }
                 if (true && (ite.Neighbours & (int)Neighbour.Back) == 0)
@@ -293,14 +299,20 @@ namespace GameLibrary.Voxel
                         ite.Value(Direction.LeftBack) != 0, ite.Value(Direction.TopBack) != 0, ite.Value(Direction.TopLeftBack) != 0); ;
                     int ao = VoxelUtil.CombineVertexAmbientOcclusion(a00, a01, a10, a11);
 
-                    builder.AddVertex(_topRightBack, backNormal, Color.White, tex01, tile, ao);
                     builder.AddVertex(_bottomRightBack, backNormal, Color.White, tex00, tile, ao);
-                    builder.AddVertex(_topLeftBack, backNormal, Color.White, tex11, tile, ao);
-
+                    builder.AddVertex(_topRightBack, backNormal, Color.White, tex01, tile, ao);
                     builder.AddVertex(_bottomLeftBack, backNormal, Color.White, tex10, tile, ao);
                     builder.AddVertex(_topLeftBack, backNormal, Color.White, tex11, tile, ao);
-                    builder.AddVertex(_bottomRightBack, backNormal, Color.White, tex00, tile, ao);
 
+                    builder.AddIndex((short)(vertexCount + 1));
+                    builder.AddIndex((short)(vertexCount + 0));
+                    builder.AddIndex((short)(vertexCount + 3));
+
+                    builder.AddIndex((short)(vertexCount + 2));
+                    builder.AddIndex((short)(vertexCount + 3));
+                    builder.AddIndex((short)(vertexCount + 0));
+
+                    vertexCount += 4;
                     primitiveCount += 2;
                 }
                 if (true && (ite.Neighbours & (int)Neighbour.Top) == 0)
@@ -333,14 +345,20 @@ namespace GameLibrary.Voxel
                         ite.Value(Direction.TopRight) != 0, ite.Value(Direction.TopBack) != 0, ite.Value(Direction.TopRightBack) != 0); ;
                     int ao = VoxelUtil.CombineVertexAmbientOcclusion(a00, a01, a10, a11);
 
-                    builder.AddVertex(_topLeftBack, topNormal, Color.White, tex01, tile, ao);
                     builder.AddVertex(_topLeftFront, topNormal, Color.White, tex00, tile, ao);
-                    builder.AddVertex(_topRightBack, topNormal, Color.White, tex11, tile, ao);
-
+                    builder.AddVertex(_topLeftBack, topNormal, Color.White, tex01, tile, ao);
                     builder.AddVertex(_topRightFront, topNormal, Color.White, tex10, tile, ao);
                     builder.AddVertex(_topRightBack, topNormal, Color.White, tex11, tile, ao);
-                    builder.AddVertex(_topLeftFront, topNormal, Color.White, tex00, tile, ao);
 
+                    builder.AddIndex((short)(vertexCount + 1));
+                    builder.AddIndex((short)(vertexCount + 0));
+                    builder.AddIndex((short)(vertexCount + 3));
+
+                    builder.AddIndex((short)(vertexCount + 2));
+                    builder.AddIndex((short)(vertexCount + 3));
+                    builder.AddIndex((short)(vertexCount + 0));
+
+                    vertexCount += 4;
                     primitiveCount += 2;
                 }
                 if (true && (ite.Neighbours & (int)Neighbour.Bottom) == 0)
@@ -373,14 +391,20 @@ namespace GameLibrary.Voxel
                         ite.Value(Direction.BottomLeft) != 0, ite.Value(Direction.BottomBack) != 0, ite.Value(Direction.BottomLeftBack) != 0); ;
                     int ao = VoxelUtil.CombineVertexAmbientOcclusion(a00, a01, a10, a11);
 
-                    builder.AddVertex(_bottomRightBack, bottomNormal, Color.White, tex01, tile, ao);
                     builder.AddVertex(_bottomRightFront, bottomNormal, Color.White, tex00, tile, ao);
-                    builder.AddVertex(_bottomLeftBack, bottomNormal, Color.White, tex11, tile, ao);
-
+                    builder.AddVertex(_bottomRightBack, bottomNormal, Color.White, tex01, tile, ao);
                     builder.AddVertex(_bottomLeftFront, bottomNormal, Color.White, tex10, tile, ao);
                     builder.AddVertex(_bottomLeftBack, bottomNormal, Color.White, tex11, tile, ao);
-                    builder.AddVertex(_bottomRightFront, bottomNormal, Color.White, tex00, tile, ao);
 
+                    builder.AddIndex((short)(vertexCount + 1));
+                    builder.AddIndex((short)(vertexCount + 0));
+                    builder.AddIndex((short)(vertexCount + 3));
+
+                    builder.AddIndex((short)(vertexCount + 2));
+                    builder.AddIndex((short)(vertexCount + 3));
+                    builder.AddIndex((short)(vertexCount + 0));
+
+                    vertexCount += 4;
                     primitiveCount += 2;
                 }
                 if (true && (ite.Neighbours & (int)Neighbour.Left) == 0)
@@ -413,14 +437,20 @@ namespace GameLibrary.Voxel
                         ite.Value(Direction.TopLeft) != 0, ite.Value(Direction.LeftFront) != 0, ite.Value(Direction.TopLeftFront) != 0); ;
                     int ao = VoxelUtil.CombineVertexAmbientOcclusion(a00, a01, a10, a11);
 
-                    builder.AddVertex(_topLeftBack, leftNormal, Color.White, tex01, tile, ao);
                     builder.AddVertex(_bottomLeftBack, leftNormal, Color.White, tex00, tile, ao);
-                    builder.AddVertex(_topLeftFront, leftNormal, Color.White, tex11, tile, ao);
-
+                    builder.AddVertex(_topLeftBack, leftNormal, Color.White, tex01, tile, ao);
                     builder.AddVertex(_bottomLeftFront, leftNormal, Color.White, tex10, tile, ao);
                     builder.AddVertex(_topLeftFront, leftNormal, Color.White, tex11, tile, ao);
-                    builder.AddVertex(_bottomLeftBack, leftNormal, Color.White, tex00, tile, ao);
 
+                    builder.AddIndex((short)(vertexCount + 1));
+                    builder.AddIndex((short)(vertexCount + 0));
+                    builder.AddIndex((short)(vertexCount + 3));
+
+                    builder.AddIndex((short)(vertexCount + 2));
+                    builder.AddIndex((short)(vertexCount + 3));
+                    builder.AddIndex((short)(vertexCount + 0));
+
+                    vertexCount += 4;
                     primitiveCount += 2;
                 }
                 if (true && (ite.Neighbours & (int)Neighbour.Right) == 0)
@@ -453,14 +483,20 @@ namespace GameLibrary.Voxel
                         ite.Value(Direction.TopRight) != 0, ite.Value(Direction.RightBack) != 0, ite.Value(Direction.TopRightBack) != 0); ;
                     int ao = VoxelUtil.CombineVertexAmbientOcclusion(a00, a01, a10, a11);
 
-                    builder.AddVertex(_topRightFront, rightNormal, Color.White, tex01, tile, ao);
                     builder.AddVertex(_bottomRightFront, rightNormal, Color.White, tex00, tile, ao);
-                    builder.AddVertex(_topRightBack, rightNormal, Color.White, tex11, tile, ao);
-
+                    builder.AddVertex(_topRightFront, rightNormal, Color.White, tex01, tile, ao);
                     builder.AddVertex(_bottomRightBack, rightNormal, Color.White, tex10, tile, ao);
                     builder.AddVertex(_topRightBack, rightNormal, Color.White, tex11, tile, ao);
-                    builder.AddVertex(_bottomRightFront, rightNormal, Color.White, tex00, tile, ao);
 
+                    builder.AddIndex((short)(vertexCount + 1));
+                    builder.AddIndex((short)(vertexCount + 0));
+                    builder.AddIndex((short)(vertexCount + 3));
+
+                    builder.AddIndex((short)(vertexCount + 2));
+                    builder.AddIndex((short)(vertexCount + 3));
+                    builder.AddIndex((short)(vertexCount + 0));
+
+                    vertexCount += 4;
                     primitiveCount += 2;
                 }
                 return true;

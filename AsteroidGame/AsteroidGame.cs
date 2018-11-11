@@ -108,8 +108,8 @@ namespace AsteroidGame
                         camera.ZoomMin = 0.1f;
                         camera.ZoomMax = 2000f;
                         camera.ZoomSpeed = 32f / 60f;
-                        camera.Zoom = 64f;
-                        camera.VerticalAngle = -MathHelper.PiOver4;
+                        camera.Zoom = 256f;
+                        camera.VerticalAngle = -MathHelper.PiOver2;
                     }
                     Scene.RootNode = createVoxelTestScene();
                     break;
@@ -312,7 +312,7 @@ namespace AsteroidGame
 
             return node;
         }
-
+/*
         private void addOctreeChildren(Octree<GeometryNode> octree, OctreeNode<GeometryNode> parentNode)
         {
             if (octree.GetNodeTreeDepth(parentNode) == 6)
@@ -328,7 +328,7 @@ namespace AsteroidGame
                 }
             }
         }
-
+*/
         private Node createCollisionTestScene()
         {
             GeometryNode node1 = new MeshNode("RECT_1", new SquareMeshFactory());

@@ -31,7 +31,7 @@ namespace GameLibrary.Geometry
         protected override Mesh generateMesh(GraphicsDevice gd, TriangleIndices[] faces)
         {
             edgeCache = new Dictionary<Int64, int>(edgesCount);
-            VertexBufferBuilder builder = VertexBufferBuilder.createVertexPositionColorBufferBuilder(gd, vertices.Count(), edgesCount * 2);
+            VertexBufferBuilder<VertexPositionColor> builder = VertexBufferBuilder<VertexPositionColor>.createVertexPositionColorBufferBuilder(gd, vertices.Count(), edgesCount * 2);
             foreach (Vector3 vertex in vertices)
             {
                 Vector3 n = Vector3.Normalize(vertex);
@@ -49,7 +49,7 @@ namespace GameLibrary.Geometry
             return mesh;
         }
 
-        private void addEdge(VertexBufferBuilder builder, int p1, int p2)
+        private void addEdge(VertexBufferBuilder<VertexPositionColor> builder, short p1, short p2)
         {
             // first check if we have it already
             Int64 key = IntegerUtil.createInt64Key(p1, p2);
@@ -60,8 +60,8 @@ namespace GameLibrary.Geometry
             }
             edgeCache.Add(key, 1);
             bool firstIsSmaller = p1 < p2;
-            int smallerIndex = firstIsSmaller ? p1 : p2;
-            int greaterIndex = firstIsSmaller ? p2 : p1;
+            short smallerIndex = firstIsSmaller ? p1 : p2;
+            short greaterIndex = firstIsSmaller ? p2 : p1;
             builder.AddIndex(smallerIndex);
             builder.AddIndex(greaterIndex);
         }

@@ -26,11 +26,11 @@ namespace GameLibrary.Voxel
             depth = BitUtil.Log2(size / chunkSize);
 
             int x0 = 0;
-            int x1 = 1;
+            int x1 = 3;
             int y0 = 0;
-            int y1 = 1;
+            int y1 = 3;
             int z0 = 0;
-            int z1 = 1;
+            int z1 = 3;
             objectFactory = createObject;
             RootNode.obj = createObject(this, RootNode);
             for (int x = x0; x <= x1; x++)
@@ -48,7 +48,7 @@ namespace GameLibrary.Voxel
         private VoxelObject createObject(Octree<VoxelObject> octree, OctreeNode<VoxelObject> node)
         {
             VoxelObject voxelObject = new VoxelObject();
-            int d = octree.GetNodeTreeDepth(node);
+            int d = GetNodeTreeDepth(node);
             if (d == depth)
             {
                 voxelObject.VoxelMap = new FunctionVoxelMap(chunkSize);

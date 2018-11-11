@@ -43,11 +43,7 @@ namespace GameLibrary.Voxel
 
         public static int CombineVertexAmbientOcclusion(int a00, int a01, int a10, int a11)
         {
-            int ao = a00;
-            ao |= a01 << 2;
-            ao |= a10 << 4;
-            ao |= a11 << 6;
-            return ao;
+            return (a00 | (a01 << 2) | (a10 << 4) | (a11 << 6));
         }
 
         public static Effect CreateVoxelEffect(GraphicsDevice gd)

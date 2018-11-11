@@ -15,6 +15,7 @@ namespace GameLibrary.SceneGraph
     {
         public GraphicsDevice GraphicsDevice;
         public ICameraComponent Camera;
+        public GameTime GameTime;
     }
 
     public abstract class Renderer
@@ -39,6 +40,43 @@ namespace GameLibrary.SceneGraph
         }
 
         public abstract void Render(GraphicsContext gc, List<GeometryNode> nodeList);
+    }
+
+    public class ShowTimeRenderer : Renderer
+    {
+        protected readonly Renderer renderer;
+
+        private int index;
+        private double lastTime;
+
+        public bool Enabled;
+
+        public ShowTimeRenderer(Renderer renderer)
+        {
+            this.renderer = renderer;
+            index = 0;
+            lastTime = -1;
+            //Enabled = true;
+        }
+
+        public override void Render(GraphicsContext gc, List<GeometryNode> nodeList)
+        {
+            if (!Enabled)
+            {
+                renderer.Render(gc, nodeList);
+            }
+            double currentTime = gc.GameTime.TotalGameTime.TotalMilliseconds;
+            if (lastTime == -1 || currentTime - lastTime >= 100)
+            {
+                lastTime = currentTime;
+                index++;
+            }
+            index %= nodeList.Count;
+            if (index != 0)
+            {
+                renderer.Render(gc, nodeList.GetRange(0, index));
+            }
+        }
     }
 
     public class EffectRenderer : Renderer

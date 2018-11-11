@@ -7,6 +7,20 @@ using System.Text;
 
 namespace GameLibrary.Voxel
 {
+    public class Mask
+    {
+        public static readonly ulong LEAF = 0b111;
+        public static readonly ulong PARENT = ~LEAF;
+
+        public static readonly int X = 0b001;
+        public static readonly int Y = 0b100;
+        public static readonly int Z = 0b010;
+        public static readonly int XY = X | Y;
+        public static readonly int YZ = Y | Z;
+        public static readonly int XZ = X | Z;
+        public static readonly int XYZ = X | Y | Z;
+    }
+
     // 0b +Y -Z +X
     public enum Octant
     {
@@ -41,10 +55,12 @@ namespace GameLibrary.Voxel
     }
 
     // https://geidav.wordpress.com/2014/08/18/advanced-octrees-2-node-representations/
+    // When sorting the nodes by locational code the resulting order is the same as the pre-order traversal of the Octree,
+    // which in turn is equivalent to the Morton Code (also known as Z-Order Curve).
+    // The Morton Code linearly indexes multi-dimensional data, preserving data locality on multiple levels.
+    // https://en.wikipedia.org/wiki/Z-order_curve
     public class Octree<T>
     {
-        private const int V = 1;
-
         private static readonly Vector3[] OCTANT_TRANSLATIONS = new Vector3[] {
             new Vector3(-1, -1, +1), // BottomLeftFront
             new Vector3(+1, -1, +1), // BottomRightFront
@@ -55,14 +71,6 @@ namespace GameLibrary.Voxel
             new Vector3(-1, +1, -1), // TopLeftBack
             new Vector3(+1, +1, -1), // TopRightBack
         };
-
-        private static readonly int MASK_X = 0b001;
-        private static readonly int MASK_Y = 0b100;
-        private static readonly int MASK_Z = 0b010;
-        private static readonly int MASK_XY = MASK_X | MASK_Y;
-        private static readonly int MASK_YZ = MASK_Y | MASK_Z;
-        private static readonly int MASK_XZ = MASK_X | MASK_Z;
-        private static readonly int MASK_XYZ = MASK_X | MASK_Y | MASK_Z;
 
         private static readonly int LEFT = 0b000;
         private static readonly int RIGHT = 0b001;
@@ -84,46 +92,43 @@ namespace GameLibrary.Voxel
                 this.dir = dir;
                 this.mask = mask;
                 this.value = value;
-                dX = ((mask & MASK_X) != 0) ? ((value & MASK_X) != 0) ? +1 : -1 : 0;
-                dY = ((mask & MASK_Y) != 0) ? ((value & MASK_Y) != 0) ? +1 : -1 : 0;
-                dZ = ((mask & MASK_Z) != 0) ? ((value & MASK_Z) != 0) ? -1 : +1 : 0;
+                dX = ((mask & Mask.X) != 0) ? ((value & Mask.X) != 0) ? +1 : -1 : 0;
+                dY = ((mask & Mask.Y) != 0) ? ((value & Mask.Y) != 0) ? +1 : -1 : 0;
+                dZ = ((mask & Mask.Z) != 0) ? ((value & Mask.Z) != 0) ? -1 : +1 : 0;
             }
         }
 
         public static readonly DirData[] DIR_DATA = new DirData[] {
             // 6-connected
-            new DirData(Direction.Left, MASK_X, LEFT),
-            new DirData(Direction.Right, MASK_X, RIGHT),
-            new DirData(Direction.Bottom, MASK_Y, BOTTOM),
-            new DirData(Direction.Top, MASK_Y, TOP),
-            new DirData(Direction.Back, MASK_Z, BACK),
-            new DirData(Direction.Front, MASK_Z, FRONT),
+            new DirData(Direction.Left, Mask.X, LEFT),
+            new DirData(Direction.Right, Mask.X, RIGHT),
+            new DirData(Direction.Bottom, Mask.Y, BOTTOM),
+            new DirData(Direction.Top, Mask.Y, TOP),
+            new DirData(Direction.Back, Mask.Z, BACK),
+            new DirData(Direction.Front, Mask.Z, FRONT),
             // 18-connected
-            new DirData(Direction.BottomLeft, MASK_XY, BOTTOM | LEFT),
-            new DirData(Direction.BottomRight, MASK_XY, BOTTOM | RIGHT),
-            new DirData(Direction.BottomFront, MASK_YZ, BOTTOM | FRONT),
-            new DirData(Direction.BottomBack, MASK_YZ, BOTTOM | BACK),
-            new DirData(Direction.LeftFront, MASK_XZ, LEFT | FRONT),
-            new DirData(Direction.RightFront, MASK_XZ, RIGHT | FRONT),
-            new DirData(Direction.LeftBack, MASK_XZ, LEFT | BACK),
-            new DirData(Direction.RightBack, MASK_XZ, RIGHT | BACK),
-            new DirData(Direction.TopLeft, MASK_XY, TOP | LEFT),
-            new DirData(Direction.TopRight, MASK_XY, TOP | RIGHT),
-            new DirData(Direction.TopFront, MASK_YZ, TOP | FRONT),
-            new DirData(Direction.TopBack, MASK_YZ, TOP | BACK),
+            new DirData(Direction.BottomLeft, Mask.XY, BOTTOM | LEFT),
+            new DirData(Direction.BottomRight, Mask.XY, BOTTOM | RIGHT),
+            new DirData(Direction.BottomFront, Mask.YZ, BOTTOM | FRONT),
+            new DirData(Direction.BottomBack, Mask.YZ, BOTTOM | BACK),
+            new DirData(Direction.LeftFront, Mask.XZ, LEFT | FRONT),
+            new DirData(Direction.RightFront, Mask.XZ, RIGHT | FRONT),
+            new DirData(Direction.LeftBack, Mask.XZ, LEFT | BACK),
+            new DirData(Direction.RightBack, Mask.XZ, RIGHT | BACK),
+            new DirData(Direction.TopLeft, Mask.XY, TOP | LEFT),
+            new DirData(Direction.TopRight, Mask.XY, TOP | RIGHT),
+            new DirData(Direction.TopFront, Mask.YZ, TOP | FRONT),
+            new DirData(Direction.TopBack, Mask.YZ, TOP | BACK),
             // 26-connected
-            new DirData(Direction.BottomLeftFront, MASK_XYZ, BOTTOM | LEFT | FRONT),
-            new DirData(Direction.BottomRightFront, MASK_XYZ, BOTTOM | RIGHT | FRONT),
-            new DirData(Direction.BottomLeftBack, MASK_XYZ, BOTTOM | LEFT | BACK),
-            new DirData(Direction.BottomRightBack, MASK_XYZ, BOTTOM | RIGHT | BACK),
-            new DirData(Direction.TopLeftFront, MASK_XYZ, TOP | LEFT | FRONT),
-            new DirData(Direction.TopRightFront, MASK_XYZ, TOP | RIGHT | FRONT),
-            new DirData(Direction.TopLeftBack, MASK_XYZ, TOP | LEFT | BACK),
-            new DirData(Direction.TopRightBack, MASK_XYZ, TOP | RIGHT | BACK),
+            new DirData(Direction.BottomLeftFront, Mask.XYZ, BOTTOM | LEFT | FRONT),
+            new DirData(Direction.BottomRightFront, Mask.XYZ, BOTTOM | RIGHT | FRONT),
+            new DirData(Direction.BottomLeftBack, Mask.XYZ, BOTTOM | LEFT | BACK),
+            new DirData(Direction.BottomRightBack, Mask.XYZ, BOTTOM | RIGHT | BACK),
+            new DirData(Direction.TopLeftFront, Mask.XYZ, TOP | LEFT | FRONT),
+            new DirData(Direction.TopRightFront, Mask.XYZ, TOP | RIGHT | FRONT),
+            new DirData(Direction.TopLeftBack, Mask.XYZ, TOP | LEFT | BACK),
+            new DirData(Direction.TopRightBack, Mask.XYZ, TOP | RIGHT | BACK),
         };
-
-        private static readonly ulong LEAF_MASK = 0b111;
-        private static readonly ulong PARENT_MASK = ~LEAF_MASK;
 
         public OctreeNode<T> RootNode;
 
@@ -153,30 +158,25 @@ namespace GameLibrary.Voxel
             nodes.Add(RootNode.locCode, RootNode);
         }
 
-        public OctreeNode<T> GetParentNode(OctreeNode<T> node)
-        {
-            return GetParentNode(node.locCode);
-        }
-
-        public OctreeNode<T> GetParentNode(ulong locCode)
-        {
-            return LookupNode(GetParentLocCode(locCode));
-        }
-
-        public ulong GetParentLocCode(ulong locCode)
+        public static ulong ParentLocCode(ulong locCode)
         {
             return locCode >> 3;
         }
 
-        public bool HasChild(OctreeNode<T> node, Octant octant)
+        public static ulong ChildLocCode(ulong locCode, Octant octant)
+        {
+            return (locCode << 3) | (ulong)octant; 
+        }
+
+        public static bool HasChild(OctreeNode<T> node, Octant octant)
         {
             return ((node.childExists & (1 << (int)octant)) != 0);
         }
 
         public OctreeNode<T> GetChildNode(OctreeNode<T> node, Octant octant)
         {
-            ulong locCodeChild = (node.locCode << 3) | (ulong)octant;
-            return LookupNode(locCodeChild);
+            ulong childLocCode = ChildLocCode(node.locCode, octant);
+            return LookupNode(childLocCode);
         }
 
         public void GetNodeBoundingBox(OctreeNode<T> node, ref SceneGraph.Bounding.BoundingBox boundingBox)
@@ -198,7 +198,7 @@ namespace GameLibrary.Voxel
             ulong locCode = node.locCode;
             for (int d = depth - 1; d >= 0; d--)
             {
-                Octant octant = (Octant)((node.locCode >> (d * 3)) & 0b111);
+                Octant octant = (Octant)((node.locCode >> (d * 3)) & Mask.LEAF);
 
                 halfSize /= 2f;
 
@@ -210,15 +210,14 @@ namespace GameLibrary.Voxel
             }
         }
 
-
-        public Octant GetOctant(OctreeNode<T> node)
+        public static Octant GetOctant(OctreeNode<T> node)
         {
             return GetOctant(node.locCode);
         }
 
-        public Octant GetOctant(ulong locCode)
+        public static Octant GetOctant(ulong locCode)
         {
-            return (Octant)(locCode & LEAF_MASK);
+            return (Octant)(locCode & Mask.LEAF);
         }
 
         public void GetNodeHalfSize(OctreeNode<T> node, out Vector3 halfSize)
@@ -227,7 +226,7 @@ namespace GameLibrary.Voxel
             halfSize = Vector3.Divide(HalfSize, (float)Math.Pow(2, depth));
         }
 
-        public int GetNodeTreeDepth(OctreeNode<T> node)
+        public static int GetNodeTreeDepth(OctreeNode<T> node)
         {
             // at least flag bit must be set
             Debug.Assert(node.locCode != 0);
@@ -236,7 +235,7 @@ namespace GameLibrary.Voxel
             return msbPosition / 3;
         }
 
-        public int GetNodeTreeDepth2(OctreeNode<T> node)
+        public static int GetNodeTreeDepth2(OctreeNode<T> node)
         {
             // at least flag bit must be set
             Debug.Assert(node.locCode != 0);
@@ -269,12 +268,12 @@ namespace GameLibrary.Voxel
             if (HasChild(parent, octant))
             {
                 Debug.Assert(false);
-                ulong locCode = (parent.locCode << 3) | (ulong)octant;
+                ulong locCode = ChildLocCode(parent.locCode, octant);
                 return LookupNode(locCode);
             }
             // create new node
             OctreeNode<T> node = new OctreeNode<T>();
-            node.locCode = (parent.locCode << 3) | (ulong)octant;
+            node.locCode = ChildLocCode(parent.locCode, octant);
             node.childExists = 0;
 
             // create node object
@@ -306,7 +305,7 @@ namespace GameLibrary.Voxel
             {
                 Octant octant = GetOctantForPoint(center, point);
 
-                locCode = (locCode << 3) | (ulong)octant;
+                locCode = ChildLocCode(locCode, octant);
                 if (HasChild(parent, octant))
                 {
                     parent = LookupNode(locCode);
@@ -329,12 +328,12 @@ namespace GameLibrary.Voxel
             return parent;
         }
 
-        public Octant GetOctantForPoint(Vector3 center, Vector3 point)
+        public static Octant GetOctantForPoint(Vector3 center, Vector3 point)
         {
             Octant octant = 0;
-            if (point.X >= center.X) octant = (Octant)(((int)octant) | 0b001);
-            if (point.Y >= center.Y) octant = (Octant)(((int)octant) | 0b100);
-            if (point.Z < center.Z) octant = (Octant)(((int)octant) | 0b010);
+            if (point.X >= center.X) octant = (Octant)(((int)octant) | Mask.X);
+            if (point.Y >= center.Y) octant = (Octant)(((int)octant) | Mask.Y);
+            if (point.Z < center.Z) octant = (Octant)(((int)octant) | Mask.Z);
             return octant;
         }
 
@@ -348,34 +347,32 @@ namespace GameLibrary.Voxel
             }
 
             DirData dirData = DIR_DATA[(int)direction];
-            Octant nodeOctant = (Octant)(nodeLocCode & 0b111);
+            Octant nodeOctant = (Octant)(nodeLocCode & Mask.LEAF);
+
+            ulong parentLocCode = ParentLocCode(nodeLocCode);
 
             // check if neighbour is in same parent node
-            if ((((int)nodeOctant & dirData.mask) ^ dirData.mask) == dirData.value)
+            Octant neighbourOctant = (Octant)((int)nodeOctant ^ dirData.mask);
+            if (((int)neighbourOctant & dirData.mask) == dirData.value)
             {
-                OctreeNode<T> parent = GetParentNode(nodeLocCode);
-                Octant neighbourOctant = (Octant)((int)nodeOctant ^ dirData.mask);
-                return HasChild(parent, neighbourOctant) ? (nodeLocCode & PARENT_MASK) | (ulong)neighbourOctant : 0;
+                OctreeNode<T> parent = LookupNode(parentLocCode);
+                return HasChild(parent, neighbourOctant) ? (nodeLocCode & Mask.PARENT) | (ulong)neighbourOctant : 0;
             }
             // not the case, go up...
-            ulong l = GetNeighborOfGreaterOrEqualSize(nodeLocCode >> 3, direction);
-            //String lString = Convert.ToString((long)l, 2);
+            // TODO rename l to something more meaningful
+            ulong l = GetNeighborOfGreaterOrEqualSize(parentLocCode, direction);
             if (l == 0)
             {
                 return 0;
             }
+            // node l is guaranteed to contain the neighbourg...
             OctreeNode<T> n = LookupNode(l);
             if (n.childExists == 0)
             {
                 // leaf node
                 return l;
             }
-            if ((((int)nodeOctant & dirData.mask) ^ dirData.mask) == dirData.value)
-            {
-                Octant neighbourOctant = (Octant)((int)nodeOctant ^ dirData.mask);
-                return HasChild(n, neighbourOctant) ? (l << 3) | (ulong)neighbourOctant : 0;
-            }
-            return 0;
+            return HasChild(n, neighbourOctant) ? (l << 3) | (ulong)neighbourOctant : 0;
         }
 
         /*
@@ -435,48 +432,76 @@ namespace GameLibrary.Voxel
             PostOrder
         }
 
-        public void Visit(Visitor visitor)
+        public void Visit(int visitOrder, Visitor visitor)
         {
-            Visit(visitor, VisitType.PreOrder, null);
+            Visit(visitOrder, visitor, VisitType.PreOrder, null);
         }
 
-        public void Visit(Visitor visitor, Object arg)
+        public void Visit(int visitOrder, Visitor visitor, Object arg)
         {
-            Visit(visitor, VisitType.PreOrder, arg);
+            Visit(visitOrder, visitor, VisitType.PreOrder, arg);
         }
 
-        public virtual void Visit(Visitor visitor, VisitType visitType, Object arg)
+        public virtual void Visit(int visitOrder, Visitor visitor, VisitType visitType, Object arg)
         {
             switch (visitType)
             {
                 case VisitType.PreOrder:
-                    visit(visitor, null, null, arg);
+                    visit(visitOrder, visitor, null, null, arg);
                     break;
                 case VisitType.InOrder:
-                    visit(null, visitor, null, arg);
+                    visit(visitOrder, null, visitor, null, arg);
                     break;
                 case VisitType.PostOrder:
-                    visit(null, null, visitor, arg);
+                    visit(visitOrder, null, null, visitor, arg);
                     break;
             }
         }
 
-        public void Visit(Visitor preVisitor, Visitor inVisitor, Visitor postVisitor)
+        public void Visit(int visitOrder, Visitor preVisitor, Visitor inVisitor, Visitor postVisitor)
         {
-            visit(preVisitor, inVisitor, postVisitor, null);
+            visit(visitOrder, preVisitor, inVisitor, postVisitor, null);
         }
 
-        public void Visit(Visitor preVisitor, Visitor inVisitor, Visitor postVisitor, Object arg)
+        public void Visit(int visitOrder, Visitor preVisitor, Visitor inVisitor, Visitor postVisitor, Object arg)
         {
-            visit(preVisitor, inVisitor, postVisitor, arg);
+            visit(visitOrder, preVisitor, inVisitor, postVisitor, arg);
         }
 
-        internal void visit(Visitor preVisitor, Visitor inVisitor, Visitor postVisitor, Object arg)
+        internal void visit(int visitOrder, Visitor preVisitor, Visitor inVisitor, Visitor postVisitor, Object arg)
         {
-            visit(RootNode, preVisitor, inVisitor, postVisitor, arg);
+            visit(RootNode, visitOrder, preVisitor, inVisitor, postVisitor, arg);
         }
 
-        internal virtual bool visit(OctreeNode<T> node, Visitor preVisitor, Visitor inVisitor, Visitor postVisitor, Object arg)
+        private static readonly Octant[,] OCTANT_VISIT_ORDER = computeVisitOrderPermutations();
+
+        private static Octant[,] computeVisitOrderPermutations()
+        {
+            Octant[,] permutations = new Octant[48, 8];
+            for (int order = 0; order < 48; order++)
+            {
+                int perm = order >> 3;
+                int signs = (order & 0b111);
+                for (int i = 0; i < 8; i++)
+                {
+                    int o = i ^ signs;
+
+                    // TODO there are better ways to permute bits
+                    // see http://programming.sirrida.de/calcperm.php
+                    int x = (o & 0b100) >> 2;
+                    int y = (o & 0b010) >> 1;
+                    int z = (o & 0b001) >> 0;
+                    //Console.Write("{0} {1} {2} --> ", x, y, z);
+                    VectorUtil.PERMUTATIONS[perm](x, y, z, out x, out y, out z);
+                    //Console.WriteLine("{0} {1} {2}", x, y, z);
+                    o = (x * Mask.X) | (y * Mask.Y) | (z * Mask.Z) ^ Mask.Z;
+                    permutations[order, i] = (Octant)o;
+                }
+            }
+            return permutations;
+        }
+
+        internal virtual bool visit(OctreeNode<T> node, int visitOrder, Visitor preVisitor, Visitor inVisitor, Visitor postVisitor, Object arg)
         {
             if ((node.childExists == 0) && (node.obj == null))
             {
@@ -493,29 +518,28 @@ namespace GameLibrary.Voxel
             {
                 for (ushort i = 0; i < 8; i++)
                 {
-                    if ((node.childExists & (1L << i)) == 0)
+                    Octant octant = (Octant)OCTANT_VISIT_ORDER[visitOrder, i];
+                    if ((node.childExists & (1L << (int)octant)) == 0)
                     {
                         continue;
                     }
-                    ulong childLocCode = (node.locCode << 3) | (ulong)i;
+                    ulong childLocCode = (node.locCode << 3) | (ulong)octant;
                     OctreeNode<T> childNode = LookupNode(childLocCode);
                     if (childNode == null)
                     {
                         continue;
                     }
-                    visit(childNode, preVisitor, inVisitor, postVisitor, arg);
-                    if (inVisitor != null)
-                    {
-                        inVisitor(this, childNode, ref arg);
-                    }
+                    visit(childNode, visitOrder, preVisitor, inVisitor, postVisitor, arg);
+                    inVisitor?.Invoke(this, childNode, ref arg);
                 }
             }
-            if (postVisitor != null)
-            {
-                postVisitor(this, node, ref arg);
-            }
+            postVisitor?.Invoke(this, node, ref arg);
             return cont;
         }
 
+        public static String LocCodeToString(ulong locCode)
+        {
+            return Convert.ToString((long)locCode, 2);
+        }
     }
 }

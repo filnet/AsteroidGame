@@ -32,7 +32,7 @@ namespace GameLibrary.Geometry
 
         public Mesh CreateMesh(GraphicsDevice gd)
         {
-            VertexBufferBuilder builder = VertexBufferBuilder.createVertexPositionNormalTextureBufferBuilder(gd, 36, 0);
+            VertexBufferBuilder<VertexPositionNormalTexture> builder = VertexBufferBuilder<VertexPositionNormalTexture>.createVertexPositionNormalTextureBufferBuilder(gd, 36, 0);
 
             float d = size;
 
@@ -109,7 +109,7 @@ namespace GameLibrary.Geometry
             builder.AddVertex(topRightBack, rightNormal, Color.White, textureTopRight);
             builder.AddVertex(topRightFront, rightNormal, Color.White, textureTopLeft);
             builder.AddVertex(bottomRightBack, rightNormal, Color.White, textureBottomRight);
-            
+
             Mesh mesh = new Mesh(PrimitiveType.TriangleList, 2 * 6);
             mesh.BoundingVolume = new GameLibrary.SceneGraph.Bounding.BoundingSphere(Vector3.Zero, 2 * d);
             builder.setToMesh(mesh);

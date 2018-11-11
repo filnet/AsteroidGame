@@ -140,7 +140,7 @@ namespace GameLibrary.SceneGraph
             //renderers[VOXEL_MAP] = new VoxelMapRenderer(EffectFactory.CreateBasicEffect1(GraphicsDevice));
             //renderers[VOXEL_MAP] = new VoxelMapInstancedRenderer(EffectFactory.CreateInstancedEffect(GraphicsDevice));
 
-            renderers[VOXEL] = new EffectRenderer(VoxelUtil.CreateVoxelEffect(GraphicsDevice));
+            renderers[VOXEL] = new ShowTimeRenderer(new EffectRenderer(VoxelUtil.CreateVoxelEffect(GraphicsDevice)));
             //renderers[VOXEL].RasterizerState = RasterizerState.CullNone;
             //renderers[VOXEL].RasterizerState = Renderer.WireFrameRasterizer;
 
@@ -282,12 +282,12 @@ namespace GameLibrary.SceneGraph
 
         public void Draw(GameTime gameTime)
         {
-            Render(renderGroups, renderers);
+            Render(gameTime, renderGroups, renderers);
         }
 
         private GraphicsContext gc = new GraphicsContext();
 
-        public void Render(Dictionary<int, List<GeometryNode>> renderGroups, Dictionary<int, Renderer> renderers)
+        public void Render(GameTime gameTime, Dictionary<int, List<GeometryNode>> renderGroups, Dictionary<int, Renderer> renderers)
         {
             BlendState oldBlendState = GraphicsDevice.BlendState;
             DepthStencilState oldDepthStencilState = GraphicsDevice.DepthStencilState;
@@ -308,7 +308,7 @@ namespace GameLibrary.SceneGraph
                 {
                     gc.GraphicsDevice = GraphicsDevice;
                     gc.Camera = CameraComponent;
-
+                    gc.GameTime = gameTime;
                     renderer.Render(gc, nodeList);
                 }
                 else
@@ -428,16 +428,24 @@ namespace GameLibrary.SceneGraph
 
         private static Node.Visitor RENDER_GROUP_VISITOR = delegate (Node node, ref Object arg)
         {
-            if (!node.Visible) return false;
+            if (!node.Visible)
+            {
+                return false;
+            }
+
+            Scene scene = arg as Scene;
             if (node is VoxelOctreeGeometry voxelOctreeGeometry)
             {
-                voxelOctreeGeometry.voxelOctree.Visit(VOXEL_OCTREE_RENDER_GROUP_VISITOR, arg);
+                Matrix vt = Matrix.Transpose(scene.CameraComponent.ViewMatrix);
+                Vector3 dir = vt.Forward;
+                int visitOrder = VectorUtil.visitOrder(dir);
+                //Console.WriteLine(dir + " : " + visitOrder);
+
+                voxelOctreeGeometry.voxelOctree.Visit(visitOrder, VOXEL_OCTREE_RENDER_GROUP_VISITOR, arg);
                 return true;
             }
             else if (node is GeometryNode geometryNode)
             {
-                Scene scene = arg as Scene;
-
                 BoundingVolume bv = geometryNode.WorldBoundingVolume;
                 bool cull = false;
                 if (bv != null)
