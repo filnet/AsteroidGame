@@ -39,7 +39,7 @@ namespace GameLibrary.SceneGraph
             SamplerState = SamplerState.LinearWrap;
         }
 
-        public abstract void Render(GraphicsContext gc, List<GeometryNode> nodeList);
+        public abstract void Render(GraphicsContext gc, List<Drawable> drawableList);
     }
 
     public class ShowTimeRenderer : Renderer
@@ -59,11 +59,11 @@ namespace GameLibrary.SceneGraph
             //Enabled = true;
         }
 
-        public override void Render(GraphicsContext gc, List<GeometryNode> nodeList)
+        public override void Render(GraphicsContext gc, List<Drawable> drawableList)
         {
             if (!Enabled)
             {
-                renderer.Render(gc, nodeList);
+                renderer.Render(gc, drawableList);
             }
             double currentTime = gc.GameTime.TotalGameTime.TotalMilliseconds;
             if (lastTime == -1 || currentTime - lastTime >= 100)
@@ -71,10 +71,10 @@ namespace GameLibrary.SceneGraph
                 lastTime = currentTime;
                 index++;
             }
-            index %= nodeList.Count;
+            index %= drawableList.Count;
             if (index != 0)
             {
-                renderer.Render(gc, nodeList.GetRange(0, index));
+                renderer.Render(gc, drawableList.GetRange(0, index));
             }
         }
     }
@@ -91,7 +91,7 @@ namespace GameLibrary.SceneGraph
             effectMatrices = effect as IEffectMatrices;
         }
 
-        public override void Render(GraphicsContext gc, List<GeometryNode> nodeList)
+        public override void Render(GraphicsContext gc, List<Drawable> drawableList)
         {
             gc.GraphicsDevice.BlendState = BlendState;
             gc.GraphicsDevice.DepthStencilState = DepthStencilState;
@@ -106,33 +106,33 @@ namespace GameLibrary.SceneGraph
 
             foreach (EffectPass pass in effect.CurrentTechnique.Passes)
             {
-                foreach (GeometryNode node in nodeList)
+                foreach (Drawable drawable in drawableList)
                 {
-                    if (!node.Enabled || !node.Visible)
+                    if (!drawable.Enabled || !drawable.Visible)
                     {
                         break;
                     }
-                    if (effectMatrices != null)
+                    if ((effectMatrices != null) && (drawable is Transform transform))
                     {
-                        effectMatrices.World = node.WorldTransform;
+                        effectMatrices.World = transform.WorldTransform;
                     }
                     pass.Apply();
-                    node.preDraw(gc.GraphicsDevice);
-                    node.Draw(gc.GraphicsDevice);
-                    node.postDraw(gc.GraphicsDevice);
+                    drawable.PreDraw(gc.GraphicsDevice);
+                    drawable.Draw(gc.GraphicsDevice);
+                    drawable.PostDraw(gc.GraphicsDevice);
                 }
             }
         }
 
-        private void renderOld(GraphicsContext gc, List<GeometryNode> nodeList)
+        private void renderOld(GraphicsContext gc, List<Drawable> drawableList)
         {
-            foreach (GeometryNode node in nodeList)
+            foreach (Drawable drawable in drawableList)
             {
-                if (effectMatrices != null)
+                if ((effectMatrices != null) && (drawable is Transform transform))
                 {
-                    effectMatrices.World = node.WorldTransform;
+                    effectMatrices.World = transform.WorldTransform;
                 }
-                node.preDraw(gc.GraphicsDevice);
+                drawable.PreDraw(gc.GraphicsDevice);
                 // TODO in case of multiple passes, it might be more efficient
                 // to loop over passes then over geometries and not the other
                 // way around as is currently done
@@ -141,9 +141,9 @@ namespace GameLibrary.SceneGraph
                 {
                     pass.Apply();
                     //dc.pass = pass;
-                    node.Draw(gc.GraphicsDevice);
+                    drawable.Draw(gc.GraphicsDevice);
                 }
-                node.postDraw(gc.GraphicsDevice);
+                drawable.PostDraw(gc.GraphicsDevice);
             }
         }
     }
@@ -167,7 +167,7 @@ namespace GameLibrary.SceneGraph
             BlendState = BlendState.AlphaBlend;
         }
 
-        public override void Render(GraphicsContext gc, List<GeometryNode> nodeList)
+        public override void Render(GraphicsContext gc, List<Drawable> drawableList)
         {
             gc.GraphicsDevice.BlendState = BlendState;
             gc.GraphicsDevice.DepthStencilState = DepthStencilState;
@@ -180,20 +180,20 @@ namespace GameLibrary.SceneGraph
                 effectMatrices.View = gc.Camera.ViewMatrix;
             }
 
-            boundingGeometry.preDraw(gc.GraphicsDevice);
+            boundingGeometry.PreDraw(gc.GraphicsDevice);
             foreach (EffectPass pass in effect.CurrentTechnique.Passes)
             {
-                foreach (GeometryNode node in nodeList)
+                foreach (Drawable drawable in drawableList)
                 {
                     if (effectMatrices != null)
                     {
-                        effectMatrices.World = node.WorldBoundingVolume.WorldMatrix;
+                        effectMatrices.World = drawable.WorldBoundingVolume.WorldMatrix;
                     }
                     pass.Apply();
                     boundingGeometry.Draw(gc.GraphicsDevice);
                 }
             }
-            boundingGeometry.postDraw(gc.GraphicsDevice);
+            boundingGeometry.PostDraw(gc.GraphicsDevice);
         }
     }
 

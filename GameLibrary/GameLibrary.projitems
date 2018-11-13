@@ -27,6 +27,9 @@
     <Compile Include="$(MSBuildThisFileDirectory)Geometry\Common\VoxelVertex.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Geometry\Common\VertexPositionColorNormalTextureArray.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Geometry\Common\VertexPositionNormalTextureArray.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)SceneGraph\Common\Drawable.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)SceneGraph\Common\Physical.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)SceneGraph\Common\Transform.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Voxel\Effect\VoxelEffect1.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Voxel\Effect\VoxelEffect.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)System\DebugManager.cs" />

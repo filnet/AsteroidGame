@@ -16,7 +16,7 @@ namespace GameLibrary.SceneGraph.Common
      * Applies to Camera Node, Geometry Node, Light Node, Particle Node, Sound Node, LOD Node
      * Transform nodes can be cascaded to compose transformations
      */
-    public class TransformNode : GroupNode
+    public class TransformNode : GroupNode, Transform
     {
         private Vector3 scale = Vector3.One;
         private Quaternion rotation = Quaternion.Identity;

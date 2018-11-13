@@ -51,10 +51,13 @@ https://0fps.net/2012/07/07/meshing-minecraft-part-2/
 
 https://people.eecs.berkeley.edu/~jrs/mesh/
 
-3D Perlyn noise
+3D Perlin noise
 
 https://gamedev.stackexchange.com/questions/12603/how-is-a-3d-perlin-noise-function-used-to-generate-terrain
 
+https://blogs.msdn.microsoft.com/hemipteran/2014/03/26/generating-noise-for-applications/
+
+http://devmag.org.za/2009/04/25/perlin-noise/
 
 Texture Atlas & Mip mapping
 

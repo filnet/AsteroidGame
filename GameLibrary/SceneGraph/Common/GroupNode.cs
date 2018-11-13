@@ -65,11 +65,6 @@ namespace GameLibrary.SceneGraph.Common
                 }
                 */
 
-        public bool BoundingVolumeVisible
-        {
-            get;
-            set;
-        }
         public LinkedList<Node> Nodes
         {
             get { return nodes; }
@@ -82,7 +77,7 @@ namespace GameLibrary.SceneGraph.Common
         public GroupNode(String name)
             : base(name)
         {
-            BoundingVolumeVisible = true;
+            //BoundingVolumeVisible = true;
             nodes = new LinkedList<Node>();
             setStructureDirty();
         }
@@ -91,7 +86,7 @@ namespace GameLibrary.SceneGraph.Common
             : base(node)
         {
             //boundingVolume = node.boundingVolume != null ? node.boundingVolume.Clone() : null;
-            BoundingVolumeVisible = node.BoundingVolumeVisible;
+            //BoundingVolumeVisible = node.BoundingVolumeVisible;
             nodes = new LinkedList<Node>();
             for (LinkedListNode<Node> it = node.Nodes.First; it != null; it = it.Next)
             {

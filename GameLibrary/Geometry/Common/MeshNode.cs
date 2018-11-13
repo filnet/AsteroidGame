@@ -27,6 +27,13 @@ namespace GameLibrary.Geometry.Common
             this.meshFactory = meshFactory;
         }
 
+        public MeshNode(String name, Mesh mesh)
+            : base(name)
+        {
+            this.mesh = mesh;
+            owned = true;
+        }
+
         public MeshNode(MeshNode node)
             : base(node)
         {
@@ -44,6 +51,11 @@ namespace GameLibrary.Geometry.Common
             if (meshFactory != null)
             {
                 mesh = meshFactory.CreateMesh(graphicsDevice);
+                if (mesh == null)
+                {
+                    // abort
+                    return;
+                }
                 BoundingVolume = mesh.BoundingVolume;
                 owned = true;
             }
@@ -59,7 +71,7 @@ namespace GameLibrary.Geometry.Common
             }
         }
 
-        public override void preDraw(GraphicsDevice gd)
+        public override void PreDraw(GraphicsDevice gd)
         {
             if (mesh.IndexBuffer != null)
             {
@@ -74,11 +86,6 @@ namespace GameLibrary.Geometry.Common
 
         public override void Draw(GraphicsDevice gd)
         {
-            //if (!owned)
-            //{
-            //    Console.WriteLine("Not owned");
-            //}
-
             // TODO here we can implement some logic based on time + how many primitives to draw
             // will show the "construction" order
             if (mesh.IndexBuffer != null)

@@ -8,24 +8,17 @@ namespace GameLibrary.Component.Util
 {
     public static class MathUtil
     {
-        public static int power(int n, int exponent)
+        public static int Pow(int x, int pow)
         {
-            int factor = n;
-            int result = 1;
-            while (exponent != 0)
+            int ret = 1;
+            while (pow != 0)
             {
-                if (exponent % 2 != 0)
-                {
-                    result *= factor;
-                    exponent -= 1;
-                }
-                else
-                {
-                    factor *= factor;
-                    exponent /= 2;
-                }
+                if ((pow & 1) == 1)
+                    ret *= x;
+                x *= x;
+                pow >>= 1;
             }
-            return result;
+            return ret;
         }
 
     }

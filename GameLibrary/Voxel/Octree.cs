@@ -1,4 +1,5 @@
-﻿using GameLibrary.Util;
+﻿using GameLibrary.Component.Util;
+using GameLibrary.Util;
 using Microsoft.Xna.Framework;
 using System;
 using System.Collections.Generic;
@@ -61,7 +62,7 @@ namespace GameLibrary.Voxel
     // https://en.wikipedia.org/wiki/Z-order_curve
     public class Octree<T>
     {
-        private static readonly Vector3[] OCTANT_TRANSLATIONS = new Vector3[] {
+        private static readonly Vector3[] OCTANT_VECTORS = new Vector3[] {
             new Vector3(-1, -1, +1), // BottomLeftFront
             new Vector3(+1, -1, +1), // BottomRightFront
             new Vector3(-1, -1, -1), // BottomLeftBack
@@ -70,6 +71,17 @@ namespace GameLibrary.Voxel
             new Vector3(+1, +1, +1), // TopRightFront
             new Vector3(-1, +1, -1), // TopLeftBack
             new Vector3(+1, +1, -1), // TopRightBack
+        };
+
+        private static readonly int[,] OCTANT_DELTAS = new int[,] {
+            { -1, -1, +1 }, // BottomLeftFront
+            { +1, -1, +1 }, // BottomRightFront
+            { -1, -1, -1 }, // BottomLeftBack
+            { +1, -1, -1 }, // BottomRightBack
+            { -1, +1, +1 }, // TopLeftFront
+            { +1, +1, +1 }, // TopRightFront
+            { -1, +1, -1 }, // TopLeftBack
+            { +1, +1, -1 }, // TopRightBack
         };
 
         private static readonly int LEFT = 0b000;
@@ -165,12 +177,17 @@ namespace GameLibrary.Voxel
 
         public static ulong ChildLocCode(ulong locCode, Octant octant)
         {
-            return (locCode << 3) | (ulong)octant; 
+            return (locCode << 3) | (ulong)octant;
         }
 
         public static bool HasChild(OctreeNode<T> node, Octant octant)
         {
             return ((node.childExists & (1 << (int)octant)) != 0);
+        }
+
+        public static bool HasChildren(OctreeNode<T> node)
+        {
+            return (node.childExists != 0);
         }
 
         public OctreeNode<T> GetChildNode(OctreeNode<T> node, Octant octant)
@@ -179,7 +196,7 @@ namespace GameLibrary.Voxel
             return LookupNode(childLocCode);
         }
 
-        public void GetNodeBoundingBox(OctreeNode<T> node, ref SceneGraph.Bounding.BoundingBox boundingBox)
+        protected void GetNodeBoundingBox(OctreeNode<T> node, ref SceneGraph.Bounding.BoundingBox boundingBox)
         {
             Vector3 center;
             Vector3 halfSize;
@@ -188,7 +205,7 @@ namespace GameLibrary.Voxel
             boundingBox.HalfSize = halfSize;
         }
 
-        public void GetNodeBoundingBox(OctreeNode<T> node, out Vector3 center, out Vector3 halfSize)
+        protected void GetNodeBoundingBox(OctreeNode<T> node, out Vector3 center, out Vector3 halfSize)
         {
             center = Center;
             halfSize = HalfSize;
@@ -202,12 +219,36 @@ namespace GameLibrary.Voxel
 
                 halfSize /= 2f;
 
-                Vector3 c = OCTANT_TRANSLATIONS[(int)octant];
+                Vector3 c = OCTANT_VECTORS[(int)octant];
                 c.X *= halfSize.X;
                 c.Y *= halfSize.Y;
                 c.Z *= halfSize.Z;
                 center += c;
             }
+        }
+
+        public void GetNodeCoordinates(OctreeNode<T> node, out int x, out int y, out int z)
+        {
+            // TODO compute x,y,z (in voxel space) by de-interlacing loc code
+            int depth = GetNodeTreeDepth(node);
+            // FIX should use max depth... the following will compute the "local" coordinates at the depth of the node
+            int h2 = (int)HalfSize.X; // MathUtil.Pow(2, depth);
+            x = 0;
+            y = 0;
+            z = 0;
+            ulong locCode = node.locCode;
+            for (int d = depth - 1; d >= 0; d--)
+            {
+                h2 /= 2;
+                Octant octant = (Octant)((node.locCode >> (d * 3)) & Mask.LEAF);
+
+                x += OCTANT_DELTAS[(int)octant, 0] * h2;
+                y += OCTANT_DELTAS[(int)octant, 1] * h2;
+                z += OCTANT_DELTAS[(int)octant, 2] * h2;
+            }
+            x -= h2;
+            y -= h2;
+            z -= h2;
         }
 
         public static Octant GetOctant(OctreeNode<T> node)
@@ -271,15 +312,21 @@ namespace GameLibrary.Voxel
                 ulong locCode = ChildLocCode(parent.locCode, octant);
                 return LookupNode(locCode);
             }
-            // create new node
+            // create octree node
             OctreeNode<T> node = new OctreeNode<T>();
             node.locCode = ChildLocCode(parent.locCode, octant);
             node.childExists = 0;
 
             // create node object
+            T obj = default(T);
             if (objectFactory != null)
             {
-                node.obj = objectFactory(this, node);
+                obj = objectFactory(this, node);
+                node.obj = obj;
+            }
+            if (obj == null)
+            {
+                return null;
             }
 
             // add new node to parent
@@ -291,9 +338,6 @@ namespace GameLibrary.Voxel
 
         public OctreeNode<T> AddChild(Vector3 point, int depth)
         {
-            // from root down
-            // compute center
-            // flip bit Front/back if z > 0 etc
             OctreeNode<T> parent = RootNode;
 
             Vector3 center = Center;
@@ -318,7 +362,7 @@ namespace GameLibrary.Voxel
                 {
                     halfSize /= 2f;
 
-                    Vector3 c = OCTANT_TRANSLATIONS[(int)octant];
+                    Vector3 c = OCTANT_VECTORS[(int)octant];
                     c.X *= halfSize.X;
                     c.Y *= halfSize.Y;
                     c.Z *= halfSize.Z;
@@ -422,7 +466,9 @@ namespace GameLibrary.Voxel
           return neighbors
         */
 
-        public delegate bool Visitor(Octree<T> octree, OctreeNode<T> node, ref Object arg);
+        public enum VisitReturn { Continue, ContinueNoCull, Abort }
+
+        public delegate VisitReturn Visitor<K>(Octree<K> octree, OctreeNode<K> node, bool cull, ref Object arg);
 
         public enum VisitType
         {
@@ -432,17 +478,17 @@ namespace GameLibrary.Voxel
             PostOrder
         }
 
-        public void Visit(int visitOrder, Visitor visitor)
+        public void Visit(int visitOrder, Visitor<T> visitor)
         {
             Visit(visitOrder, visitor, VisitType.PreOrder, null);
         }
 
-        public void Visit(int visitOrder, Visitor visitor, Object arg)
+        public void Visit(int visitOrder, Visitor<T> visitor, Object arg)
         {
             Visit(visitOrder, visitor, VisitType.PreOrder, arg);
         }
 
-        public virtual void Visit(int visitOrder, Visitor visitor, VisitType visitType, Object arg)
+        public virtual void Visit(int visitOrder, Visitor<T> visitor, VisitType visitType, Object arg)
         {
             switch (visitType)
             {
@@ -458,19 +504,24 @@ namespace GameLibrary.Voxel
             }
         }
 
-        public void Visit(int visitOrder, Visitor preVisitor, Visitor inVisitor, Visitor postVisitor)
+        public void Visit(int visitOrder, Visitor<T> preVisitor, Visitor<T> inVisitor, Visitor<T> postVisitor)
         {
             visit(visitOrder, preVisitor, inVisitor, postVisitor, null);
         }
 
-        public void Visit(int visitOrder, Visitor preVisitor, Visitor inVisitor, Visitor postVisitor, Object arg)
+        public void Visit(int visitOrder, Visitor<T> preVisitor, Visitor<T> inVisitor, Visitor<T> postVisitor, Object arg)
         {
             visit(visitOrder, preVisitor, inVisitor, postVisitor, arg);
         }
 
-        internal void visit(int visitOrder, Visitor preVisitor, Visitor inVisitor, Visitor postVisitor, Object arg)
+        internal void visit(int visitOrder, Visitor<T> preVisitor, Visitor<T> inVisitor, Visitor<T> postVisitor, Object arg)
         {
-            visit(RootNode, visitOrder, preVisitor, inVisitor, postVisitor, arg);
+            VisitContext ctxt = new VisitContext();
+            ctxt.visitOrder = visitOrder;
+            ctxt.preVisitor = preVisitor;
+            ctxt.inVisitor = inVisitor;
+            ctxt.postVisitor = postVisitor;
+            visit(RootNode, ref ctxt, true, arg);
         }
 
         private static readonly Octant[,] OCTANT_VISIT_ORDER = computeVisitOrderPermutations();
@@ -501,7 +552,15 @@ namespace GameLibrary.Voxel
             return permutations;
         }
 
-        internal virtual bool visit(OctreeNode<T> node, int visitOrder, Visitor preVisitor, Visitor inVisitor, Visitor postVisitor, Object arg)
+        internal struct VisitContext
+        {
+            internal int visitOrder;
+            internal Visitor<T> preVisitor;
+            internal Visitor<T> inVisitor;
+            internal Visitor<T> postVisitor;
+        }
+
+        internal virtual bool visit(OctreeNode<T> node, ref VisitContext ctxt, bool cull, Object arg)
         {
             if ((node.childExists == 0) && (node.obj == null))
             {
@@ -509,16 +568,16 @@ namespace GameLibrary.Voxel
                 return false;
             }
             // TODO iterate over sorted location codes
-            bool cont = true;
-            if (preVisitor != null)
+            VisitReturn ret = VisitReturn.Continue;
+            if (ctxt.preVisitor != null)
             {
-                cont = cont && preVisitor(this, node, ref arg);
+                ret = ctxt.preVisitor(this, node, cull, ref arg);
             }
-            if (cont && (node.childExists != 0))
+            if ((ret != VisitReturn.Abort) && (node.childExists != 0))
             {
                 for (ushort i = 0; i < 8; i++)
                 {
-                    Octant octant = (Octant)OCTANT_VISIT_ORDER[visitOrder, i];
+                    Octant octant = (Octant)OCTANT_VISIT_ORDER[ctxt.visitOrder, i];
                     if ((node.childExists & (1L << (int)octant)) == 0)
                     {
                         continue;
@@ -529,12 +588,12 @@ namespace GameLibrary.Voxel
                     {
                         continue;
                     }
-                    visit(childNode, visitOrder, preVisitor, inVisitor, postVisitor, arg);
-                    inVisitor?.Invoke(this, childNode, ref arg);
+                    visit(childNode, ref ctxt, (ret != VisitReturn.ContinueNoCull), arg);
+                    ctxt.inVisitor?.Invoke(this, childNode, cull, ref arg);
                 }
             }
-            postVisitor?.Invoke(this, node, ref arg);
-            return cont;
+            ctxt.postVisitor?.Invoke(this, node, cull, ref arg);
+            return true;
         }
 
         public static String LocCodeToString(ulong locCode)

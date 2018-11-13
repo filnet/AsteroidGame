@@ -48,10 +48,12 @@ namespace GameLibrary.SceneGraph.Common
 
     }
 
-    public class GeometryNode : TransformNode
+    public class GeometryNode : TransformNode, Physical, Drawable
     {
         private BoundingVolume boundingVolume;
         private BoundingVolume worldBoundingVolume;
+
+        public bool BoundingVolumeVisible { get; set; }
 
         private Physics physics;
 
@@ -84,6 +86,7 @@ namespace GameLibrary.SceneGraph.Common
         {
             physics = new Physics();
             CollisionGroupId = -1;
+            BoundingVolumeVisible = true;
         }
 
         public GeometryNode(GeometryNode node)
@@ -91,6 +94,8 @@ namespace GameLibrary.SceneGraph.Common
         {
             RenderGroupId = node.RenderGroupId;
             CollisionGroupId = node.CollisionGroupId;
+            BoundingVolumeVisible = node.BoundingVolumeVisible;
+
             boundingVolume = node.boundingVolume != null ? node.boundingVolume.Clone() : null;
             worldBoundingVolume = node.worldBoundingVolume != null ? node.worldBoundingVolume.Clone() : null;
 
@@ -116,7 +121,7 @@ namespace GameLibrary.SceneGraph.Common
             return false;
         }
 
-        public virtual void preDraw(GraphicsDevice gd)
+        public virtual void PreDraw(GraphicsDevice gd)
         {
         }
 
@@ -124,7 +129,7 @@ namespace GameLibrary.SceneGraph.Common
         {
         }
 
-        public virtual void postDraw(GraphicsDevice gd)
+        public virtual void PostDraw(GraphicsDevice gd)
         {
         }
 

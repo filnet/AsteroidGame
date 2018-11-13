@@ -8,6 +8,9 @@ EndProject
 Project("{D954291E-2A0B-460D-934E-DC6B0785DB48}") = "GameLibrary", "GameLibrary\GameLibrary.shproj", "{817CFFFB-C78B-4BB6-A2D9-00E3818F85C2}"
 EndProject
 Global
+	GlobalSection(Performance) = preSolution
+		HasPerformanceSessions = true
+	EndGlobalSection
 	GlobalSection(SharedMSBuildProjectFiles) = preSolution
 		GameLibrary\GameLibrary.projitems*{6db66302-2dec-4263-92f9-ac0906fc8fac}*SharedItemsImports = 4
 		GameLibrary\GameLibrary.projitems*{817cfffb-c78b-4bb6-a2d9-00e3818f85c2}*SharedItemsImports = 13
@@ -31,5 +34,8 @@ Global
 	EndGlobalSection
 	GlobalSection(ExtensibilityGlobals) = postSolution
 		SolutionGuid = {9F8C8995-19AA-4282-8E94-1795FA6E8C14}
+	EndGlobalSection
+	GlobalSection(Performance) = preSolution
+		HasPerformanceSessions = true
 	EndGlobalSection
 EndGlobal

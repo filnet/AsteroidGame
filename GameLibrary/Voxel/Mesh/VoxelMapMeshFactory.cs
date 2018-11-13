@@ -55,19 +55,16 @@ namespace GameLibrary.Voxel
 
     public class VoxelMapMeshFactory : IMeshFactory
     {
-        private VoxelMap map;
-        private VoxelMap[] neighbours;
+        private readonly VoxelOctree octree;
+        private readonly OctreeNode<VoxelChunk> node;
 
         private readonly DrawVisitor drawVisitor;
 
-        public VoxelMapMeshFactory(VoxelMap map) : this(map, null)
+        public VoxelMapMeshFactory(VoxelOctree octree, OctreeNode<VoxelChunk> node)
         {
-        }
+            this.octree = octree;
+            this.node = node;
 
-        public VoxelMapMeshFactory(VoxelMap map, VoxelMap[] neighbours)
-        {
-            this.map = map;
-            this.neighbours = neighbours;
             drawVisitor = new DrawVisitor(this);
         }
 
@@ -75,18 +72,14 @@ namespace GameLibrary.Voxel
         {
             drawVisitor.builder = VertexBufferBuilder<VoxelVertex>.createVoxelVertexBufferBuilder(gd, 0, 0);
 
-            VoxelMapIterator ite;
-            if (neighbours == null)
-            {
-                ite = new SimpleVoxelMapIterator(map);
-            }
-            else
-            {
-                ite = new DefaultVoxelMapIterator(map, neighbours);
-            }
+            VoxelMapIterator ite = new DefaultVoxelMapIterator(octree, node);
 
-            map.Visit(drawVisitor, ite);
+            node.obj.VoxelMap.Visit(drawVisitor, ite);
 
+            if (drawVisitor.primitiveCount <= 0)
+            {
+                return null;
+            }
             Mesh mesh = new Mesh(PrimitiveType.TriangleList, drawVisitor.primitiveCount);
             mesh.BoundingVolume = drawVisitor.GetBoundingVolume();
             drawVisitor.builder.setToMesh(mesh);
@@ -185,10 +178,6 @@ namespace GameLibrary.Voxel
                 bottomRightFront = new Vector3(d, -d, d);
                 bottomRightBack = new Vector3(d, -d, -d);
 
-                if (!scale)
-                {
-                    s = Vector3.One;
-                }
                 scaleXY = new Vector3(s.X, s.Y, 1);
                 scaleXZ = new Vector3(s.X, 1, s.Z);
                 scaleYZ = new Vector3(1, s.Y, s.Z);
@@ -199,19 +188,31 @@ namespace GameLibrary.Voxel
                 return new GameLibrary.SceneGraph.Bounding.BoundingBox(Vector3.Zero, new Vector3(d * size, d * size, d * size));
             }
 
-            public bool Begin(int size, int instanceCount, int maxInstanceCount)
+            public bool Begin(int size)
             {
                 this.size = size;
                 return true;
+            }
+
+
+            public int VertexAmbientOcclusion(VoxelMapIterator ite, Direction side1, Direction side2, Direction corner)
+            {
+                // TODO cache values...
+                return VoxelUtil.VertexAmbientOcclusion(ite.Value(side1) != 0, ite.Value(side2) != 0, ite.Value(corner) != 0); ;
             }
 
             //static int c = 0;
 
             public bool Visit(VoxelMapIterator ite)
             {
-                //c++;
-                //if (c > 6) return false;
-                TileInfo tileInfo = tiles[ite.Value()];
+                int v = ite.Value();
+                if (v == 0)
+                {
+                    ite.emptyVoxelsCount++;
+                    return true;
+                }
+
+                TileInfo tileInfo = tiles[v];
 
                 // initialize 
                 Matrix m = Matrix.Identity; // Matrix.CreateScale(0.95f);
@@ -219,38 +220,52 @@ namespace GameLibrary.Voxel
                 t.X = 2 * d * (ite.X - (size - 1) / 2f);
                 t.Y = 2 * d * (ite.Y - (size - 1) / 2f);
                 t.Z = 2 * d * (ite.Z - (size - 1) / 2f);
-                m = m * Matrix.CreateTranslation(2 * d * (ite.X - (size - 1) / 2f), 2 * d * (ite.Y - (size - 1) / 2f), 2 * d * (ite.Z - (size - 1) / 2f));
+                //m = m * Matrix.CreateTranslation(2 * d * (ite.X - (size - 1) / 2f), 2 * d * (ite.Y - (size - 1) / 2f), 2 * d * (ite.Z - (size - 1) / 2f));
                 //m = m * Matrix.CreateTranslation(d * (2 * ite.X - size) / size, d * (2 * ite.Y - size) / size, d * (2 * ite.Z - size) / size);
                 //Console.Out.WriteLine(2 * d * (ite.X - (size - 1) / 2f) + " " + 2 * d * (ite.Y - (size - 1) / 2f) + " " + 2 * d * (ite.Z - (size - 1) / 2f));
 
-                if (true && (ite.Neighbours & (int)Neighbour.Front) == 0)
+                if (!scale)
                 {
-                    // front face
+                    Vector3.Add(ref bottomLeftFront, ref t, out _bottomLeftFront);
+                    Vector3.Add(ref topLeftFront, ref t, out _topLeftFront);
+                    Vector3.Add(ref bottomRightFront, ref t, out _bottomRightFront);
+                    Vector3.Add(ref topRightFront, ref t, out _topRightFront);
 
-                    Vector3.Multiply(ref bottomLeftFront, ref scaleXY, out _bottomLeftFront);
-                    Vector3.Multiply(ref topLeftFront, ref scaleXY, out _topLeftFront);
-                    Vector3.Multiply(ref bottomRightFront, ref scaleXY, out _bottomRightFront);
-                    Vector3.Multiply(ref topRightFront, ref scaleXY, out _topRightFront);
+                    Vector3.Add(ref bottomRightBack, ref t, out _bottomRightBack);
+                    Vector3.Add(ref topRightBack, ref t, out _topRightBack);
+                    Vector3.Add(ref bottomLeftBack, ref t, out _bottomLeftBack);
+                    Vector3.Add(ref topLeftBack, ref t, out _topLeftBack);
+                }
 
-                    Vector3.Add(ref _bottomLeftFront, ref t, out _bottomLeftFront);
-                    Vector3.Add(ref _topLeftFront, ref t, out _topLeftFront);
-                    Vector3.Add(ref _bottomRightFront, ref t, out _bottomRightFront);
-                    Vector3.Add(ref _topRightFront, ref t, out _topRightFront);
+                bool showFrontFace = (ite.Value(Direction.Front) == 0);
+                if (showFrontFace)
+                {
+                    if (scale)
+                    {
+                        Vector3.Multiply(ref bottomLeftFront, ref scaleXY, out _bottomLeftFront);
+                        Vector3.Multiply(ref topLeftFront, ref scaleXY, out _topLeftFront);
+                        Vector3.Multiply(ref bottomRightFront, ref scaleXY, out _bottomRightFront);
+                        Vector3.Multiply(ref topRightFront, ref scaleXY, out _topRightFront);
+
+                        Vector3.Add(ref _bottomLeftFront, ref t, out _bottomLeftFront);
+                        Vector3.Add(ref _topLeftFront, ref t, out _topLeftFront);
+                        Vector3.Add(ref _bottomRightFront, ref t, out _bottomRightFront);
+                        Vector3.Add(ref _topRightFront, ref t, out _topRightFront);
+                    }
 
                     int tile = tileInfo.TextureIndex(Face.Front);
 
                     // BottomLeftFront
-                    int a00 = VoxelUtil.VertexAmbientOcclusion(
-                        ite.Value(Direction.LeftFront) != 0, ite.Value(Direction.BottomFront) != 0, ite.Value(Direction.BottomLeftFront) != 0);
+                    int a00 = VertexAmbientOcclusion(ite, Direction.LeftFront, Direction.BottomFront, Direction.BottomLeftFront);
                     // TopLeftFront
-                    int a01 = VoxelUtil.VertexAmbientOcclusion(
-                        ite.Value(Direction.LeftFront) != 0, ite.Value(Direction.TopFront) != 0, ite.Value(Direction.TopLeftFront) != 0);
+                    int a01 = VertexAmbientOcclusion(ite,
+                        Direction.LeftFront, Direction.TopFront, Direction.TopLeftFront);
                     // BottomRightFront
-                    int a10 = VoxelUtil.VertexAmbientOcclusion(
-                        ite.Value(Direction.RightFront) != 0, ite.Value(Direction.BottomFront) != 0, ite.Value(Direction.BottomRightFront) != 0);
+                    int a10 = VertexAmbientOcclusion(ite,
+                        Direction.RightFront, Direction.BottomFront, Direction.BottomRightFront);
                     // TopRightFront
-                    int a11 = VoxelUtil.VertexAmbientOcclusion(
-                        ite.Value(Direction.RightFront) != 0, ite.Value(Direction.TopFront) != 0, ite.Value(Direction.TopRightFront) != 0); ;
+                    int a11 = VertexAmbientOcclusion(ite,
+                        Direction.RightFront, Direction.TopFront, Direction.TopRightFront); ;
                     int ao = VoxelUtil.CombineVertexAmbientOcclusion(a00, a01, a10, a11);
 
                     builder.AddVertex(_bottomLeftFront, frontNormal, Color.White, tex00, tile, ao);
@@ -269,34 +284,29 @@ namespace GameLibrary.Voxel
                     vertexCount += 4;
                     primitiveCount += 2;
                 }
-                if (true && (ite.Neighbours & (int)Neighbour.Back) == 0)
+
+                bool showBackFace = (ite.Value(Direction.Back) == 0);
+                if (showBackFace)
                 {
-                    // back face
+                    if (scale)
+                    {
+                        Vector3.Multiply(ref bottomRightBack, ref scaleXY, out _bottomRightBack);
+                        Vector3.Multiply(ref topRightBack, ref scaleXY, out _topRightBack);
+                        Vector3.Multiply(ref bottomLeftBack, ref scaleXY, out _bottomLeftBack);
+                        Vector3.Multiply(ref topLeftBack, ref scaleXY, out _topLeftBack);
 
-                    Vector3.Multiply(ref bottomRightBack, ref scaleXY, out _bottomRightBack);
-                    Vector3.Multiply(ref topRightBack, ref scaleXY, out _topRightBack);
-                    Vector3.Multiply(ref bottomLeftBack, ref scaleXY, out _bottomLeftBack);
-                    Vector3.Multiply(ref topLeftBack, ref scaleXY, out _topLeftBack);
-
-                    Vector3.Add(ref _bottomRightBack, ref t, out _bottomRightBack);
-                    Vector3.Add(ref _topRightBack, ref t, out _topRightBack);
-                    Vector3.Add(ref _bottomLeftBack, ref t, out _bottomLeftBack);
-                    Vector3.Add(ref _topLeftBack, ref t, out _topLeftBack);
+                        Vector3.Add(ref _bottomRightBack, ref t, out _bottomRightBack);
+                        Vector3.Add(ref _topRightBack, ref t, out _topRightBack);
+                        Vector3.Add(ref _bottomLeftBack, ref t, out _bottomLeftBack);
+                        Vector3.Add(ref _topLeftBack, ref t, out _topLeftBack);
+                    }
 
                     int tile = tileInfo.TextureIndex(Face.Back);
 
-                    // BottomRightBack
-                    int a00 = VoxelUtil.VertexAmbientOcclusion(
-                        ite.Value(Direction.RightBack) != 0, ite.Value(Direction.BottomBack) != 0, ite.Value(Direction.BottomRightBack) != 0);
-                    // TopRightBack
-                    int a01 = VoxelUtil.VertexAmbientOcclusion(
-                        ite.Value(Direction.RightBack) != 0, ite.Value(Direction.TopBack) != 0, ite.Value(Direction.TopRightBack) != 0);
-                    // BottomLeftBack
-                    int a10 = VoxelUtil.VertexAmbientOcclusion(
-                        ite.Value(Direction.LeftBack) != 0, ite.Value(Direction.BottomBack) != 0, ite.Value(Direction.BottomLeftBack) != 0);
-                    // TopLeftBack
-                    int a11 = VoxelUtil.VertexAmbientOcclusion(
-                        ite.Value(Direction.LeftBack) != 0, ite.Value(Direction.TopBack) != 0, ite.Value(Direction.TopLeftBack) != 0); ;
+                    int a00 = VertexAmbientOcclusion(ite, Direction.RightBack, Direction.BottomBack, Direction.BottomRightBack);
+                    int a01 = VertexAmbientOcclusion(ite, Direction.RightBack, Direction.TopBack, Direction.TopRightBack);
+                    int a10 = VertexAmbientOcclusion(ite, Direction.LeftBack, Direction.BottomBack, Direction.BottomLeftBack);
+                    int a11 = VertexAmbientOcclusion(ite, Direction.LeftBack, Direction.TopBack, Direction.TopLeftBack); ;
                     int ao = VoxelUtil.CombineVertexAmbientOcclusion(a00, a01, a10, a11);
 
                     builder.AddVertex(_bottomRightBack, backNormal, Color.White, tex00, tile, ao);
@@ -315,34 +325,29 @@ namespace GameLibrary.Voxel
                     vertexCount += 4;
                     primitiveCount += 2;
                 }
-                if (true && (ite.Neighbours & (int)Neighbour.Top) == 0)
+
+                bool showTopFace = (ite.Value(Direction.Top) == 0);
+                if (showTopFace)
                 {
-                    // top face
+                    if (scale)
+                    {
+                        Vector3.Multiply(ref topLeftFront, ref scaleXZ, out _topLeftFront);
+                        Vector3.Multiply(ref topLeftBack, ref scaleXZ, out _topLeftBack);
+                        Vector3.Multiply(ref topRightFront, ref scaleXZ, out _topRightFront);
+                        Vector3.Multiply(ref topRightBack, ref scaleXZ, out _topRightBack);
 
-                    Vector3.Multiply(ref topLeftFront, ref scaleXY, out _topLeftFront);
-                    Vector3.Multiply(ref topLeftBack, ref scaleXY, out _topLeftBack);
-                    Vector3.Multiply(ref topRightFront, ref scaleXY, out _topRightFront);
-                    Vector3.Multiply(ref topRightBack, ref scaleXY, out _topRightBack);
-
-                    Vector3.Add(ref _topLeftFront, ref t, out _topLeftFront);
-                    Vector3.Add(ref _topLeftBack, ref t, out _topLeftBack);
-                    Vector3.Add(ref _topRightFront, ref t, out _topRightFront);
-                    Vector3.Add(ref _topRightBack, ref t, out _topRightBack);
+                        Vector3.Add(ref _topLeftFront, ref t, out _topLeftFront);
+                        Vector3.Add(ref _topLeftBack, ref t, out _topLeftBack);
+                        Vector3.Add(ref _topRightFront, ref t, out _topRightFront);
+                        Vector3.Add(ref _topRightBack, ref t, out _topRightBack);
+                    }
 
                     int tile = tileInfo.TextureIndex(Face.Top);
 
-                    // TopLeftFront
-                    int a00 = VoxelUtil.VertexAmbientOcclusion(
-                        ite.Value(Direction.TopLeft) != 0, ite.Value(Direction.TopFront) != 0, ite.Value(Direction.TopLeftFront) != 0);
-                    // TopLeftBack
-                    int a01 = VoxelUtil.VertexAmbientOcclusion(
-                        ite.Value(Direction.TopLeft) != 0, ite.Value(Direction.TopBack) != 0, ite.Value(Direction.TopLeftBack) != 0);
-                    // TopRightFront
-                    int a10 = VoxelUtil.VertexAmbientOcclusion(
-                        ite.Value(Direction.TopRight) != 0, ite.Value(Direction.TopFront) != 0, ite.Value(Direction.TopRightFront) != 0);
-                    // TopRightBack
-                    int a11 = VoxelUtil.VertexAmbientOcclusion(
-                        ite.Value(Direction.TopRight) != 0, ite.Value(Direction.TopBack) != 0, ite.Value(Direction.TopRightBack) != 0); ;
+                    int a00 = VertexAmbientOcclusion(ite, Direction.TopLeft, Direction.TopFront, Direction.TopLeftFront);
+                    int a01 = VertexAmbientOcclusion(ite, Direction.TopLeft, Direction.TopBack, Direction.TopLeftBack);
+                    int a10 = VertexAmbientOcclusion(ite, Direction.TopRight, Direction.TopFront, Direction.TopRightFront);
+                    int a11 = VertexAmbientOcclusion(ite, Direction.TopRight, Direction.TopBack, Direction.TopRightBack); ;
                     int ao = VoxelUtil.CombineVertexAmbientOcclusion(a00, a01, a10, a11);
 
                     builder.AddVertex(_topLeftFront, topNormal, Color.White, tex00, tile, ao);
@@ -361,34 +366,29 @@ namespace GameLibrary.Voxel
                     vertexCount += 4;
                     primitiveCount += 2;
                 }
-                if (true && (ite.Neighbours & (int)Neighbour.Bottom) == 0)
+
+                bool showBottomFace = (ite.Value(Direction.Bottom) == 0);
+                if (showBottomFace)
                 {
-                    // bottom face
+                    if (scale)
+                    {
+                        Vector3.Multiply(ref bottomRightFront, ref scaleXZ, out _bottomRightFront);
+                        Vector3.Multiply(ref bottomRightBack, ref scaleXZ, out _bottomRightBack);
+                        Vector3.Multiply(ref bottomLeftFront, ref scaleXZ, out _bottomLeftFront);
+                        Vector3.Multiply(ref bottomLeftBack, ref scaleXZ, out _bottomLeftBack);
 
-                    Vector3.Multiply(ref bottomRightFront, ref scaleXY, out _bottomRightFront);
-                    Vector3.Multiply(ref bottomRightBack, ref scaleXY, out _bottomRightBack);
-                    Vector3.Multiply(ref bottomLeftFront, ref scaleXY, out _bottomLeftFront);
-                    Vector3.Multiply(ref bottomLeftBack, ref scaleXY, out _bottomLeftBack);
-
-                    Vector3.Add(ref _bottomRightFront, ref t, out _bottomRightFront);
-                    Vector3.Add(ref _bottomRightBack, ref t, out _bottomRightBack);
-                    Vector3.Add(ref _bottomLeftFront, ref t, out _bottomLeftFront);
-                    Vector3.Add(ref _bottomLeftBack, ref t, out _bottomLeftBack);
+                        Vector3.Add(ref _bottomRightFront, ref t, out _bottomRightFront);
+                        Vector3.Add(ref _bottomRightBack, ref t, out _bottomRightBack);
+                        Vector3.Add(ref _bottomLeftFront, ref t, out _bottomLeftFront);
+                        Vector3.Add(ref _bottomLeftBack, ref t, out _bottomLeftBack);
+                    }
 
                     int tile = tileInfo.TextureIndex(Face.Bottom);
 
-                    // BottomRightFront
-                    int a00 = VoxelUtil.VertexAmbientOcclusion(
-                        ite.Value(Direction.BottomRight) != 0, ite.Value(Direction.BottomFront) != 0, ite.Value(Direction.BottomRightFront) != 0);
-                    // BottomRightBack
-                    int a01 = VoxelUtil.VertexAmbientOcclusion(
-                        ite.Value(Direction.BottomRight) != 0, ite.Value(Direction.BottomBack) != 0, ite.Value(Direction.BottomRightBack) != 0);
-                    // BottomLeftFront
-                    int a10 = VoxelUtil.VertexAmbientOcclusion(
-                        ite.Value(Direction.BottomLeft) != 0, ite.Value(Direction.BottomFront) != 0, ite.Value(Direction.BottomLeftFront) != 0);
-                    // BottomLeftBack
-                    int a11 = VoxelUtil.VertexAmbientOcclusion(
-                        ite.Value(Direction.BottomLeft) != 0, ite.Value(Direction.BottomBack) != 0, ite.Value(Direction.BottomLeftBack) != 0); ;
+                    int a00 = VertexAmbientOcclusion(ite, Direction.BottomRight, Direction.BottomFront, Direction.BottomRightFront);
+                    int a01 = VertexAmbientOcclusion(ite, Direction.BottomRight, Direction.BottomBack, Direction.BottomRightBack);
+                    int a10 = VertexAmbientOcclusion(ite, Direction.BottomLeft, Direction.BottomFront, Direction.BottomLeftFront);
+                    int a11 = VertexAmbientOcclusion(ite, Direction.BottomLeft, Direction.BottomBack, Direction.BottomLeftBack); ;
                     int ao = VoxelUtil.CombineVertexAmbientOcclusion(a00, a01, a10, a11);
 
                     builder.AddVertex(_bottomRightFront, bottomNormal, Color.White, tex00, tile, ao);
@@ -407,34 +407,29 @@ namespace GameLibrary.Voxel
                     vertexCount += 4;
                     primitiveCount += 2;
                 }
-                if (true && (ite.Neighbours & (int)Neighbour.Left) == 0)
+
+                bool showLeftFace = (ite.Value(Direction.Left) == 0);
+                if (showLeftFace)
                 {
-                    // left face
+                    if (scale)
+                    {
+                        Vector3.Multiply(ref bottomLeftBack, ref scaleYZ, out _bottomLeftBack);
+                        Vector3.Multiply(ref topLeftFront, ref scaleYZ, out _topLeftFront);
+                        Vector3.Multiply(ref bottomLeftFront, ref scaleYZ, out _bottomLeftFront);
+                        Vector3.Multiply(ref topLeftBack, ref scaleYZ, out _topLeftBack);
 
-                    Vector3.Multiply(ref bottomLeftBack, ref scaleYZ, out _bottomLeftBack);
-                    Vector3.Multiply(ref topLeftFront, ref scaleYZ, out _topLeftFront);
-                    Vector3.Multiply(ref bottomLeftFront, ref scaleYZ, out _bottomLeftFront);
-                    Vector3.Multiply(ref topLeftBack, ref scaleYZ, out _topLeftBack);
-
-                    Vector3.Add(ref _topLeftFront, ref t, out _topLeftFront);
-                    Vector3.Add(ref _bottomLeftBack, ref t, out _bottomLeftBack);
-                    Vector3.Add(ref _bottomLeftFront, ref t, out _bottomLeftFront);
-                    Vector3.Add(ref _topLeftBack, ref t, out _topLeftBack);
+                        Vector3.Add(ref _topLeftFront, ref t, out _topLeftFront);
+                        Vector3.Add(ref _bottomLeftBack, ref t, out _bottomLeftBack);
+                        Vector3.Add(ref _bottomLeftFront, ref t, out _bottomLeftFront);
+                        Vector3.Add(ref _topLeftBack, ref t, out _topLeftBack);
+                    }
 
                     int tile = tileInfo.TextureIndex(Face.Left);
 
-                    // BottomLeftBack
-                    int a00 = VoxelUtil.VertexAmbientOcclusion(
-                        ite.Value(Direction.BottomLeft) != 0, ite.Value(Direction.LeftBack) != 0, ite.Value(Direction.BottomLeftBack) != 0);
-                    // TopLeftBack
-                    int a01 = VoxelUtil.VertexAmbientOcclusion(
-                        ite.Value(Direction.TopLeft) != 0, ite.Value(Direction.LeftBack) != 0, ite.Value(Direction.TopLeftBack) != 0);
-                    // BottomLeftFront
-                    int a10 = VoxelUtil.VertexAmbientOcclusion(
-                        ite.Value(Direction.BottomLeft) != 0, ite.Value(Direction.LeftFront) != 0, ite.Value(Direction.BottomLeftFront) != 0);
-                    // TopLeftFront
-                    int a11 = VoxelUtil.VertexAmbientOcclusion(
-                        ite.Value(Direction.TopLeft) != 0, ite.Value(Direction.LeftFront) != 0, ite.Value(Direction.TopLeftFront) != 0); ;
+                    int a00 = VertexAmbientOcclusion(ite, Direction.BottomLeft, Direction.LeftBack, Direction.BottomLeftBack);
+                    int a01 = VertexAmbientOcclusion(ite, Direction.TopLeft, Direction.LeftBack, Direction.TopLeftBack);
+                    int a10 = VertexAmbientOcclusion(ite, Direction.BottomLeft, Direction.LeftFront, Direction.BottomLeftFront);
+                    int a11 = VertexAmbientOcclusion(ite, Direction.TopLeft, Direction.LeftFront, Direction.TopLeftFront); ;
                     int ao = VoxelUtil.CombineVertexAmbientOcclusion(a00, a01, a10, a11);
 
                     builder.AddVertex(_bottomLeftBack, leftNormal, Color.White, tex00, tile, ao);
@@ -453,34 +448,29 @@ namespace GameLibrary.Voxel
                     vertexCount += 4;
                     primitiveCount += 2;
                 }
-                if (true && (ite.Neighbours & (int)Neighbour.Right) == 0)
+
+                bool showRightFace = (ite.Value(Direction.Right) == 0);
+                if (showRightFace)
                 {
-                    // right face
+                    if (scale)
+                    {
+                        Vector3.Multiply(ref topRightFront, ref scaleYZ, out _topRightFront);
+                        Vector3.Multiply(ref bottomRightBack, ref scaleYZ, out _bottomRightBack);
+                        Vector3.Multiply(ref bottomRightFront, ref scaleYZ, out _bottomRightFront);
+                        Vector3.Multiply(ref topRightBack, ref scaleYZ, out _topRightBack);
 
-                    Vector3.Multiply(ref topRightFront, ref scaleYZ, out _topRightFront);
-                    Vector3.Multiply(ref bottomRightBack, ref scaleYZ, out _bottomRightBack);
-                    Vector3.Multiply(ref bottomRightFront, ref scaleYZ, out _bottomRightFront);
-                    Vector3.Multiply(ref topRightBack, ref scaleYZ, out _topRightBack);
-
-                    Vector3.Add(ref _topRightFront, ref t, out _topRightFront);
-                    Vector3.Add(ref _bottomRightBack, ref t, out _bottomRightBack);
-                    Vector3.Add(ref _bottomRightFront, ref t, out _bottomRightFront);
-                    Vector3.Add(ref _topRightBack, ref t, out _topRightBack);
+                        Vector3.Add(ref _topRightFront, ref t, out _topRightFront);
+                        Vector3.Add(ref _bottomRightBack, ref t, out _bottomRightBack);
+                        Vector3.Add(ref _bottomRightFront, ref t, out _bottomRightFront);
+                        Vector3.Add(ref _topRightBack, ref t, out _topRightBack);
+                    }
 
                     int tile = tileInfo.TextureIndex(Face.Right);
 
-                    // BottomRightFront
-                    int a00 = VoxelUtil.VertexAmbientOcclusion(
-                        ite.Value(Direction.BottomRight) != 0, ite.Value(Direction.RightFront) != 0, ite.Value(Direction.BottomRightFront) != 0);
-                    // TopRightFront
-                    int a01 = VoxelUtil.VertexAmbientOcclusion(
-                        ite.Value(Direction.TopRight) != 0, ite.Value(Direction.RightFront) != 0, ite.Value(Direction.TopRightFront) != 0);
-                    // BottomRightBack
-                    int a10 = VoxelUtil.VertexAmbientOcclusion(
-                        ite.Value(Direction.BottomRight) != 0, ite.Value(Direction.RightBack) != 0, ite.Value(Direction.BottomRightBack) != 0);
-                    // TopRightBack
-                    int a11 = VoxelUtil.VertexAmbientOcclusion(
-                        ite.Value(Direction.TopRight) != 0, ite.Value(Direction.RightBack) != 0, ite.Value(Direction.TopRightBack) != 0); ;
+                    int a00 = VertexAmbientOcclusion(ite, Direction.BottomRight, Direction.RightFront, Direction.BottomRightFront);
+                    int a01 = VertexAmbientOcclusion(ite, Direction.TopRight, Direction.RightFront, Direction.TopRightFront);
+                    int a10 = VertexAmbientOcclusion(ite, Direction.BottomRight, Direction.RightBack, Direction.BottomRightBack);
+                    int a11 = VertexAmbientOcclusion(ite, Direction.TopRight, Direction.RightBack, Direction.TopRightBack); ;
                     int ao = VoxelUtil.CombineVertexAmbientOcclusion(a00, a01, a10, a11);
 
                     builder.AddVertex(_bottomRightFront, rightNormal, Color.White, tex00, tile, ao);
@@ -499,6 +489,8 @@ namespace GameLibrary.Voxel
                     vertexCount += 4;
                     primitiveCount += 2;
                 }
+                ite.voxelsCount += (primitiveCount > 0) ? 1 : 0;
+                ite.facesCount += primitiveCount / 2;
                 return true;
             }
 

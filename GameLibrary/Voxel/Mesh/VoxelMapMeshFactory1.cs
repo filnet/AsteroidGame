@@ -12,19 +12,15 @@ namespace GameLibrary.Voxel
 {
     public class VoxelMapMeshFactory1 : IMeshFactory
     {
-        private VoxelMap map;
-        private VoxelMap[] neighbours;
+        private readonly VoxelOctree octree;
+        private readonly OctreeNode<VoxelChunk> node;
 
         private readonly DrawVisitor drawVisitor;
 
-        public VoxelMapMeshFactory1(VoxelMap map) : this(map, null)
+        public VoxelMapMeshFactory1(VoxelOctree octree, OctreeNode<VoxelChunk> node)
         {
-        }
-
-        public VoxelMapMeshFactory1(VoxelMap map, VoxelMap[] neighbours)
-        {
-            this.map = map;
-            this.neighbours = neighbours;
+            this.octree = octree;
+            this.node = node;
             drawVisitor = new DrawVisitor(this);
         }
 
@@ -32,17 +28,9 @@ namespace GameLibrary.Voxel
         {
             drawVisitor.builder = VertexBufferBuilder<VertexPositionColorNormalTextureArray>.createVertexPositionColorNormalTextureArrayBufferBuilder(gd, 0, 0);
 
-            VoxelMapIterator ite;
-            if (neighbours == null)
-            {
-                ite = new SimpleVoxelMapIterator(map);
-            }
-            else
-            {
-                ite = new DefaultVoxelMapIterator(map, neighbours);
-            }
+            VoxelMapIterator ite = new DefaultVoxelMapIterator(octree, node);
 
-            map.Visit(drawVisitor, ite);
+            node.obj.VoxelMap.Visit(drawVisitor, ite);
 
             Mesh mesh = new Mesh(PrimitiveType.TriangleList, drawVisitor.primitiveCount);
             mesh.BoundingVolume = drawVisitor.GetBoundingVolume();
@@ -141,7 +129,7 @@ namespace GameLibrary.Voxel
                 return new GameLibrary.SceneGraph.Bounding.BoundingBox(Vector3.Zero, new Vector3(d * size, d * size, d * size));
             }
 
-            public bool Begin(int size, int instanceCount, int maxInstanceCount)
+            public bool Begin(int size)
             {
                 this.size = size;
                 return true;
@@ -172,8 +160,8 @@ namespace GameLibrary.Voxel
                 //m = m * Matrix.CreateTranslation(d * (2 * ite.X - size) / size, d * (2 * ite.Y - size) / size, d * (2 * ite.Z - size) / size);
                 //Console.Out.WriteLine(2 * d * (ite.X - (size - 1) / 2f) + " " + 2 * d * (ite.Y - (size - 1) / 2f) + " " + 2 * d * (ite.Z - (size - 1) / 2f));
 
-                // front face
-                if (false && (ite.Neighbours & (int)Neighbour.Front) == 0)
+                bool showFrontFace = (ite.Value(Direction.Front) == 0);
+                if (showFrontFace)
                 {
                     Vector3.Multiply(ref topLeftFront, ref scaleXY, out _topLeftFront);
                     Vector3.Multiply(ref bottomLeftFront, ref scaleXY, out _bottomLeftFront);
@@ -193,8 +181,9 @@ namespace GameLibrary.Voxel
                     builder.AddVertex(_topRightFront, frontNormal, topColor, textureTopRight, sideTile);
                     primitiveCount += 2;
                 }
-                // back face
-                if (false && (ite.Neighbours & (int)Neighbour.Back) == 0)
+
+                bool showBackFace = (ite.Value(Direction.Back) == 0);
+                if (showBackFace)
                 {
                     Vector3.Multiply(ref topLeftBack, ref scaleXY, out _topLeftBack);
                     Vector3.Multiply(ref topRightBack, ref scaleXY, out _topRightBack);
@@ -214,8 +203,9 @@ namespace GameLibrary.Voxel
                     builder.AddVertex(_bottomRightBack, backNormal, bottomColor, textureBottomLeft, sideTile);
                     primitiveCount += 2;
                 }
-                // top face
-                if (true && (ite.Neighbours & (int)Neighbour.Top) == 0)
+
+                bool showTopFace = (ite.Value(Direction.Top) == 0);
+                if (showTopFace)
                 {
                     Vector3.Multiply(ref topLeftFront, ref scaleXZ, out _topLeftFront);
                     Vector3.Multiply(ref topLeftBack, ref scaleXZ, out _topLeftBack);
@@ -265,8 +255,9 @@ namespace GameLibrary.Voxel
                     }
                     primitiveCount += 2;
                 }
-                // bottom face
-                if (false && (ite.Neighbours & (int)Neighbour.Bottom) == 0)
+
+                bool showBottomFace = (ite.Value(Direction.Bottom) == 0);
+                if (showBottomFace)
                 {
                     Vector3.Multiply(ref bottomLeftFront, ref scaleXZ, out _bottomLeftFront);
                     Vector3.Multiply(ref bottomLeftBack, ref scaleXZ, out _bottomLeftBack);
@@ -286,8 +277,9 @@ namespace GameLibrary.Voxel
                     builder.AddVertex(_bottomRightFront, bottomNormal, bottomColor, textureTopRight, bottomTile);
                     primitiveCount += 2;
                 }
-                // left face
-                if (false && (ite.Neighbours & (int)Neighbour.Left) == 0)
+
+                bool showLeftFace = (ite.Value(Direction.Left) == 0);
+                if (showLeftFace)
                 {
                     Vector3.Multiply(ref topLeftFront, ref scaleYZ, out _topLeftFront);
                     Vector3.Multiply(ref bottomLeftBack, ref scaleYZ, out _bottomLeftBack);
@@ -307,8 +299,9 @@ namespace GameLibrary.Voxel
                     builder.AddVertex(_topLeftFront, leftNormal, topColor, textureTopRight, sideTile);
                     primitiveCount += 2;
                 }
-                // right face
-                if (false && (ite.Neighbours & (int)Neighbour.Right) == 0)
+
+                bool showRightFace = (ite.Value(Direction.Right) == 0);
+                if (showRightFace)
                 {
                     Vector3.Multiply(ref topRightFront, ref scaleYZ, out _topRightFront);
                     Vector3.Multiply(ref bottomRightBack, ref scaleYZ, out _bottomRightBack);

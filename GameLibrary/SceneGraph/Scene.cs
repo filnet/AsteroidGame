@@ -20,8 +20,8 @@ namespace GameLibrary.SceneGraph
 
         private readonly Dictionary<int, Renderer> renderers;
 
-        private Dictionary<int, List<GeometryNode>> renderGroups;
-        private Dictionary<int, List<GeometryNode>> collisionGroups;
+        private Dictionary<int, List<Drawable>> renderBins;
+        private Dictionary<int, List<Node>> collisionGroups;
 
         private MeshNode boundingSphereGeo;
         private MeshNode boundingBoxGeo;
@@ -77,9 +77,9 @@ namespace GameLibrary.SceneGraph
         {
             renderers = new Dictionary<int, Renderer>();
 
-            renderGroups = new Dictionary<int, List<GeometryNode>>();
+            renderBins = new Dictionary<int, List<Drawable>>();
 
-            collisionGroups = new Dictionary<int, List<GeometryNode>>();
+            collisionGroups = new Dictionary<int, List<Node>>();
 
             //rootNode = new TransformNode("ROOT");
             //rootNode.Scene = this;
@@ -190,9 +190,12 @@ namespace GameLibrary.SceneGraph
             // update
             rootNode.Visit(UPDATE_VISITOR, null, UPDATE_POST_VISITOR);
 
-            // handle collisions
-            ClearGroups(collisionGroups);
-            rootNode.Visit(COLLISION_GROUP_VISITOR, this);
+            if (false)
+            {
+                // handle collisions
+                ClearCollisionGroups(collisionGroups);
+                rootNode.Visit(COLLISION_GROUP_VISITOR, this);
+            }
 
             collisionCache.Clear();
             if (collisionGroups.ContainsKey(ASTEROID))
@@ -234,7 +237,7 @@ namespace GameLibrary.SceneGraph
             // - camera is dirty
             // - TODO scene is dirty (something has moved in the scene)
             // - scene structure is dirty
-            if (cameraDirty || sceneDirty || structureDirty || (renderGroups.Count == 0))
+            if (cameraDirty || sceneDirty || structureDirty || (renderBins.Count == 0))
             {
                 if (cameraDirty)
                 {
@@ -246,7 +249,7 @@ namespace GameLibrary.SceneGraph
                 {
                     Console.WriteLine("Structure Dirty");
                 }
-                ClearGroups(renderGroups);
+                ClearBins(renderBins);
 
                 cullCount = 0;
                 renderCount = 0;
@@ -262,32 +265,39 @@ namespace GameLibrary.SceneGraph
 
             if (CaptureFrustrum)
             {
-                // TODO use captured frustrum for culling (using a dummy camera?)
                 CaptureFrustrum = false;
                 boundingFrustum = CameraComponent.BoundingFrustum;
-                frustrumGeo = GeometryUtil.CreateFrustrum("FRUSTRUM", boundingFrustum);
-                //frustrumGeo.Scene = this;
-                frustrumGeo.RenderGroupId = FRUSTRUM;
-                //frustrumGeo.Scale = new Vector3(0.9f);
-                //frustrumGeo.Translation = new Vector3(0, -1f, 0);
-                frustrumGeo.Initialize(GraphicsDevice);
-                frustrumGeo.UpdateTransform();
-                frustrumGeo.UpdateWorldTransform(null);
+                if (frustrumGeo == null)
+                {
+                    frustrumGeo = GeometryUtil.CreateFrustrum("FRUSTRUM", boundingFrustum);
+                    //frustrumGeo.Scene = this;
+                    frustrumGeo.RenderGroupId = FRUSTRUM;
+                    //frustrumGeo.Scale = new Vector3(0.9f);
+                    //frustrumGeo.Translation = new Vector3(0, -1f, 0);
+                    frustrumGeo.Initialize(GraphicsDevice);
+                    frustrumGeo.UpdateTransform();
+                    frustrumGeo.UpdateWorldTransform(null);
+                }
+                else
+                {
+                    frustrumGeo.Dispose();
+                    frustrumGeo = null;
+                }
             }
             if (ShowFrustrum && (frustrumGeo != null))
             {
-                AddToGroups(renderGroups, FRUSTRUM, frustrumGeo);
+                AddToBin(renderBins, FRUSTRUM, frustrumGeo);
             }
         }
 
         public void Draw(GameTime gameTime)
         {
-            Render(gameTime, renderGroups, renderers);
+            Render(gameTime, renderBins, renderers);
         }
 
         private GraphicsContext gc = new GraphicsContext();
 
-        public void Render(GameTime gameTime, Dictionary<int, List<GeometryNode>> renderGroups, Dictionary<int, Renderer> renderers)
+        public void Render(GameTime gameTime, Dictionary<int, List<Drawable>> renderBins, Dictionary<int, Renderer> renderers)
         {
             BlendState oldBlendState = GraphicsDevice.BlendState;
             DepthStencilState oldDepthStencilState = GraphicsDevice.DepthStencilState;
@@ -296,14 +306,14 @@ namespace GameLibrary.SceneGraph
 
             // FIXME should iterate over ordered by key...
             Renderer renderer;
-            foreach (KeyValuePair<int, List<GeometryNode>> nodeListKVP in renderGroups)
+            foreach (KeyValuePair<int, List<Drawable>> renderBinKVP in renderBins)
             {
-                int renderGroupId = nodeListKVP.Key;
-                List<GeometryNode> nodeList = nodeListKVP.Value;
+                int renderBinId = renderBinKVP.Key;
+                List<Drawable> nodeList = renderBinKVP.Value;
 
-                if (Debug) Console.WriteLine(renderGroupId + " " + nodeList.Count);
+                if (Debug) Console.WriteLine(renderBinId + " " + nodeList.Count);
 
-                renderers.TryGetValue(renderGroupId, out renderer);
+                renderers.TryGetValue(renderBinId, out renderer);
                 if (renderer != null)
                 {
                     gc.GraphicsDevice = GraphicsDevice;
@@ -313,7 +323,7 @@ namespace GameLibrary.SceneGraph
                 }
                 else
                 {
-                    if (Debug) Console.WriteLine("No renderer found for render group " + renderGroupId);
+                    if (Debug) Console.WriteLine("No renderer found for render group " + renderBinId);
                 }
             }
 
@@ -384,7 +394,7 @@ namespace GameLibrary.SceneGraph
             return recurse;
         };
 
-        private static Node.Visitor UPDATE_POST_VISITOR = delegate (Node node, ref Object arg)
+        private static readonly Node.Visitor UPDATE_POST_VISITOR = delegate (Node node, ref Object arg)
         {
             if (node.IsDirty(Node.DirtyFlag.ChildTransform))
             {
@@ -397,7 +407,7 @@ namespace GameLibrary.SceneGraph
             return true;
         };
 
-        private static Node.Visitor COMMIT_VISITOR = delegate (Node node, ref Object arg)
+        private static readonly Node.Visitor COMMIT_VISITOR = delegate (Node node, ref Object arg)
         {
             if (!node.Enabled) return false;
             //Console.WriteLine("Commiting " + node.Name);
@@ -413,7 +423,7 @@ namespace GameLibrary.SceneGraph
             return recurse;
         };
 
-        private static Node.Visitor CONTROLLER_VISITOR = delegate (Node node, ref Object arg)
+        private static readonly Node.Visitor CONTROLLER_VISITOR = delegate (Node node, ref Object arg)
         {
             if (!node.Enabled) return false;
             //Console.WriteLine("Updating " + node.Name);
@@ -426,7 +436,7 @@ namespace GameLibrary.SceneGraph
             return true;
         };
 
-        private static Node.Visitor RENDER_GROUP_VISITOR = delegate (Node node, ref Object arg)
+        private static readonly Node.Visitor RENDER_GROUP_VISITOR = delegate (Node node, ref Object arg)
         {
             if (!node.Visible)
             {
@@ -444,9 +454,9 @@ namespace GameLibrary.SceneGraph
                 voxelOctreeGeometry.voxelOctree.Visit(visitOrder, VOXEL_OCTREE_RENDER_GROUP_VISITOR, arg);
                 return true;
             }
-            else if (node is GeometryNode geometryNode)
+            else if (node is Drawable drawable)
             {
-                BoundingVolume bv = geometryNode.WorldBoundingVolume;
+                BoundingVolume bv = drawable.WorldBoundingVolume;
                 bool cull = false;
                 if (bv != null)
                 {
@@ -461,132 +471,88 @@ namespace GameLibrary.SceneGraph
                 }
                 if (!cull)
                 {
-                    scene.AddToGroups(scene.renderGroups, geometryNode);
+                    scene.AddToBin(scene.renderBins, drawable);
                     scene.renderCount++;
-
-                    if (geometryNode.BoundingVolumeVisible)
-                    {
-                        Boolean collided = (scene.collisionCache != null) ? scene.collisionCache.ContainsKey(geometryNode.Id) : false;
-                        if (collided && scene.ShowCollisionVolumes)
-                        {
-                            if (geometryNode.BoundingVolume.GetBoundingType() == BoundingType.Sphere)
-                            {
-                                scene.AddToGroups(scene.renderGroups, COLLISION_SPHERE, geometryNode);
-                            }
-                            else
-                            {
-                                scene.AddToGroups(scene.renderGroups, COLLISION_BOX, geometryNode);
-                            }
-                        }
-                        else if (scene.ShowBoundingVolumes)
-                        {
-                            if (geometryNode.BoundingVolume.GetBoundingType() == BoundingType.Sphere)
-                            {
-                                scene.AddToGroups(scene.renderGroups, BOUNDING_SPHERE, geometryNode);
-                            }
-                            else
-                            {
-                                scene.AddToGroups(scene.renderGroups, BOUNDING_BOX, geometryNode);
-                            }
-                        }
-                    }
                 }
-                else
+                if (drawable.BoundingVolumeVisible)
                 {
-                    if (geometryNode.BoundingVolumeVisible)
-                    {
-                        if (scene.ShowCulledBoundingVolumes)
-                        {
-                            if (geometryNode.BoundingVolume.GetBoundingType() == BoundingType.Sphere)
-                            {
-                                scene.AddToGroups(scene.renderGroups, CULLED_BOUNDING_SPHERE, geometryNode);
-                            }
-                            else
-                            {
-                                scene.AddToGroups(scene.renderGroups, CULLED_BOUNDING_BOX, geometryNode);
-                            }
-                        }
-                    }
+                    scene.AddBoundingVolume(drawable, cull);
                 }
             }
             // TODO should return !cull
             return true;
         };
 
-        private static VoxelOctree.Visitor VOXEL_OCTREE_RENDER_GROUP_VISITOR = delegate (Octree<VoxelObject> octree, OctreeNode<VoxelObject> node, ref Object arg)
+        private static readonly VoxelOctree.Visitor<VoxelChunk> VOXEL_OCTREE_RENDER_GROUP_VISITOR = delegate (Octree<VoxelChunk> octree, OctreeNode<VoxelChunk> node, bool cull, ref Object arg)
         {
             Scene scene = arg as Scene;
 
-            // FIXME this is a performance bottleneck
-            Bounding.BoundingBox bv = new Bounding.BoundingBox();
-            octree.GetNodeBoundingBox(node, ref bv);
-
-            BoundingFrustum boundingFrustum = scene.BoundingFrustum;
-            //Console.WriteLine(boundingFrustum);
-            bool cull = false;
-            if (bv.IsContained(boundingFrustum) == ContainmentType.Disjoint)
+            bool culled = false;
+            if (cull && (node.obj.BoundingBox != null))
             {
-                //Console.WriteLine("Culling " + node.Name);
-                cull = true;
-                scene.cullCount++;
-            }
-            GeometryNode geometryNode = node.obj.GeometryNode;
-            if (geometryNode != null)
-            {
-                if (!cull)
+                BoundingFrustum boundingFrustum = scene.BoundingFrustum;
+                ContainmentType containmentType = node.obj.BoundingBox.IsContained(boundingFrustum);
+                if (containmentType == ContainmentType.Disjoint)
                 {
-                    if (geometryNode.Visible)
+                    //Console.WriteLine("Culling " + node.Name);
+                    culled = true;
+                    scene.cullCount++;
+                }
+                else if (containmentType == ContainmentType.Contains)
+                {
+                    cull = false;
+                }
+            }
+            if (culled)
+            {
+                return VoxelOctree.VisitReturn.Abort;
+            }
+            // TODO don't "load" the object here...
+            if (!node.obj.Initialized)
+            {
+                // TODO cleanup
+                node.obj.Initialized = true;
+                Object gd = scene.GraphicsDevice;
+                VoxelOctreeGeometry.CREATE_GEOMETRY_VISITOR(octree, node, false, ref gd);
+            }
+            Drawable drawable = node.obj.Drawable;
+            if (drawable != null)
+            {
+                if (!culled)
+                {
+                    if (drawable.Visible)
                     {
-                        scene.AddToGroups(scene.renderGroups, geometryNode);
+                        scene.AddToBin(scene.renderBins, drawable);
                         scene.renderCount++;
                     }
-                    if (geometryNode.BoundingVolumeVisible)
-                    {
-                        Boolean collided = (scene.collisionCache != null) ? scene.collisionCache.ContainsKey(geometryNode.Id) : false;
-                        if (collided && scene.ShowCollisionVolumes)
-                        {
-                            scene.AddToGroups(scene.renderGroups, COLLISION_BOX, geometryNode);
-                        }
-                        else if (scene.ShowBoundingVolumes)
-                        {
-                            scene.AddToGroups(scene.renderGroups, BOUNDING_BOX, geometryNode);
-                        }
-                    }
                 }
-                else
+                if (drawable.BoundingVolumeVisible)
                 {
-                    // handle culled nodes
-                    if (geometryNode.BoundingVolumeVisible)
-                    {
-                        if (scene.ShowCulledBoundingVolumes)
-                        {
-                            scene.AddToGroups(scene.renderGroups, CULLED_BOUNDING_BOX, geometryNode);
-                        }
-                    }
+                    scene.AddBoundingVolume(drawable, BoundingType.AABB, culled);
                 }
             }
-            return !cull;
+            return cull ? VoxelOctree.VisitReturn.Continue : VoxelOctree.VisitReturn.ContinueNoCull;
         };
 
-        private static Node.Visitor COLLISION_GROUP_VISITOR = delegate (Node node, ref Object arg)
+        private static readonly Node.Visitor COLLISION_GROUP_VISITOR = delegate (Node node, ref Object arg)
         {
             if (!node.Enabled) return false;
-            if (node is GeometryNode geometryNode)
+            if (node is Physical physical)
             {
                 Scene scene = arg as Scene;
-                scene.AddToGroups(scene.collisionGroups, geometryNode.CollisionGroupId, geometryNode);
+                //scene.AddToGroups(scene.collisionGroups, physical.CollisionGroupId, drawable);
             }
             return true;
         };
 
-        private static Node.Visitor DISPOSE_VISITOR = delegate (Node node, ref Object arg)
+        private static readonly Node.Visitor DISPOSE_VISITOR = delegate (Node node, ref Object arg)
         {
             Console.WriteLine("Disposing " + node.Name);
             node.Dispose();
             return true;
         };
 
-        private static Node.Visitor DUMP_VISITOR = delegate (Node node, ref Object arg)
+        private static readonly Node.Visitor DUMP_VISITOR = delegate (Node node, ref Object arg)
         {
             int level = (arg != null) ? (int)arg : 0;
             Console.Write("".PadLeft(level, ' '));
@@ -600,47 +566,51 @@ namespace GameLibrary.SceneGraph
 
         struct Collision
         {
-            public GeometryNode node1;
-            public GeometryNode node2;
+            public Node node1;
+            public Node node2;
         }
 
-        private void checkCollisions(List<GeometryNode> nodes, Dictionary<int, LinkedList<Collision>> cache)
+        private void checkCollisions(List<Node> nodes, Dictionary<int, LinkedList<Collision>> cache)
         {
             int n = 0;
             for (int i = 0; i < nodes.Count() - 1; i++)
             {
                 for (int j = i + 1; j < nodes.Count(); j++)
                 {
-                    GeometryNode node1 = nodes[i];
-                    GeometryNode node2 = nodes[j];
+                    Node node1 = nodes[i];
+                    Node node2 = nodes[j];
+                    /*
                     if (node1.WorldBoundingVolume != null && node2.WorldBoundingVolume != null && node1.WorldBoundingVolume.Intersects(node2.WorldBoundingVolume))
                     {
                         n++;
                         AddCollision(cache, node1, node2);
                     }
+                    */
                 }
             }
         }
 
-        private void checkCollisions(List<GeometryNode> nodes1, List<GeometryNode> nodes2, Dictionary<int, LinkedList<Collision>> cache)
+        private void checkCollisions(List<Node> nodes1, List<Node> nodes2, Dictionary<int, LinkedList<Collision>> cache)
         {
             int n = 0;
             for (int i = 0; i < nodes1.Count(); i++)
             {
-                GeometryNode node1 = nodes1[i];
+                Node node1 = nodes1[i];
                 for (int j = 0; j < nodes2.Count(); j++)
                 {
-                    GeometryNode node2 = nodes2[j];
+                    Node node2 = nodes2[j];
+                    /*
                     if (node1.WorldBoundingVolume.Intersects(node2.WorldBoundingVolume))
                     {
                         n++;
                         AddCollision(cache, node1, node2);
                     }
+                    */
                 }
             }
         }
 
-        private static Collision AddCollision(Dictionary<int, LinkedList<Collision>> cache, GeometryNode node1, GeometryNode node2)
+        private static Collision AddCollision(Dictionary<int, LinkedList<Collision>> cache, Node node1, Node node2)
         {
             Collision c;
             c.node1 = node1;
@@ -663,37 +633,75 @@ namespace GameLibrary.SceneGraph
             return c;
         }
 
-        internal void ClearGroups(Dictionary<int, List<GeometryNode>> groups)
+        public void AddBoundingVolume(Drawable drawable, bool culled)
         {
-            foreach (KeyValuePair<int, List<GeometryNode>> nodeListKVP in groups)
+            AddBoundingVolume(drawable, drawable.BoundingVolume.GetBoundingType(), culled);
+        }
+
+        public void AddBoundingVolume(Drawable drawable, BoundingType boundingType, bool culled)
+        {
+            Boolean collided = false;// (collisionCache != null) ? collisionCache.ContainsKey(drawable.Id) : false;
+            if (!culled)
             {
-                List<GeometryNode> nodeList = nodeListKVP.Value;
+                if (collided && ShowCollisionVolumes)
+                {
+                    AddToBin(renderBins, (boundingType == BoundingType.Sphere) ? COLLISION_SPHERE : COLLISION_BOX, drawable);
+                }
+                else if (ShowBoundingVolumes)
+                {
+                    AddToBin(renderBins, (boundingType == BoundingType.Sphere) ? BOUNDING_SPHERE : BOUNDING_BOX, drawable);
+                }
+            }
+            else
+            {
+                // handle culled nodes
+                if (ShowCulledBoundingVolumes)
+                {
+                    AddToBin(renderBins, (boundingType == BoundingType.Sphere) ? CULLED_BOUNDING_SPHERE : CULLED_BOUNDING_BOX, drawable);
+                }
+            }
+        }
+
+        internal void ClearCollisionGroups(Dictionary<int, List<Node>> groups)
+        {
+            foreach (KeyValuePair<int, List<Node>> nodeListKVP in groups)
+            {
+                List<Node> nodeList = nodeListKVP.Value;
                 nodeList.Clear();
             }
         }
 
-        internal void AddToGroups(Dictionary<int, List<GeometryNode>> groups, GeometryNode node)
+        internal void ClearBins(Dictionary<int, List<Drawable>> groups)
         {
-            AddToGroups(groups, node.RenderGroupId, node);
+            foreach (KeyValuePair<int, List<Drawable>> drawableListKVP in groups)
+            {
+                List<Drawable> drawableList = drawableListKVP.Value;
+                drawableList.Clear();
+            }
         }
 
-        internal void AddToGroups(Dictionary<int, List<GeometryNode>> groups, int groupId, GeometryNode node)
+        internal void AddToBin(Dictionary<int, List<Drawable>> groups, Drawable drawable)
+        {
+            AddToBin(groups, drawable.RenderGroupId, drawable);
+        }
+
+        internal void AddToBin(Dictionary<int, List<Drawable>> bins, int groupId, Drawable drawable)
         {
             if (groupId < 0)
             {
                 return;
             }
-            List<GeometryNode> list;
-            if (!groups.TryGetValue(groupId, out list))
+            List<Drawable> list;
+            if (!bins.TryGetValue(groupId, out list))
             {
-                list = new List<GeometryNode>();
-                groups[groupId] = list;
+                list = new List<Drawable>();
+                bins[groupId] = list;
             }
-            if (Debug && list.Contains(node))
+            if (Debug && list.Contains(drawable))
             {
                 throw new Exception("Node already in group " + groupId);
             }
-            list.Add(node);
+            list.Add(drawable);
         }
 
     }

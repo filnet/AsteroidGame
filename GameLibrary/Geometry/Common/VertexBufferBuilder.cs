@@ -83,11 +83,11 @@ namespace GameLibrary.Geometry.Common
         {
             if (vertices == null)
             {
-                vertices = createVertexArray(32);
+                vertices = createVertexArray(512);
             }
             if (vIndex == vertices.Count())
             {
-                Console.WriteLine("Resizing vertex array... {0}", vertices.Count());
+                //Console.WriteLine("Resizing vertex array... {0}", vertices.Count());
                 Array.Resize(ref vertices, 2 * vertices.Count());
             }
         }
@@ -101,11 +101,11 @@ namespace GameLibrary.Geometry.Common
         {
             if (indices == null)
             {
-                indices = createIndexArray(32);
+                indices = createIndexArray(512);
             }
             if (iIndex == indices.Count())
             {
-                Console.WriteLine("Resizing index array... {0}", vertices.Count());
+                //Console.WriteLine("Resizing index array... {0}", vertices.Count());
                 Array.Resize(ref indices, 2 * indices.Count());
             }
         }

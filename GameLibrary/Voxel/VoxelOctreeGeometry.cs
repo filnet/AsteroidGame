@@ -9,6 +9,7 @@ using GameLibrary.SceneGraph.Common;
 using GameLibrary.Voxel;
 using GameLibrary.Geometry.Common;
 using GameLibrary.Geometry;
+using GameLibrary.SceneGraph.Bounding;
 
 namespace GameLibrary.Voxel
 {
@@ -19,18 +20,18 @@ namespace GameLibrary.Voxel
 
         public VoxelOctree voxelOctree;
 
-        public VoxelOctreeGeometry(String name, int size) : base(name)
+        public VoxelOctreeGeometry(String name, int size, int chunkSize) : base(name)
         {
             center = Vector3.Zero;
-            halfSize = new Vector3(size / 2);
-            voxelOctree = new VoxelOctree(size, 16);
+            halfSize = new Vector3((size * chunkSize) / 2);
+            voxelOctree = new VoxelOctree(size, chunkSize);
         }
 
         public override void Initialize(GraphicsDevice gd)
         {
             BoundingVolume = new GameLibrary.SceneGraph.Bounding.BoundingBox(center, halfSize);
 
-            voxelOctree.Visit(0, CREATE_GEOMETRY_VISITOR, gd);
+            //voxelOctree.Visit(0, CREATE_GEOMETRY_VISITOR, gd);
 
             base.Initialize(gd);
         }
@@ -39,60 +40,115 @@ namespace GameLibrary.Voxel
         {
         }
 
-        private static VoxelOctree.Visitor CREATE_GEOMETRY_VISITOR = delegate (Octree<VoxelObject> octree, OctreeNode<VoxelObject> node, ref Object arg)
+        public class FakeDrawable : Drawable
         {
-            GraphicsDevice gd = arg as GraphicsDevice;
+            public bool Enabled { get; set; }
 
-            GeometryNode geometryNode = null;
-            //int depth = octree.GetNodeTreeDepth(node);
-            if (node.obj.VoxelMap != null)
+            // Fake is always invisible (but not its bounds...)
+            public bool Visible { get; set; }
+
+            public int RenderGroupId { get; set; }
+
+            public bool BoundingVolumeVisible { get; set; }
+
+            /// <summary>
+            /// Gets or sets the geometry bounding volume, which contains the entire geometry in model (local) space.
+            /// </summary>
+            public BoundingVolume BoundingVolume { get; }
+
+            /// <summary>
+            /// Gets or sets the geometry bounding volume, which contains the entire geometry in model (local) space.
+            /// </summary>
+            public BoundingVolume WorldBoundingVolume { get; }
+
+            public void PreDraw(GraphicsDevice gd)
+            { }
+            public void Draw(GraphicsDevice gd)
+            { }
+            public void PostDraw(GraphicsDevice gd)
+            { }
+
+            public FakeDrawable(int renderGroupId, BoundingVolume boundingVolume) : this(renderGroupId, boundingVolume, boundingVolume)
             {
-                VoxelMap voxelMap = node.obj.VoxelMap;
-
-                // FIXME garbage generation here...
-                int n = Enum.GetNames(typeof(Direction)).Length;
-                VoxelMap[] neighbours = new VoxelMap[n];
-                foreach (Direction direction in Enum.GetValues(typeof(Direction)).Cast<Direction>())
-                {
-                    ulong l = octree.GetNeighborOfGreaterOrEqualSize(node.locCode, direction);
-                    OctreeNode<VoxelObject> neighbourNode = octree.LookupNode(l);
-                    neighbours[(int)direction] = (neighbourNode != null) ? neighbourNode.obj.VoxelMap : null;
-                }
-
-                geometryNode = new MeshNode("VOXEL", new VoxelMapMeshFactory(voxelMap, neighbours));
-                geometryNode.Initialize(gd);
-                geometryNode.Visible = true;
-                geometryNode.RenderGroupId = Scene.VOXEL;
-                //node.Rotation = Quaternion.CreateFromYawPitchRoll(0.3f, 0, 0);
-
-                Vector3 halfSize;
-                Vector3 center;
-                octree.GetNodeBoundingBox(node, out center, out halfSize);
-
-                geometryNode.Translation = center;
             }
-            else
+            public FakeDrawable(int renderGroupId, BoundingVolume boundingVolume, BoundingVolume worldBoundingVolume)
             {
-                geometryNode = GeometryUtil.CreateCubeWF("BOUNDING_BOX", 0.5f);
-                geometryNode.Initialize(gd);
-                geometryNode.Visible = false;
-                geometryNode.RenderGroupId = Scene.VECTOR;
-
-                Vector3 halfSize;
-                Vector3 center;
-                octree.GetNodeBoundingBox(node, out center, out halfSize);
-
-                geometryNode.Scale = halfSize;
-                geometryNode.Translation = center;
+                RenderGroupId = renderGroupId;
+                BoundingVolume = boundingVolume;
+                WorldBoundingVolume = worldBoundingVolume;
+                Enabled = true;
+                Visible = false;
+                BoundingVolumeVisible = true;
             }
-            if (geometryNode != null)
+        }
+
+        public static VoxelOctree.Visitor<VoxelChunk> CREATE_GEOMETRY_VISITOR = delegate (Octree<VoxelChunk> octree, OctreeNode<VoxelChunk> node, bool cull, ref Object arg)
+    {
+        GraphicsDevice gd = arg as GraphicsDevice;
+
+        Drawable drawable = null;
+        // TODO remove magic number 4... that's why we are stuck at size 512
+        if (node.obj.VoxelMap != null && Octree<VoxelChunk>.GetNodeTreeDepth(node) == 6)
+        {
+            VoxelMap voxelMap = node.obj.VoxelMap;
+
+            // TODO performance: derive from a simpler geometry node (no child, no physics, etc...)
+            IMeshFactory f = new VoxelMapMeshFactory(octree as VoxelOctree, node);
+            Mesh mesh = f.CreateMesh(gd);
+            if (mesh == null)
             {
-                geometryNode.UpdateTransform();
-                geometryNode.UpdateWorldTransform(null);
+                return VoxelOctree.VisitReturn.Abort;
             }
-            node.obj.GeometryNode = geometryNode;
-            return true;
-        };
+            GeometryNode geometryNode = new MeshNode("VOXEL", mesh);
+            geometryNode.Initialize(gd);
+            geometryNode.Visible = true;
+            geometryNode.RenderGroupId = Scene.VOXEL;
+            //node.Rotation = Quaternion.CreateFromYawPitchRoll(0.3f, 0, 0);
+
+            SceneGraph.Bounding.BoundingBox boundingBox = node.obj.BoundingBox;
+            /*
+            Vector3 halfSize;
+            Vector3 center;
+            octree.GetNodeBoundingBox(node, out center, out halfSize);
+            */
+
+            geometryNode.Translation = boundingBox.Center;
+
+            geometryNode.BoundingVolume = boundingBox;
+            geometryNode.BoundingVolumeVisible = false;
+
+            geometryNode.UpdateTransform();
+            geometryNode.UpdateWorldTransform(null);
+
+            drawable = geometryNode;
+        }
+        else 
+        {
+            SceneGraph.Bounding.BoundingBox boundingBox = node.obj.BoundingBox;
+            drawable = new FakeDrawable(Scene.VECTOR, boundingBox);
+
+            // TODO performance: LAZILY create somple place holder geometry
+            // the place holder geometry should be as simple as possible:
+            // - only bounding volume
+            // - no mesh
+            // - no child, etc...
+/*
+            GeometryNode geometryNode = GeometryUtil.CreateCubeWF("BOUNDING_BOX", 0.5f);
+            geometryNode.Initialize(gd);
+            geometryNode.Visible = false;
+            geometryNode.RenderGroupId = Scene.VECTOR;
+
+            Vector3 halfSize;
+            Vector3 center;
+            octree.GetNodeBoundingBox(node, out center, out halfSize);
+
+            geometryNode.Scale = halfSize;
+            geometryNode.Translation = center;
+*/
+        }
+        node.obj.Drawable = drawable;
+        return VoxelOctree.VisitReturn.Continue;
+    };
 
 
     }

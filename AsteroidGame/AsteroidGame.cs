@@ -105,11 +105,11 @@ namespace AsteroidGame
                 default:
                     if (camera != null)
                     {
-                        camera.ZoomMin = 0.1f;
+                        camera.ZoomMin = 0.01f;
                         camera.ZoomMax = 2000f;
-                        camera.ZoomSpeed = 32f / 60f;
-                        camera.Zoom = 256f;
-                        camera.VerticalAngle = -MathHelper.PiOver2;
+                        camera.ZoomSpeed = 64f / 60f;
+                        //camera.Zoom = 200f;
+                        camera.VerticalAngle = -MathHelper.PiOver4;
                     }
                     Scene.RootNode = createVoxelTestScene();
                     break;
@@ -280,24 +280,24 @@ namespace AsteroidGame
         private Node createVoxelTestScene()
         {
             //Node voxelMapNode = createVoxelMapNode("VOXEL", 16);
-            Node voxelOctreeNode = createVoxelOctreeNode("OCTREE", 1024);
+            Node voxelOctreeNode = createVoxelOctreeNode("OCTREE", 2048, 32);
 
             // root
             TransformNode node = new TransformNode("SCENE");
-            node.Scale = new Vector3(0.10f);
+            //node.Scale = new Vector3(0.10f);
             //node.Add(voxelMapNode);
             node.Add(voxelOctreeNode);
 
             return node;
         }
 
-        private Node createVoxelOctreeNode(String name, int size)
+        private Node createVoxelOctreeNode(String name, int size, int chunkSize)
         {
-            VoxelOctreeGeometry voxelOctreeGeometry = new VoxelOctreeGeometry(name, size);
+            VoxelOctreeGeometry voxelOctreeGeometry = new VoxelOctreeGeometry(name, size, chunkSize);
             voxelOctreeGeometry.RenderGroupId = Scene.OCTREE;
             return voxelOctreeGeometry;
         }
-
+/*
         private Node createVoxelMapNode(String name, int size)
         {
             //voxelMap = new SimpleVoxelMap(size);
@@ -312,7 +312,7 @@ namespace AsteroidGame
 
             return node;
         }
-/*
+
         private void addOctreeChildren(Octree<GeometryNode> octree, OctreeNode<GeometryNode> parentNode)
         {
             if (octree.GetNodeTreeDepth(parentNode) == 6)

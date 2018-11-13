@@ -63,7 +63,7 @@ namespace GameLibrary.Geometry
 
         public Mesh CreateMesh(GraphicsDevice gd)
         {
-            frequency = MathUtil.power(2, recursionLevel);
+            frequency = MathUtil.Pow(2, recursionLevel);
             frequency2 = frequency * frequency;
 
             vertexCount = 10 * frequency2 + 2;
