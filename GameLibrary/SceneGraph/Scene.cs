@@ -195,37 +195,37 @@ namespace GameLibrary.SceneGraph
                 // handle collisions
                 ClearCollisionGroups(collisionGroups);
                 rootNode.Visit(COLLISION_GROUP_VISITOR, this);
-            }
 
-            collisionCache.Clear();
-            if (collisionGroups.ContainsKey(ASTEROID))
-            {
-                checkCollisions(collisionGroups[ASTEROID], collisionCache);
-                if (collisionGroups.ContainsKey(PLAYER))
+                collisionCache.Clear();
+                if (collisionGroups.ContainsKey(ASTEROID))
                 {
-                    checkCollisions(collisionGroups[ASTEROID], collisionGroups[PLAYER], collisionCache);
-                }
-                if (collisionGroups.ContainsKey(BULLET))
-                {
-                    checkCollisions(collisionGroups[ASTEROID], collisionGroups[BULLET], collisionCache);
-                }
-            }
-            /*
-            intersections.Clear();
-            foreach (LinkedList<Collision> list in collisionCache.Values)
-            {
-                foreach (Collision c in list)
-                {
-                    MeshNode n1 = c.node1 as MeshNode;
-                    MeshNode n2 = c.node2 as MeshNode;
-                    if (n1 != null && n2 != null)
+                    checkCollisions(collisionGroups[ASTEROID], collisionCache);
+                    if (collisionGroups.ContainsKey(PLAYER))
                     {
-                        //PolygonUtil.clip(n1, n2, intersections);
-                        //PolygonUtil.findIntersections(n1, n2, intersections);
+                        checkCollisions(collisionGroups[ASTEROID], collisionGroups[PLAYER], collisionCache);
+                    }
+                    if (collisionGroups.ContainsKey(BULLET))
+                    {
+                        checkCollisions(collisionGroups[ASTEROID], collisionGroups[BULLET], collisionCache);
                     }
                 }
+                /*
+                intersections.Clear();
+                foreach (LinkedList<Collision> list in collisionCache.Values)
+                {
+                    foreach (Collision c in list)
+                    {
+                        MeshNode n1 = c.node1 as MeshNode;
+                        MeshNode n2 = c.node2 as MeshNode;
+                        if (n1 != null && n2 != null)
+                        {
+                            //PolygonUtil.clip(n1, n2, intersections);
+                            //PolygonUtil.findIntersections(n1, n2, intersections);
+                        }
+                    }
+                }
+                */
             }
-            */
 
             bool cameraDirty = false;
             cameraDirty = cameraDirty || (!previousProjectionMatrix.Equals(cameraComponent.ProjectionMatrix));
@@ -241,13 +241,12 @@ namespace GameLibrary.SceneGraph
             {
                 if (cameraDirty)
                 {
-                    //Console.WriteLine("Camera Dirty");
                     previousProjectionMatrix = cameraComponent.ProjectionMatrix;
                     previousViewMatrix = cameraComponent.ViewMatrix;
                 }
                 if (structureDirty)
                 {
-                    Console.WriteLine("Structure Dirty");
+                    if (Debug) Console.WriteLine("Structure Dirty");
                 }
                 ClearBins(renderBins);
 
@@ -257,10 +256,7 @@ namespace GameLibrary.SceneGraph
                 // so doing a clear + full reconstruct is not very efficient
                 // but RENDER_GROUP_VISITOR does the culling...
                 rootNode.Visit(RENDER_GROUP_VISITOR, this);
-                if (Debug)
-                {
-                    Console.WriteLine(cullCount + " / " + renderCount);
-                }
+                if (Debug) Console.WriteLine(cullCount + " / " + renderCount);
             }
 
             if (CaptureFrustrum)
@@ -310,6 +306,10 @@ namespace GameLibrary.SceneGraph
             {
                 int renderBinId = renderBinKVP.Key;
                 List<Drawable> nodeList = renderBinKVP.Value;
+                if (nodeList.Count() == 0)
+                {
+                    break;
+                }
 
                 if (Debug) Console.WriteLine(renderBinId + " " + nodeList.Count);
 
@@ -410,9 +410,9 @@ namespace GameLibrary.SceneGraph
         private static readonly Node.Visitor COMMIT_VISITOR = delegate (Node node, ref Object arg)
         {
             if (!node.Enabled) return false;
-            //Console.WriteLine("Commiting " + node.Name);
             if (node is GroupNode groupNode)
             {
+                if (Debug) Console.WriteLine("Commiting " + node.Name);
                 Scene scene = arg as Scene;
                 groupNode.Commit(scene.GraphicsDevice);
             }
@@ -426,11 +426,15 @@ namespace GameLibrary.SceneGraph
         private static readonly Node.Visitor CONTROLLER_VISITOR = delegate (Node node, ref Object arg)
         {
             if (!node.Enabled) return false;
-            //Console.WriteLine("Updating " + node.Name);
             GameTime gameTime = arg as GameTime;
             foreach (Controller controller in node.Controllers)
             {
-                if (!node.Enabled) break; // no need to continue...
+                // a controller can disable the node...
+                if (!node.Enabled)
+                {
+                    // no need to continue...
+                    break;
+                }
                 controller.Update(gameTime);
             }
             return true;
@@ -449,7 +453,7 @@ namespace GameLibrary.SceneGraph
                 Matrix vt = Matrix.Transpose(scene.CameraComponent.ViewMatrix);
                 Vector3 dir = vt.Forward;
                 int visitOrder = VectorUtil.visitOrder(dir);
-                //Console.WriteLine(dir + " : " + visitOrder);
+                //if (Debug) Console.WriteLine(dir + " : " + visitOrder);
 
                 voxelOctreeGeometry.voxelOctree.Visit(visitOrder, VOXEL_OCTREE_RENDER_GROUP_VISITOR, arg);
                 return true;
@@ -461,10 +465,9 @@ namespace GameLibrary.SceneGraph
                 if (bv != null)
                 {
                     BoundingFrustum boundingFrustum = scene.BoundingFrustum;
-                    //Console.WriteLine(boundingFrustum);
                     if (bv.IsContained(boundingFrustum) == ContainmentType.Disjoint)
                     {
-                        //Console.WriteLine("Culling " + node.Name);
+                        //if (Debug) Console.WriteLine("Culling " + node.Name);
                         cull = true;
                         scene.cullCount++;
                     }
