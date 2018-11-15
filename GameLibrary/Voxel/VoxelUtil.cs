@@ -20,6 +20,7 @@ namespace GameLibrary.Voxel
         public static Color AmbientOcclusionColor(int ao)
         {
             return Color.Multiply(Color.White, ambientOcclusionCurve[ao]);
+/*
             switch (ao)
             {
                 case 0:
@@ -30,6 +31,7 @@ namespace GameLibrary.Voxel
                     return Color.Blue;
             }
             return Color.White;
+*/
         }
 
         public static int VertexAmbientOcclusion(bool side1, bool side2, bool corner)

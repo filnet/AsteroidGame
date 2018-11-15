@@ -12,10 +12,14 @@ namespace GameLibrary.Geometry.Common
         protected GraphicsDevice gd;
 
         private T[] vertices;
-        protected short vIndex;
+        protected int vIndex;
 
-        protected short[] indices;
-        protected short iIndex;
+        protected int[] indices;
+        protected int iIndex;
+
+        public VertexBufferBuilder(GraphicsDevice gd) : this(gd, 0, 0)
+        {
+        }
 
         public VertexBufferBuilder(GraphicsDevice gd, int vertexCount, int indexCount)
         {
@@ -57,13 +61,19 @@ namespace GameLibrary.Geometry.Common
 
         protected abstract T createVertex(Vector3 position, Vector3 normal, Color color, Vector2 textureCoordinate, int textureIndex, int lightTextureIndex);
 
-        public void AddIndex(short index)
+        public void AddIndex(int index)
         {
             ensureIndexCapacity();
-            indices[iIndex++] = (short)index;
+            indices[iIndex++] = index;
         }
 
-        public virtual void setToMesh(Mesh mesh)
+        public void Reset()
+        {
+            vIndex = 0;
+            iIndex = 0;
+        }
+
+        public virtual void SetToMesh(Mesh mesh)
         {
             if (vertices != null && vIndex > 0)
             {
@@ -74,7 +84,7 @@ namespace GameLibrary.Geometry.Common
             }
             if (indices != null && iIndex > 0)
             {
-                mesh.IndexBuffer = new IndexBuffer(gd, typeof(short), iIndex, BufferUsage.None);
+                mesh.IndexBuffer = new IndexBuffer(gd, typeof(int), iIndex, BufferUsage.None);
                 mesh.IndexBuffer.SetData(indices);
             }
         }
@@ -110,9 +120,9 @@ namespace GameLibrary.Geometry.Common
             }
         }
 
-        private short[] createIndexArray(int size)
+        private int[] createIndexArray(int size)
         {
-            return new short[size];
+            return new int[size];
         }
 
         // VertexPositionNormalTexture
@@ -219,15 +229,15 @@ namespace GameLibrary.Geometry.Common
 
         // VoxelVertex
 
-        public static VertexBufferBuilder<VoxelVertex> createVoxelVertexBufferBuilder(GraphicsDevice gd, int vertexCount, int indexCount)
+        public static VertexBufferBuilder<VoxelVertex> createVoxelVertexBufferBuilder(GraphicsDevice gd)
         {
-            return new VoxelVertexBufferBuilder(gd, vertexCount, indexCount);
+            return new VoxelVertexBufferBuilder(gd);
         }
 
         private class VoxelVertexBufferBuilder : VertexBufferBuilder<VoxelVertex>
         {
-            public VoxelVertexBufferBuilder(GraphicsDevice gd, int vertexCount, int indexCount)
-                : base(gd, vertexCount, indexCount)
+            public VoxelVertexBufferBuilder(GraphicsDevice gd)
+                : base(gd)
             {
             }
 

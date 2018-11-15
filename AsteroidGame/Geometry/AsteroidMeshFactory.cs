@@ -36,7 +36,7 @@ namespace AsteroidGame.Geometry
                 builder.AddVertex(vertex, Vector3.Zero, Color.LightGray, Vector2.Zero);
             }
             Mesh mesh = new Mesh(PrimitiveType.LineStrip, count);
-            builder.setToMesh(mesh);
+            builder.SetToMesh(mesh);
             GameLibrary.SceneGraph.Bounding.BoundingSphere boundingSphere = new GameLibrary.SceneGraph.Bounding.BoundingSphere();
             boundingSphere.ComputeFromPoints(vertices);
             mesh.BoundingVolume = boundingSphere;

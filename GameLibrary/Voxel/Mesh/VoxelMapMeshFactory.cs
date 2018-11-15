@@ -56,21 +56,29 @@ namespace GameLibrary.Voxel
     public class VoxelMapMeshFactory : IMeshFactory
     {
         private readonly VoxelOctree octree;
-        private readonly OctreeNode<VoxelChunk> node;
+
+        private readonly GraphicsDevice graphicsDevice;
 
         private readonly DrawVisitor drawVisitor;
 
-        public VoxelMapMeshFactory(VoxelOctree octree, OctreeNode<VoxelChunk> node)
+        public VoxelMapMeshFactory(VoxelOctree octree, GraphicsDevice graphicsDevice)
         {
             this.octree = octree;
-            this.node = node;
+            this.graphicsDevice = graphicsDevice;
 
             drawVisitor = new DrawVisitor(this);
+            drawVisitor.builder = VertexBufferBuilder<VoxelVertex>.createVoxelVertexBufferBuilder(graphicsDevice);
         }
 
-        public Mesh CreateMesh(GraphicsDevice gd)
+        public Mesh CreateMesh(GraphicsDevice graphicsDevice)
         {
-            drawVisitor.builder = VertexBufferBuilder<VoxelVertex>.createVoxelVertexBufferBuilder(gd, 0, 0);
+            // not used...
+            return null;
+        }
+
+        public Mesh CreateMesh(OctreeNode<VoxelChunk> node)
+        {
+            drawVisitor.builder.Reset();
 
             VoxelMapIterator ite = new DefaultVoxelMapIterator(octree, node);
 
@@ -81,8 +89,9 @@ namespace GameLibrary.Voxel
                 return null;
             }
             Mesh mesh = new Mesh(PrimitiveType.TriangleList, drawVisitor.primitiveCount);
-            mesh.BoundingVolume = drawVisitor.GetBoundingVolume();
-            drawVisitor.builder.setToMesh(mesh);
+            mesh.BoundingVolume = new GameLibrary.SceneGraph.Bounding.BoundingBox(octree.Center, octree.HalfSize);
+
+            drawVisitor.builder.SetToMesh(mesh);
             return mesh;
         }
 
@@ -183,23 +192,14 @@ namespace GameLibrary.Voxel
                 scaleYZ = new Vector3(1, s.Y, s.Z);
             }
 
-            public GameLibrary.SceneGraph.Bounding.BoundingVolume GetBoundingVolume()
-            {
-                return new GameLibrary.SceneGraph.Bounding.BoundingBox(Vector3.Zero, new Vector3(d * size, d * size, d * size));
-            }
-
             public bool Begin(int size)
             {
                 this.size = size;
+                vertexCount = 0;
+                primitiveCount = 0;
                 return true;
             }
 
-
-            public int VertexAmbientOcclusion(VoxelMapIterator ite, Direction side1, Direction side2, Direction corner)
-            {
-                // TODO cache values...
-                return VoxelUtil.VertexAmbientOcclusion(ite.Value(side1) != 0, ite.Value(side2) != 0, ite.Value(corner) != 0); ;
-            }
 
             //static int c = 0;
 
@@ -258,14 +258,11 @@ namespace GameLibrary.Voxel
                     // BottomLeftFront
                     int a00 = VertexAmbientOcclusion(ite, Direction.LeftFront, Direction.BottomFront, Direction.BottomLeftFront);
                     // TopLeftFront
-                    int a01 = VertexAmbientOcclusion(ite,
-                        Direction.LeftFront, Direction.TopFront, Direction.TopLeftFront);
+                    int a01 = VertexAmbientOcclusion(ite, Direction.LeftFront, Direction.TopFront, Direction.TopLeftFront);
                     // BottomRightFront
-                    int a10 = VertexAmbientOcclusion(ite,
-                        Direction.RightFront, Direction.BottomFront, Direction.BottomRightFront);
+                    int a10 = VertexAmbientOcclusion(ite, Direction.RightFront, Direction.BottomFront, Direction.BottomRightFront);
                     // TopRightFront
-                    int a11 = VertexAmbientOcclusion(ite,
-                        Direction.RightFront, Direction.TopFront, Direction.TopRightFront); ;
+                    int a11 = VertexAmbientOcclusion(ite, Direction.RightFront, Direction.TopFront, Direction.TopRightFront); ;
                     int ao = VoxelUtil.CombineVertexAmbientOcclusion(a00, a01, a10, a11);
 
                     builder.AddVertex(_bottomLeftFront, frontNormal, Color.White, tex00, tile, ao);
@@ -306,7 +303,7 @@ namespace GameLibrary.Voxel
                     int a00 = VertexAmbientOcclusion(ite, Direction.RightBack, Direction.BottomBack, Direction.BottomRightBack);
                     int a01 = VertexAmbientOcclusion(ite, Direction.RightBack, Direction.TopBack, Direction.TopRightBack);
                     int a10 = VertexAmbientOcclusion(ite, Direction.LeftBack, Direction.BottomBack, Direction.BottomLeftBack);
-                    int a11 = VertexAmbientOcclusion(ite, Direction.LeftBack, Direction.TopBack, Direction.TopLeftBack); ;
+                    int a11 = VertexAmbientOcclusion(ite, Direction.LeftBack, Direction.TopBack, Direction.TopLeftBack);
                     int ao = VoxelUtil.CombineVertexAmbientOcclusion(a00, a01, a10, a11);
 
                     builder.AddVertex(_bottomRightBack, backNormal, Color.White, tex00, tile, ao);
@@ -347,7 +344,7 @@ namespace GameLibrary.Voxel
                     int a00 = VertexAmbientOcclusion(ite, Direction.TopLeft, Direction.TopFront, Direction.TopLeftFront);
                     int a01 = VertexAmbientOcclusion(ite, Direction.TopLeft, Direction.TopBack, Direction.TopLeftBack);
                     int a10 = VertexAmbientOcclusion(ite, Direction.TopRight, Direction.TopFront, Direction.TopRightFront);
-                    int a11 = VertexAmbientOcclusion(ite, Direction.TopRight, Direction.TopBack, Direction.TopRightBack); ;
+                    int a11 = VertexAmbientOcclusion(ite, Direction.TopRight, Direction.TopBack, Direction.TopRightBack);
                     int ao = VoxelUtil.CombineVertexAmbientOcclusion(a00, a01, a10, a11);
 
                     builder.AddVertex(_topLeftFront, topNormal, Color.White, tex00, tile, ao);
@@ -388,7 +385,7 @@ namespace GameLibrary.Voxel
                     int a00 = VertexAmbientOcclusion(ite, Direction.BottomRight, Direction.BottomFront, Direction.BottomRightFront);
                     int a01 = VertexAmbientOcclusion(ite, Direction.BottomRight, Direction.BottomBack, Direction.BottomRightBack);
                     int a10 = VertexAmbientOcclusion(ite, Direction.BottomLeft, Direction.BottomFront, Direction.BottomLeftFront);
-                    int a11 = VertexAmbientOcclusion(ite, Direction.BottomLeft, Direction.BottomBack, Direction.BottomLeftBack); ;
+                    int a11 = VertexAmbientOcclusion(ite, Direction.BottomLeft, Direction.BottomBack, Direction.BottomLeftBack);
                     int ao = VoxelUtil.CombineVertexAmbientOcclusion(a00, a01, a10, a11);
 
                     builder.AddVertex(_bottomRightFront, bottomNormal, Color.White, tex00, tile, ao);
@@ -429,7 +426,7 @@ namespace GameLibrary.Voxel
                     int a00 = VertexAmbientOcclusion(ite, Direction.BottomLeft, Direction.LeftBack, Direction.BottomLeftBack);
                     int a01 = VertexAmbientOcclusion(ite, Direction.TopLeft, Direction.LeftBack, Direction.TopLeftBack);
                     int a10 = VertexAmbientOcclusion(ite, Direction.BottomLeft, Direction.LeftFront, Direction.BottomLeftFront);
-                    int a11 = VertexAmbientOcclusion(ite, Direction.TopLeft, Direction.LeftFront, Direction.TopLeftFront); ;
+                    int a11 = VertexAmbientOcclusion(ite, Direction.TopLeft, Direction.LeftFront, Direction.TopLeftFront);
                     int ao = VoxelUtil.CombineVertexAmbientOcclusion(a00, a01, a10, a11);
 
                     builder.AddVertex(_bottomLeftBack, leftNormal, Color.White, tex00, tile, ao);
@@ -470,7 +467,7 @@ namespace GameLibrary.Voxel
                     int a00 = VertexAmbientOcclusion(ite, Direction.BottomRight, Direction.RightFront, Direction.BottomRightFront);
                     int a01 = VertexAmbientOcclusion(ite, Direction.TopRight, Direction.RightFront, Direction.TopRightFront);
                     int a10 = VertexAmbientOcclusion(ite, Direction.BottomRight, Direction.RightBack, Direction.BottomRightBack);
-                    int a11 = VertexAmbientOcclusion(ite, Direction.TopRight, Direction.RightBack, Direction.TopRightBack); ;
+                    int a11 = VertexAmbientOcclusion(ite, Direction.TopRight, Direction.RightBack, Direction.TopRightBack);
                     int ao = VoxelUtil.CombineVertexAmbientOcclusion(a00, a01, a10, a11);
 
                     builder.AddVertex(_bottomRightFront, rightNormal, Color.White, tex00, tile, ao);
@@ -492,6 +489,12 @@ namespace GameLibrary.Voxel
                 ite.voxelsCount += (primitiveCount > 0) ? 1 : 0;
                 ite.facesCount += primitiveCount / 2;
                 return true;
+            }
+
+            public int VertexAmbientOcclusion(VoxelMapIterator ite, Direction side1, Direction side2, Direction corner)
+            {
+                // TODO cache values...
+                return VoxelUtil.VertexAmbientOcclusion(ite.Value(side1) != 0, ite.Value(side2) != 0, ite.Value(corner) != 0); ;
             }
 
             public bool End()

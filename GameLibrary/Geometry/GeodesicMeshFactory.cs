@@ -75,7 +75,7 @@ namespace GameLibrary.Geometry
             middlePointIndexCache = new Dictionary<long, short>(vertexCount);
             index = 0;
 
-            Console.WriteLine("Generatic geodesic: vertices = {0}, faces = {1}, edges = {2}", vertexCount, facesCount, edgesCount);
+            Console.WriteLine("Generating geodesic: vertices = {0}, faces = {1}, edges = {2}", vertexCount, facesCount, edgesCount);
             generateGeometry();
 
             Mesh mesh = generateMesh(gd, faces);
@@ -118,7 +118,7 @@ namespace GameLibrary.Geometry
                 mesh = new Mesh(PrimitiveType.TriangleList, faces.Count());
             }
             mesh.BoundingVolume = new GameLibrary.SceneGraph.Bounding.BoundingSphere(Vector3.Zero, 1.0f);
-            builder.setToMesh(mesh);
+            builder.SetToMesh(mesh);
             return mesh;
         }
 

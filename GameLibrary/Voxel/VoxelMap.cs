@@ -1,7 +1,5 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
+﻿using GameLibrary.Util;
+using System;
 
 namespace GameLibrary.Voxel
 {
@@ -63,7 +61,7 @@ namespace GameLibrary.Voxel
         {
             return (size == 0);
         }
-        
+
         public abstract int Get(int x, int y, int z);
 
         public int GetSafe(int x, int y, int z)
@@ -462,7 +460,7 @@ namespace GameLibrary.Voxel
 
         public override int Get(int x, int y, int z)
         {
-            return f8(x0 + x, y0 + y, z0 + z);
+            return f9(x0 + x, y0 + y, z0 + z);
         }
 
         private int f0(int x, int y, int z)
@@ -528,12 +526,12 @@ namespace GameLibrary.Voxel
             if (y == 9 && x == 8 && z == 8) return 5;
             return 0;
         }
-
+/*
         public override bool IsEmpty()
         {
-            return !(y0 <= 0 && y0 + size >= 0);
+            return !(y0 == 0);
         }
-
+*/
         private int f8(int x, int y, int z)
         {
             if (y == 0)
@@ -542,6 +540,12 @@ namespace GameLibrary.Voxel
                 return 2;
             }
             return 0;
+        }
+
+        private int f9(int x, int y, int z)
+        {
+            float n = SimplexNoise.Generate(z / 10.0f, x / 10.0f, y / 10.0f);
+            return (n > 0.5f) ? 1 : 0;
         }
 
         /*

@@ -38,7 +38,7 @@ namespace AsteroidGame
         public AsteroidGame()
             : base()
         {
-            IsFixedTimeStep = false;
+            //IsFixedTimeStep = false;
             instance = this;
         }
 
@@ -280,7 +280,7 @@ namespace AsteroidGame
         private Node createVoxelTestScene()
         {
             //Node voxelMapNode = createVoxelMapNode("VOXEL", 16);
-            Node voxelOctreeNode = createVoxelOctreeNode("OCTREE", 2048, 32);
+            Node voxelOctreeNode = createVoxelOctreeNode("OCTREE", 512, 32);
 
             // root
             TransformNode node = new TransformNode("SCENE");
@@ -297,38 +297,7 @@ namespace AsteroidGame
             voxelOctreeGeometry.RenderGroupId = Scene.OCTREE;
             return voxelOctreeGeometry;
         }
-/*
-        private Node createVoxelMapNode(String name, int size)
-        {
-            //voxelMap = new SimpleVoxelMap(size);
-            VoxelMap voxelMap = new FunctionVoxelMap(size);
 
-            //GeometryNode node = new VoxelMapGeometry(name, size);
-            //node.RenderGroupId = Scene.VOXEL_MAP;
-
-            GeometryNode node = new MeshNode("VOXEL", new VoxelMapMeshFactory(voxelMap));
-            node.RenderGroupId = Scene.VOXEL;
-            //node.Rotation = Quaternion.CreateFromYawPitchRoll(0.3f, 0, 0);
-
-            return node;
-        }
-
-        private void addOctreeChildren(Octree<GeometryNode> octree, OctreeNode<GeometryNode> parentNode)
-        {
-            if (octree.GetNodeTreeDepth(parentNode) == 6)
-            {
-                return;
-            }
-            for (int i = 0; i < 8; i++)
-            {
-                OctreeNode<GeometryNode> childNode = octree.AddChild(parentNode, (Octant)i);
-                if (i == 0)
-                {
-                    addOctreeChildren(octree, childNode);
-                }
-            }
-        }
-*/
         private Node createCollisionTestScene()
         {
             GeometryNode node1 = new MeshNode("RECT_1", new SquareMeshFactory());

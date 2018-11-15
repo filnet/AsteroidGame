@@ -1,4 +1,41 @@
-﻿10 node types
+﻿
+--------------------------------------------------------------------------------
+Rendering
+--------------------------------------------------------------------------------
+
+Octree culling
+- tree is traversed in front to back order
+   
+
+Octree frustrum culling, three cases:
+- bb is disjoint, stop at this level
+- bb instersects, continue down with culling
+- bb is contained, continue down without culling (there is no need to cull children...)
+
+Small feature culling
+- as we traverse front to back we can stop when encountering the 1st culled small feature
+
+LOD
+- not so simple...
+- how to interpolate down
+- adjacent chunks with different LODs
+
+Octree rendering
+- when culling two bins are filled with chunk meshes: solid bin and translucent bin
+- each chunk can generate one or both types of meshes
+- both are front to back ordered in the bins as a result of the cull pass
+- solid bin is rendered front to back (in order...) to benefit from GPU depth culling (cheap occlusion culling)
+- translucent bin is rendered in back to front (reverse order) for proper translucency.
+- translucent: must build meshes for all 48 camera orientations ! It is then possible to cull hidden faces
+- solid: could build meshes for all 48 camera orientations but it is not mandatory
+  if done we get more GPU depth culling (and it is possible to further cull hidden faces)
+
+--------------------------------------------------------------------------------
+Scene Graph
+--------------------------------------------------------------------------------
+
+
+10 node types
     Geometry
     Transform
     Light
@@ -55,28 +92,21 @@ Defines transformation of nodes with transform property
     - Scaling
     - Rotation
     - Translation
- 
 Transform nodes can be cascaded to compose transformations
 
 Camera Node
-
 Defines Eyepoint and View Frustum
-
 Eyepoint
 - Translation
 - Rotation
-
 View Frustum
 - Near plane
 - Far plane
 - Aspect ratio
 - Field of View [vertical]
-
  
 Light Node
-
 Defines illumination
-
 Directional lights:
 - Direction
 - Diffuse color

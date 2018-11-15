@@ -39,11 +39,11 @@ namespace GameLibrary.Geometry
             }
             builder.AddIndex(0);
             Mesh mesh = new Mesh(PrimitiveType.LineStrip, vertexCount);
-            builder.setToMesh(mesh);
+            builder.SetToMesh(mesh);
             GameLibrary.SceneGraph.Bounding.BoundingSphere boundingSphere = new GameLibrary.SceneGraph.Bounding.BoundingSphere(2);
             //boundingSphere.ComputeFromPoints(vertices);
             mesh.BoundingVolume = boundingSphere;
-            builder.setToMesh(mesh);
+            builder.SetToMesh(mesh);
             return mesh;
         }
 

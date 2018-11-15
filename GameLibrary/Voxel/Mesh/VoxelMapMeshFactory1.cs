@@ -34,7 +34,7 @@ namespace GameLibrary.Voxel
 
             Mesh mesh = new Mesh(PrimitiveType.TriangleList, drawVisitor.primitiveCount);
             mesh.BoundingVolume = drawVisitor.GetBoundingVolume();
-            drawVisitor.builder.setToMesh(mesh);
+            drawVisitor.builder.SetToMesh(mesh);
             return mesh;
         }
 

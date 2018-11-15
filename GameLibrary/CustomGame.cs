@@ -69,8 +69,8 @@ namespace GameLibrary
             Window.AllowUserResizing = true;
             Window.ClientSizeChanged += new EventHandler<EventArgs>(Window_ClientSizeChanged);
 
-            IsFixedTimeStep = false;
-            IsMouseVisible = false;
+            IsFixedTimeStep = true;
+            IsMouseVisible = true;
         }
 
         protected virtual void createScene(int mode)

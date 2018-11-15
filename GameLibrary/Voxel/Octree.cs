@@ -196,6 +196,24 @@ namespace GameLibrary.Voxel
             return LookupNode(childLocCode);
         }
 
+        public static String LocCodeToString(ulong locCode)
+        {
+            return Convert.ToString((long)locCode, 2);
+        }
+
+        // TODO does not belong here
+        public virtual void LoadNode(OctreeNode<T> node, ref Object arg)
+        {
+            // NOOP
+        }
+
+        // TODO does not belong here
+        public virtual void ClearLoadQueue()
+        {
+            // NOOP
+        }
+
+
         protected void GetNodeBoundingBox(OctreeNode<T> node, ref SceneGraph.Bounding.BoundingBox boundingBox)
         {
             Vector3 center;
@@ -466,9 +484,7 @@ namespace GameLibrary.Voxel
           return neighbors
         */
 
-        public enum VisitReturn { Continue, ContinueNoCull, Abort }
-
-        public delegate VisitReturn Visitor<K>(Octree<K> octree, OctreeNode<K> node, bool cull, ref Object arg);
+        public delegate bool Visitor<K>(Octree<K> octree, OctreeNode<K> node, ref Object arg);
 
         public enum VisitType
         {
@@ -478,53 +494,87 @@ namespace GameLibrary.Voxel
             PostOrder
         }
 
-        public void Visit(int visitOrder, Visitor<T> visitor)
+        public void Visit(int visitOrder, Visitor<T> visitor, ref Object arg)
         {
-            Visit(visitOrder, visitor, VisitType.PreOrder, null);
+            Visit(visitOrder, visitor, VisitType.PreOrder, ref arg);
         }
 
-        public void Visit(int visitOrder, Visitor<T> visitor, Object arg)
-        {
-            Visit(visitOrder, visitor, VisitType.PreOrder, arg);
-        }
-
-        public virtual void Visit(int visitOrder, Visitor<T> visitor, VisitType visitType, Object arg)
+        public virtual void Visit(int visitOrder, Visitor<T> visitor, VisitType visitType, ref Object arg)
         {
             switch (visitType)
             {
                 case VisitType.PreOrder:
-                    visit(visitOrder, visitor, null, null, arg);
+                    visit(visitOrder, visitor, null, null, ref arg);
                     break;
                 case VisitType.InOrder:
-                    visit(visitOrder, null, visitor, null, arg);
+                    visit(visitOrder, null, visitor, null, ref arg);
                     break;
                 case VisitType.PostOrder:
-                    visit(visitOrder, null, null, visitor, arg);
+                    visit(visitOrder, null, null, visitor, ref arg);
                     break;
             }
         }
 
-        public void Visit(int visitOrder, Visitor<T> preVisitor, Visitor<T> inVisitor, Visitor<T> postVisitor)
+        public void Visit(int visitOrder, Visitor<T> preVisitor, Visitor<T> inVisitor, Visitor<T> postVisitor, ref Object arg)
         {
-            visit(visitOrder, preVisitor, inVisitor, postVisitor, null);
+            visit(visitOrder, preVisitor, inVisitor, postVisitor, ref arg);
         }
 
-        public void Visit(int visitOrder, Visitor<T> preVisitor, Visitor<T> inVisitor, Visitor<T> postVisitor, Object arg)
-        {
-            visit(visitOrder, preVisitor, inVisitor, postVisitor, arg);
-        }
-
-        internal void visit(int visitOrder, Visitor<T> preVisitor, Visitor<T> inVisitor, Visitor<T> postVisitor, Object arg)
+        internal void visit(int visitOrder, Visitor<T> preVisitor, Visitor<T> inVisitor, Visitor<T> postVisitor, ref Object arg)
         {
             VisitContext ctxt = new VisitContext();
             ctxt.visitOrder = visitOrder;
             ctxt.preVisitor = preVisitor;
             ctxt.inVisitor = inVisitor;
             ctxt.postVisitor = postVisitor;
-            visit(RootNode, ref ctxt, true, arg);
+            visit(RootNode, ref ctxt, ref arg);
         }
 
         private static readonly Octant[,] OCTANT_VISIT_ORDER = computeVisitOrderPermutations();
+
+        internal struct VisitContext
+        {
+            internal int visitOrder;
+            internal Visitor<T> preVisitor;
+            internal Visitor<T> inVisitor;
+            internal Visitor<T> postVisitor;
+        }
+
+        internal virtual bool visit(OctreeNode<T> node, ref VisitContext ctxt,ref Object arg)
+        {
+            if ((node.childExists == 0) && (node.obj == null))
+            {
+                // empty node
+                return false;
+            }
+            // TODO iterate over sorted location codes
+            bool cont = true;
+            if (ctxt.preVisitor != null)
+            {
+                cont = ctxt.preVisitor(this, node, ref arg);
+            }
+            if (cont && (node.childExists != 0))
+            {
+                for (ushort i = 0; i < 8; i++)
+                {
+                    Octant octant = (Octant)OCTANT_VISIT_ORDER[ctxt.visitOrder, i];
+                    if (!HasChild(node, octant))
+                    {
+                        continue;
+                    }
+                    ulong childLocCode = (node.locCode << 3) | (ulong)octant;
+                    OctreeNode<T> childNode = LookupNode(childLocCode);
+                    if (childNode == null)
+                    {
+                        continue;
+                    }
+                    visit(childNode, ref ctxt, ref arg);
+                    ctxt.inVisitor?.Invoke(this, childNode, ref arg);
+                }
+            }
+            ctxt.postVisitor?.Invoke(this, node, ref arg);
+            return true;
+        }
 
         private static Octant[,] computeVisitOrderPermutations()
         {
@@ -552,53 +602,5 @@ namespace GameLibrary.Voxel
             return permutations;
         }
 
-        internal struct VisitContext
-        {
-            internal int visitOrder;
-            internal Visitor<T> preVisitor;
-            internal Visitor<T> inVisitor;
-            internal Visitor<T> postVisitor;
-        }
-
-        internal virtual bool visit(OctreeNode<T> node, ref VisitContext ctxt, bool cull, Object arg)
-        {
-            if ((node.childExists == 0) && (node.obj == null))
-            {
-                // empty node
-                return false;
-            }
-            // TODO iterate over sorted location codes
-            VisitReturn ret = VisitReturn.Continue;
-            if (ctxt.preVisitor != null)
-            {
-                ret = ctxt.preVisitor(this, node, cull, ref arg);
-            }
-            if ((ret != VisitReturn.Abort) && (node.childExists != 0))
-            {
-                for (ushort i = 0; i < 8; i++)
-                {
-                    Octant octant = (Octant)OCTANT_VISIT_ORDER[ctxt.visitOrder, i];
-                    if ((node.childExists & (1L << (int)octant)) == 0)
-                    {
-                        continue;
-                    }
-                    ulong childLocCode = (node.locCode << 3) | (ulong)octant;
-                    OctreeNode<T> childNode = LookupNode(childLocCode);
-                    if (childNode == null)
-                    {
-                        continue;
-                    }
-                    visit(childNode, ref ctxt, (ret != VisitReturn.ContinueNoCull), arg);
-                    ctxt.inVisitor?.Invoke(this, childNode, cull, ref arg);
-                }
-            }
-            ctxt.postVisitor?.Invoke(this, node, cull, ref arg);
-            return true;
-        }
-
-        public static String LocCodeToString(ulong locCode)
-        {
-            return Convert.ToString((long)locCode, 2);
-        }
     }
 }

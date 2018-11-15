@@ -112,7 +112,7 @@ namespace GameLibrary.Geometry
 
             Mesh mesh = new Mesh(PrimitiveType.TriangleList, 2 * 6);
             mesh.BoundingVolume = new GameLibrary.SceneGraph.Bounding.BoundingSphere(Vector3.Zero, 2 * d);
-            builder.setToMesh(mesh);
+            builder.SetToMesh(mesh);
             return mesh;
         }
 

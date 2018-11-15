@@ -37,7 +37,7 @@ namespace GameLibrary.Geometry
             }
             Mesh mesh = new Mesh(PrimitiveType.LineStrip, count);
             mesh.BoundingVolume = new GameLibrary.SceneGraph.Bounding.BoundingSphere(Vector3.Zero, 1.0f);
-            builder.setToMesh(mesh);
+            builder.SetToMesh(mesh);
             return mesh;
         }
 

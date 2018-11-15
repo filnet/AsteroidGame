@@ -30,6 +30,7 @@
     <Compile Include="$(MSBuildThisFileDirectory)SceneGraph\Common\Drawable.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)SceneGraph\Common\Physical.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)SceneGraph\Common\Transform.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)Util\SimplexNoise.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Voxel\Effect\VoxelEffect1.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Voxel\Effect\VoxelEffect.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)System\DebugManager.cs" />
@@ -97,7 +98,7 @@
     <Content Include="$(MSBuildThisFileDirectory)Content\Fonts\Arial-Bold-12pt-OuterGlow-3px.png" />
     <Content Include="$(MSBuildThisFileDirectory)Doc\Clipping Shader.txt" />
     <Content Include="$(MSBuildThisFileDirectory)Doc\Resources.txt" />
-    <Content Include="$(MSBuildThisFileDirectory)Doc\SceneGraphModel.txt" />
+    <Content Include="$(MSBuildThisFileDirectory)Doc\Architecture.txt" />
     <Content Include="$(MSBuildThisFileDirectory)StockEffects\HLSL\AlphaTestEffect.fx" />
     <Content Include="$(MSBuildThisFileDirectory)StockEffects\HLSL\BasicEffect.fx" />
     <Content Include="$(MSBuildThisFileDirectory)StockEffects\HLSL\DualTextureEffect.fx" />
