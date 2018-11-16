@@ -17,6 +17,8 @@ using GameLibrary.Geometry.Common;
 using AsteroidGame.Geometry;
 using GameLibrary.Util;
 using GameLibrary.Voxel;
+using System.Windows;
+using System.Threading;
 
 namespace AsteroidGame
 {
@@ -42,9 +44,50 @@ namespace AsteroidGame
             instance = this;
         }
 
+        Thread t;
+        MyWindow wnd;
+
         protected override void Initialize()
         {
             base.Initialize();
+
+
+            t = new Thread((ThreadStart)delegate {
+                wnd = new MyWindow();
+                // Do stuff here, e.g. to the window
+                wnd.Title = "Something else";
+                wnd.setSelected(Scene.CameraComponent);
+                // Show the window
+                wnd.ShowDialog();
+            });
+            t.SetApartmentState(ApartmentState.STA);
+            t.Start();
+
+            while (wnd == null)
+            {
+
+            }
+            /*
+            while (!wnd.IsActive)
+            {
+
+            }*/
+
+            //wnd.setSelected(Scene.CameraComponent);
+
+
+            //wnd.
+
+            //From form = new Form();
+            //form.Show();
+        }
+
+        protected override void Dispose(bool disposing)
+        {
+            //wnd.Close();
+            t.Abort();
+
+            base.Dispose(disposing);
         }
 
         /// <summary>
@@ -78,6 +121,7 @@ namespace AsteroidGame
 
             Scene.CameraComponent = CameraComponent;
             ArcBallCamera camera = Scene.CameraComponent as ArcBallCamera;
+
             if (camera != null)
             {
                 // TODO call Reset() instead...
