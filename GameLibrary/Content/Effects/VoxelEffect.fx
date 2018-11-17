@@ -49,7 +49,7 @@ END_CONSTANTS
 
 // Ambient occlusion.
 
-static float4 ambientOcclusionCurve = float4(0.0f, 0.6f, 0.8f, 1.0f);
+static float4 ambientOcclusionCurve = float4(0.2f, 0.6f, 0.8f, 1.0f);
 //static float4 ambientOcclusionCurve = float4(0.0f, 0.33f, 0.66f, 1.0f);
 //static float4 ambientOcclusionCurve = float4(0.0f, 01.0f, 0.0f, 1.0f);
 
@@ -62,9 +62,10 @@ float4 ComputeAmbientOcclusionFactors(int aoBits)
 		ambientOcclusionCurve[(aoBits >> 6) & 3]);
 }
 
+// https://thebookofshaders.com/05/
 float SampleAmbientOcclusionFactors(float4 factors, float2 texCoord)
 {
-   // TODO optmize lerps away if all factors are the same
+   // TODO optimize lerps away if all factors are the same
     float a1 = lerp(factors[1], factors[3], texCoord.x);
     float a2 = lerp(factors[0], factors[2], texCoord.x);
 	float a = lerp(a1, a2, texCoord.y);

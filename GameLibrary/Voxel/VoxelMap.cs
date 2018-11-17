@@ -3,20 +3,6 @@ using System;
 
 namespace GameLibrary.Voxel
 {
-    /*
-    enum Neighbour
-    {
-        None = 0,
-        Left = 1 << 0,
-        Right = 1 << 1,
-        Bottom = 1 << 2,
-        Top = 1 << 3,
-        Back = 1 << 4,
-        Front = 1 << 5,
-        All = Left | Right | Bottom | Top | Back | Front
-    }
-    */
-
     public interface Visitor
     {
         bool Begin(int size);
@@ -254,18 +240,57 @@ namespace GameLibrary.Voxel
             int nx = x + dirData.dX;
             int ny = y + dirData.dY;
             int nz = z + dirData.dZ;
-            if (nx >= 0 && nx < size && ny >= 0 && ny < size && nz >= 0 && nz < size)
+
+            bool inside = true;
+            int lookupIndex = 0;
+            if (nx < 0)
+            {
+                nx = size - 1;
+                lookupIndex |= Mask.LEFT;
+                inside = false;
+            }
+            else if (nx >= size)
+            {
+                nx = 0;
+                lookupIndex |= Mask.RIGHT;
+                inside = false;
+            }
+            if (ny < 0)
+            {
+                ny = size - 1;
+                lookupIndex |= Mask.BOTTOM;
+                inside = false;
+            }
+            else if (ny >= size)
+            {
+                ny = 0;
+                lookupIndex |= Mask.TOP;
+                inside = false;
+            }
+            if (nz < 0)
+            {
+                nz = size - 1;
+                lookupIndex |= Mask.BACK;
+                inside = false;
+            }
+            else if (nz >= size)
+            {
+                nz = 0;
+                lookupIndex |= Mask.FRONT;
+                inside = false;
+            }
+
+            if (inside)
             {
                 return map.Get(nx, ny, nz);
             }
-            VoxelMap nMap = getNeighbourMap(direction);
-            if (nMap == null)
+
+            Direction nDirection = Octree<VoxelChunk>.DIR_LOOKUP_TABLE[lookupIndex];
+            VoxelMap nMap = getNeighbourMap(nDirection);
+            if (nMap.IsEmpty())
             {
                 return 0;
             }
-            nx = (nx + size) % size;
-            ny = (ny + size) % size;
-            nz = (nz + size) % size;
             return nMap.Get(nx, ny, nz);
         }
 
@@ -294,8 +319,6 @@ namespace GameLibrary.Voxel
             VoxelMap map = neighboursMap[(int)direction];
             if (map == null)
             {
-                //foreach (Direction direction in Enum.GetValues(typeof(Direction)).Cast<Direction>())
-
                 ulong l = octree.GetNeighborOfGreaterOrEqualSize(node.locCode, direction);
                 OctreeNode<VoxelChunk> neighbourNode = octree.LookupNode(l);
                 map = (neighbourNode != null) ? neighbourNode.obj.VoxelMap : AbstractVoxelMap.EMPTY_VOXEL_MAP;
@@ -445,11 +468,11 @@ namespace GameLibrary.Voxel
 
     }
 
-    class FunctionVoxelMap : AbstractVoxelMap
+    abstract class FunctionVoxelMap : AbstractVoxelMap
     {
-        private readonly int x0;
-        private readonly int y0;
-        private readonly int z0;
+        protected readonly int x0;
+        protected readonly int y0;
+        protected readonly int z0;
 
         public FunctionVoxelMap(int size, int x0, int y0, int z0) : base(size)
         {
@@ -460,79 +483,27 @@ namespace GameLibrary.Voxel
 
         public override int Get(int x, int y, int z)
         {
-            return f9(x0 + x, y0 + y, z0 + z);
+            return F(x0 + x, y0 + y, z0 + z);
         }
 
-        private int f0(int x, int y, int z)
+        public override void Set(int x, int y, int z, int v)
         {
-            return 1;
         }
 
-        private int f1(int x, int y, int z)
+        protected abstract int F(int x, int y, int z);
+    }
+
+    class PlaneVoxelMap : FunctionVoxelMap
+    {
+        public PlaneVoxelMap(int size, int x0, int y0, int z0) : base(size, x0, y0, z0)
         {
-            return (y % 2 == 0 || x % 2 == 0 || z % 2 == 0) ? 0 : 1;
         }
 
-        private int f2(int x, int y, int z)
-        {
-            return ((x < 3 /*|| x > size - 4*/) || (y < 3 /*|| y > size - 4*/) || (z < 3)) ? 1 : 0;
-        }
-
-        private int f3(int x, int y, int z)
-        {
-            int d2 = (4 * 4) * 2;
-            int x2 = 2 * x - size;
-            int y2 = 2 * y - size;
-            int z2 = 2 * z - size;
-            int r4 = (x2 * x2) + (y2 * y2) + (z2 * z2);
-            if (r4 < d2)
-            {
-                return 1;
-            }
-            return 0;
-        }
-
-        private int f4(int x, int y, int z)
-        {
-            return ((x == 0) || (y == 0) || (z == 0)) ? 1 : 0;
-
-        }
-
-        private int f5(int x, int y, int z)
-        {
-            return ((z == 0)) ? 1 : 0;
-
-        }
-
-        private int f6(int x, int y, int z)
-        {
-            if (y == 0 && x >= 5 && x <= 8 && z >= 2 && z <= 3) return 1;
-            if (y == 1 && x >= 6 && x <= 7 && z >= 2 && z <= 2) return 1;
-            return 0;
-        }
-
-        private int f7(int x, int y, int z)
-        {
-            //if (x < 1) return 0;
-            //if (z < 1) return 0;
-            if (y < 4) return 2;
-            if (y > 14) return 2;
-            if (y < 5 && x > 3 && x < size - 3 && z > 3 && z < size - 3) return 2;
-            if (y < 7 && x > 6 && x < size - 6 && z > 6 && z < size - 6) return 3;
-            if (y < 8 && x > 7 && x < size - 7 && z > 7 && z < size - 7) return 4;
-            if (y == 12 && x > 7 && x < size - 7 && z > 7 && z < size - 7) return 4;
-            if (y == 13 && x > 6 && x < size - 6 && z > 6 && z < size - 6) return 3;
-            if (y == 14 && x > 4 && x < size - 4 && z > 4 && z < size - 4) return 3;
-            if (y == 9 && x == 8 && z == 8) return 5;
-            return 0;
-        }
-/*
         public override bool IsEmpty()
         {
             return !(y0 == 0);
         }
-*/
-        private int f8(int x, int y, int z)
+        protected override int F(int x, int y, int z)
         {
             if (y == 0)
             {
@@ -541,8 +512,45 @@ namespace GameLibrary.Voxel
             }
             return 0;
         }
+    }
 
-        private int f9(int x, int y, int z)
+    class AOTestVoxelMap : FunctionVoxelMap
+    {
+        public AOTestVoxelMap(int size, int x0, int y0, int z0) : base(size, x0, y0, z0)
+        {
+        }
+
+        public override bool IsEmpty()
+        {
+            return !((x0 == 0 || x0 == size) && y0 == 0 && z0 == 0);
+        }
+
+        protected override int F(int x, int y, int z)
+        {
+            int xx = x - x0;
+            if (z < 1 && y < 2) return 1;
+            if (xx < 1 && y < 2) return 1;
+            //if (z < 1) return 0;
+            if (y < 1) return 2;
+            //if (y > 14) return 2;
+            // if (y < 5 && x > 3 && x < size - 3 && z > 3 && z < size - 3) return 2;
+            //if (y < 7 && x > 6 && x < size - 6 && z > 6 && z < size - 6) return 3;
+            // (y < 8 && x > 7 && x < size - 7 && z > 7 && z < size - 7) return 4;
+            //if (y == 12 && x > 7 && x < size - 7 && z > 7 && z < size - 7) return 4;
+            //if (y == 13 && x > 6 && x < size - 6 && z > 6 && z < size - 6) return 3;
+            //if (y == 14 && x > 4 && x < size - 4 && z > 4 && z < size - 4) return 3;
+            //if (y == 9 && x == 8 && z == 8) return 5;
+            return 0;
+        }
+    }
+
+    class PerlinNoiseVoxelMap : FunctionVoxelMap
+    {
+        public PerlinNoiseVoxelMap(int size, int x0, int y0, int z0) : base(size, x0, y0, z0)
+        {
+        }
+
+        protected override int F(int x, int y, int z)
         {
             float n = SimplexNoise.Generate(z / 10.0f, x / 10.0f, y / 10.0f);
             return (n > 0.5f) ? 1 : 0;
@@ -567,5 +575,4 @@ namespace GameLibrary.Voxel
         */
 
     }
-
 }

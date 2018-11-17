@@ -262,7 +262,7 @@ namespace GameLibrary.Voxel
                     // BottomRightFront
                     int a10 = VertexAmbientOcclusion(ite, Direction.RightFront, Direction.BottomFront, Direction.BottomRightFront);
                     // TopRightFront
-                    int a11 = VertexAmbientOcclusion(ite, Direction.RightFront, Direction.TopFront, Direction.TopRightFront); ;
+                    int a11 = VertexAmbientOcclusion(ite, Direction.RightFront, Direction.TopFront, Direction.TopRightFront);
                     int ao = VoxelUtil.CombineVertexAmbientOcclusion(a00, a01, a10, a11);
 
                     builder.AddVertex(_bottomLeftFront, frontNormal, Color.White, tex00, tile, ao);
@@ -494,7 +494,7 @@ namespace GameLibrary.Voxel
             public int VertexAmbientOcclusion(VoxelMapIterator ite, Direction side1, Direction side2, Direction corner)
             {
                 // TODO cache values...
-                return VoxelUtil.VertexAmbientOcclusion(ite.Value(side1) != 0, ite.Value(side2) != 0, ite.Value(corner) != 0); ;
+                return VoxelUtil.VertexAmbientOcclusion(ite.Value(side1) != 0, ite.Value(side2) != 0, ite.Value(corner) != 0);
             }
 
             public bool End()

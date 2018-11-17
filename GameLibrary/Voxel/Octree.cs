@@ -4,11 +4,12 @@ using Microsoft.Xna.Framework;
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
+using System.Linq;
 using System.Text;
 
 namespace GameLibrary.Voxel
 {
-    public class Mask
+    public sealed class Mask
     {
         public static readonly ulong LEAF = 0b111;
         public static readonly ulong PARENT = ~LEAF;
@@ -20,6 +21,13 @@ namespace GameLibrary.Voxel
         public static readonly int YZ = Y | Z;
         public static readonly int XZ = X | Z;
         public static readonly int XYZ = X | Y | Z;
+
+        public static readonly int LEFT = 1 << 5;
+        public static readonly int RIGHT = 1 << 4;
+        public static readonly int BOTTOM = 1 << 3;
+        public static readonly int TOP = 1 << 2;
+        public static readonly int BACK = 1 << 1;
+        public static readonly int FRONT = 1 << 0;
     }
 
     // 0b +Y -Z +X
@@ -48,7 +56,7 @@ namespace GameLibrary.Voxel
         TopLeftFront, TopRightFront, TopLeftBack, TopRightBack,
     }
 
-    public class OctreeNode<T>
+    public sealed class OctreeNode<T>
     {
         internal T obj;
         internal ulong locCode;
@@ -91,7 +99,7 @@ namespace GameLibrary.Voxel
         private static readonly int BACK = 0b010;
         private static readonly int FRONT = 0b000;
 
-        public class DirData
+        public sealed class DirData
         {
             public readonly Direction dir;
             public readonly int mask;
@@ -99,14 +107,21 @@ namespace GameLibrary.Voxel
             public readonly int dX;
             public readonly int dY;
             public readonly int dZ;
+            public readonly int lookupIndex;
             public DirData(Direction dir, int mask, int value)
             {
                 this.dir = dir;
                 this.mask = mask;
                 this.value = value;
+                // x, y, z deltas
                 dX = ((mask & Mask.X) != 0) ? ((value & Mask.X) != 0) ? +1 : -1 : 0;
                 dY = ((mask & Mask.Y) != 0) ? ((value & Mask.Y) != 0) ? +1 : -1 : 0;
                 dZ = ((mask & Mask.Z) != 0) ? ((value & Mask.Z) != 0) ? -1 : +1 : 0;
+                // lookup index is the bit sequence LEFT RIGHT BOTTOM TOP BACK FRONT
+                // some lookup indices are invalid (0b111111 for example)
+                lookupIndex = ((mask & Mask.X) != 0) ? ((value & Mask.X) != 0) ? 0b01 : 0b10 : 0;
+                lookupIndex = (lookupIndex << 2) | (((mask & Mask.Y) != 0) ? ((value & Mask.Y) != 0) ? 0b01 : 0b10 : 0);
+                lookupIndex = (lookupIndex << 2) | (((mask & Mask.Z) != 0) ? ((value & Mask.Z) != 0) ? 0b10 : 0b01 : 0);
             }
         }
 
@@ -142,6 +157,15 @@ namespace GameLibrary.Voxel
             new DirData(Direction.TopRightBack, Mask.XYZ, TOP | RIGHT | BACK),
         };
 
+        // all octant visit order permutations
+        // for each 48 visit orders gives the 8 octants in appropriate order
+        private static readonly Octant[,] OCTANT_VISIT_ORDER = computeVisitOrderPermutations();
+
+        // gives the Direction by lookup index
+        // lookup index is the bit sequence LEFT RIGHT BOTTOM TOP BACK FRONT
+        // some lookup indices are invalid (0b111111 for example)
+        public static readonly Direction[] DIR_LOOKUP_TABLE = computeDirectionLookupTable();
+
         public OctreeNode<T> RootNode;
 
         public Vector3 Center;
@@ -158,12 +182,7 @@ namespace GameLibrary.Voxel
             Center = center;
             HalfSize = halfSize;
             RootNode = new OctreeNode<T>();
-            //RootNode.map = new FunctionVoxelMap(32);
             RootNode.locCode = 1;
-            RootNode.childExists = 0;
-            //RootNode.center = Vector3.Zero;
-            //GeometryNode node = new MeshNode("VOXEL", new VoxelMapMeshFactory(voxelMap));
-            //node.RenderGroupId = Scene.VOXEL;
 
             nodes = new Dictionary<ulong, OctreeNode<T>>();
 
@@ -212,7 +231,6 @@ namespace GameLibrary.Voxel
         {
             // NOOP
         }
-
 
         protected void GetNodeBoundingBox(OctreeNode<T> node, ref SceneGraph.Bounding.BoundingBox boundingBox)
         {
@@ -378,7 +396,9 @@ namespace GameLibrary.Voxel
                 }
                 if (d < depth - 1)
                 {
-                    halfSize /= 2f;
+                    halfSize.X /= 2f;
+                    halfSize.Y /= 2f;
+                    halfSize.Z /= 2f;
 
                     Vector3 c = OCTANT_VECTORS[(int)octant];
                     c.X *= halfSize.X;
@@ -530,8 +550,6 @@ namespace GameLibrary.Voxel
             visit(RootNode, ref ctxt, ref arg);
         }
 
-        private static readonly Octant[,] OCTANT_VISIT_ORDER = computeVisitOrderPermutations();
-
         internal struct VisitContext
         {
             internal int visitOrder;
@@ -540,7 +558,7 @@ namespace GameLibrary.Voxel
             internal Visitor<T> postVisitor;
         }
 
-        internal virtual bool visit(OctreeNode<T> node, ref VisitContext ctxt,ref Object arg)
+        internal virtual bool visit(OctreeNode<T> node, ref VisitContext ctxt, ref Object arg)
         {
             if ((node.childExists == 0) && (node.obj == null))
             {
@@ -589,6 +607,7 @@ namespace GameLibrary.Voxel
 
                     // TODO there are better ways to permute bits
                     // see http://programming.sirrida.de/calcperm.php
+                    // but since we compute permutations only once there is no real need to optimize
                     int x = (o & 0b100) >> 2;
                     int y = (o & 0b010) >> 1;
                     int z = (o & 0b001) >> 0;
@@ -602,5 +621,14 @@ namespace GameLibrary.Voxel
             return permutations;
         }
 
+        private static Direction[] computeDirectionLookupTable()
+        {
+            Direction[] directionLookupTable = new Direction[64];
+            foreach (Direction direction in Enum.GetValues(typeof(Direction)).Cast<Direction>())
+            {
+                directionLookupTable[DIR_DATA[(int)direction].lookupIndex] = direction;
+            }
+            return directionLookupTable;
+        }
     }
 }
