@@ -19,6 +19,8 @@ namespace GameLibrary
         // Set rates in world units per 1/60th second (the default fixed-step interval).
         private float rotationSpeed = 1f / 60f;
 
+        private float translationSpeed = 10f / 60f;
+
         public float ZoomSpeed = DEFAULT_ZOOM_SPEED;
         //float forwardSpeed = 50f / 60f;
 
@@ -242,21 +244,18 @@ namespace GameLibrary
             {
                 // Rotate left.
                 //RotateAroundY((float) ((double) rotationSpeed * elapsed));
-                // FIXME displacement should be time related
-                TargetPosition += new Vector3(-.01f, 0, 0);
+                TargetPosition += (float)(translationSpeed * elapsed) * this.rotation.Left;
             }
             if (/*IsKeyDown(Keys.Right) ||*/ (GamePadState.DPad.Right == ButtonState.Pressed))
             {
                 // Rotate right.
                 //RotateAroundY(-(float) ((double) rotationSpeed * elapsed));
-                // FIXME displacement should be time related
-                TargetPosition += new Vector3(.01f, 0, 0);
+                TargetPosition += (float)(translationSpeed * elapsed) * this.rotation.Right;
             }
             if (/*IsKeyDown(Keys.Up) ||*/ (GamePadState.DPad.Up == ButtonState.Pressed))
             {
                 //RotateAroundX((float) ((double) rotationSpeed * elapsed));
-                // FIXME displacement should be time related
-                TargetPosition += new Vector3(0, .01f, 0);
+                TargetPosition += (float)(translationSpeed * elapsed) * this.rotation.Up;
 
                 //Matrix forwardMovement = Matrix.CreateRotationY(yaw);
                 //Vector3 v = new Vector3(0, 0, forwardSpeed);
@@ -267,8 +266,7 @@ namespace GameLibrary
             if (/*IsKeyDown(Keys.Down) ||*/ (GamePadState.DPad.Down == ButtonState.Pressed))
             {
                 //RotateAroundX(-(float) ((double) rotationSpeed * elapsed));
-                // FIXME displacement should be time related
-                TargetPosition += new Vector3(0, -.01f, 0);
+                TargetPosition += (float)(translationSpeed * elapsed) * this.rotation.Down;
 
                 //Matrix forwardMovement = Matrix.CreateRotationY(yaw);
                 //Vector3 v = new Vector3(0, 0, -forwardSpeed);
