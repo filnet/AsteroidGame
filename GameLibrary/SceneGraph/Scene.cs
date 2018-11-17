@@ -26,7 +26,9 @@ namespace GameLibrary.SceneGraph
         private MeshNode boundingSphereGeo;
         private MeshNode boundingBoxGeo;
 
+        // debug camera
         private BoundingFrustum boundingFrustum;
+        private Matrix viewMatrix;
         private MeshNode frustrumGeo;
 
         private Matrix previousProjectionMatrix = Matrix.Identity;
@@ -250,6 +252,7 @@ namespace GameLibrary.SceneGraph
             {
                 CaptureFrustrum = false;
                 boundingFrustum = CameraComponent.BoundingFrustum;
+                viewMatrix = CameraComponent.ViewMatrix;
                 if (frustrumGeo == null)
                 {
                     frustrumGeo = GeometryUtil.CreateFrustrum("FRUSTRUM", boundingFrustum);
@@ -265,6 +268,7 @@ namespace GameLibrary.SceneGraph
                 {
                     frustrumGeo.Dispose();
                     frustrumGeo = null;
+                    boundingFrustum = null;
                 }
             }
             if (ShowFrustrum && (frustrumGeo != null))
@@ -467,7 +471,16 @@ namespace GameLibrary.SceneGraph
                 // TODO performance: don't do both Matrix inverse and transpose
 
                 // compute visit order based on view direction
-                Matrix viewMatrix = scene.CameraComponent.ViewMatrix;
+                Matrix viewMatrix;
+                if (scene.boundingFrustum != null)
+                {
+                    viewMatrix = scene.viewMatrix;
+                }
+                else
+                {
+                    viewMatrix = scene.CameraComponent.ViewMatrix;
+                }
+
                 Matrix vt = Matrix.Transpose(viewMatrix);
                 Vector3 dir = vt.Forward;
                 VisitOrder = VectorUtil.visitOrder(dir);
