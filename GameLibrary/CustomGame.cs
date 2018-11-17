@@ -167,6 +167,16 @@ namespace GameLibrary
             base.Initialize();
         }
 
+        protected override void Dispose(bool disposing)
+        {
+            if (scene != null)
+            {
+                scene.Dispose();
+            }
+
+            base.Dispose(disposing);
+        }
+
         /// <summary>
         /// LoadContent will be called once per game and is the place to load all of your content.
         /// </summary>

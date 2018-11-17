@@ -18,7 +18,7 @@ namespace GameLibrary.Voxel
 
     public enum VoxelChunkState { Null, Loading, Ready }
 
-    public class VoxelChunk
+    public sealed class VoxelChunk
     {
         public VoxelChunkState State;
         public SceneGraph.Bounding.BoundingBox BoundingBox;
@@ -41,6 +41,10 @@ namespace GameLibrary.Voxel
 
         private VoxelMapMeshFactory meshFactory;
 
+        private Task loadTask;
+        private CancellationTokenSource cts = new CancellationTokenSource();
+        private BlockingCollection<OctreeNode<VoxelChunk>> loadQueue = new BlockingCollection<OctreeNode<VoxelChunk>>();
+
         public int Depth { get { return depth; } }
 
         public VoxelOctree(int size, int chunkSize) : base(Vector3.Zero, new Vector3(size / 2))
@@ -60,6 +64,23 @@ namespace GameLibrary.Voxel
         {
             this.graphicsDevice = graphicsDevice;
             meshFactory = new VoxelMapMeshFactory(this, graphicsDevice);
+        }
+
+        public void Dispose()
+        {
+            if (loadTask != null)
+            {
+                // complete adding and empty queue
+                loadQueue.CompleteAdding();
+                ClearLoadQueue();
+                // cancel load task
+                cts.Cancel();
+                // wait for load task to end
+                Task.WaitAll(loadTask);
+            }
+            loadTask.Dispose();
+            loadQueue.Dispose();
+            cts.Dispose();
         }
 
         private void fill()
@@ -117,7 +138,8 @@ namespace GameLibrary.Voxel
                 int y;
                 int z;
                 octree.GetNodeCoordinates(node, out x, out y, out z);
-                VoxelMap map = new FunctionVoxelMap(chunkSize, x, y, z);
+                VoxelMap map = new PerlinNoiseVoxelMap(chunkSize, x, y, z);
+                //VoxelMap map = new AOTestVoxelMap(chunkSize, x, y, z);
                 if (!map.IsEmpty())
                 {
                     voxelChunk = new VoxelChunk();
@@ -131,12 +153,6 @@ namespace GameLibrary.Voxel
             }
             return voxelChunk;
         }
-
-        private BlockingCollection<OctreeNode<VoxelChunk>> loadQueue = new BlockingCollection<OctreeNode<VoxelChunk>>();
-
-        // TODO get it through OctreeGeometry.Initialize()
-        // and build MeshFactory in init...
-        //private GraphicsDevice gd;
 
         public override void LoadNode(OctreeNode<VoxelChunk> node, ref Object arg)
         {
@@ -161,7 +177,7 @@ namespace GameLibrary.Voxel
         private void start()
         {
             // A simple blocking consumer with no cancellation.
-            Task.Run(() =>
+            loadTask = Task.Run(() =>
             {
                 while (!loadQueue.IsCompleted)
                 {
@@ -175,14 +191,18 @@ namespace GameLibrary.Voxel
                     // loop will break on the next iteration.
                     try
                     {
-                        node = loadQueue.Take();
+                        node = loadQueue.Take(cts.Token);
                     }
-                    catch (InvalidOperationException) { }
-
-                    if (node != null)
+                    catch (InvalidOperationException)
                     {
-                        load(node);
+                        break;
                     }
+                    catch (OperationCanceledException)
+                    {
+                        break;
+                    }
+
+                    load(node);
                 }
                 Console.WriteLine("\r\nNo more items to take.");
             });

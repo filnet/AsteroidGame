@@ -25,15 +25,18 @@ namespace GameLibrary.Voxel
 
         public override void Initialize(GraphicsDevice gd)
         {
+            base.Initialize(gd);
+
             BoundingVolume = new GameLibrary.SceneGraph.Bounding.BoundingBox(voxelOctree.Center, voxelOctree.HalfSize);
 
             voxelOctree.Initialize(gd);
-
-            base.Initialize(gd);
         }
 
         public override void Dispose()
         {
+            voxelOctree.Dispose();
+
+            base.Dispose();
         }
 
     }
