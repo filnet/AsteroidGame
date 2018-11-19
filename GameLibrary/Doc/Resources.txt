@@ -59,6 +59,16 @@ https://blogs.msdn.microsoft.com/hemipteran/2014/03/26/generating-noise-for-appl
 
 http://devmag.org.za/2009/04/25/perlin-noise/
 
+Procedural Generation
+
+https://proverbsllc.com/2017/04/18/poly-voxel-procedural-generation-introduction/
+
+http://cs.brown.edu/courses/csci1972/lectures/03.pdf
+
+https://forum.unity.com/threads/tutorial-procedural-meshes-and-voxel-terrain-c.198651/
+
+https://core.ac.uk/download/pdf/37321997.pdf
+
 Texture Atlas & Mip mapping
 
 https://0fps.net/2013/07/09/texture-atlases-wrapping-and-mip-mapping/

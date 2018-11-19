@@ -21,5 +21,9 @@ namespace GameLibrary.Component.Util
             return ret;
         }
 
+        public static float Lerp(float u, float v, float s)
+        {
+            return u * (1 - s) + v * s;
+        }
     }
 }

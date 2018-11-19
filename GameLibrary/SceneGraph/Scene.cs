@@ -20,15 +20,12 @@ namespace GameLibrary.SceneGraph
 
         private readonly Dictionary<int, Renderer> renderers;
 
-        private Dictionary<int, List<Drawable>> renderBins;
         private Dictionary<int, List<Node>> collisionGroups;
 
         private MeshNode boundingSphereGeo;
         private MeshNode boundingBoxGeo;
 
         // debug camera
-        private BoundingFrustum boundingFrustum;
-        private Matrix viewMatrix;
         private MeshNode frustrumGeo;
 
         private Matrix previousProjectionMatrix = Matrix.Identity;
@@ -40,13 +37,24 @@ namespace GameLibrary.SceneGraph
         // Settings 
         public Boolean Debug;
         public Boolean CheckCollisions = false;
-        public Boolean ShowBoundingVolumes = false;
-        public Boolean ShowCulledBoundingVolumes = false;
+        public Boolean ShowBoundingVolumes
+        {
+            get { return renderContext.ShowBoundingVolumes; }
+            set { renderContext.ShowBoundingVolumes = value; }
+        }
+        public Boolean ShowCulledBoundingVolumes
+        {
+            get { return renderContext.ShowCulledBoundingVolumes; }
+            set { renderContext.ShowCulledBoundingVolumes = value; }
+        }
         public Boolean ShowCollisionVolumes = true;
         public Boolean ShowFrustrum;
         public Boolean CaptureFrustrum;
 
         public GraphicsDevice GraphicsDevice;
+
+        private readonly RenderContext renderContext = new RenderContext();
+        private readonly GraphicsContext gc = new GraphicsContext();
 
         public Node RootNode
         {
@@ -63,13 +71,7 @@ namespace GameLibrary.SceneGraph
         public Scene()
         {
             renderers = new Dictionary<int, Renderer>();
-
-            renderBins = new Dictionary<int, List<Drawable>>();
-
             collisionGroups = new Dictionary<int, List<Node>>();
-
-            //rootNode = new TransformNode("ROOT");
-            //rootNode.Scene = this;
         }
 
         public static int THREE_LIGHTS = 0;
@@ -224,12 +226,18 @@ namespace GameLibrary.SceneGraph
             // - camera is dirty
             // - TODO scene is dirty (something has moved in the scene)
             // - scene structure is dirty
-            if (cameraDirty || sceneDirty || structureDirty || (renderBins.Count == 0))
+            if (cameraDirty || sceneDirty || structureDirty || (renderContext.renderBins.Count == 0))
             {
                 if (cameraDirty)
                 {
                     previousProjectionMatrix = cameraComponent.ProjectionMatrix;
                     previousViewMatrix = cameraComponent.ViewMatrix;
+                    // TODO if frustrumGeo is null the previous camera position/etc will be used...
+                    // and not the current one at the time the camera was frozen
+                    if (frustrumGeo == null)
+                    {
+                        renderContext.UpdateCamera(cameraComponent);
+                    }
                 }
                 if (structureDirty)
                 {
@@ -238,11 +246,7 @@ namespace GameLibrary.SceneGraph
                 // FIXME most of the time nodes stay in the same render group
                 // so doing a clear + full reconstruct is not very efficient
                 // but RENDER_GROUP_VISITOR does the culling...
-                ClearBins();
-
-                // FIXME performance: don't allocate a new render context each time
-                // and it is possible to avoid recomputing stuff like camera position each time
-                RenderContext renderContext = new RenderContext(this);
+                renderContext.ClearBins();
 
                 rootNode.Visit(RENDER_VISITOR, renderContext);
                 if (Debug) Console.WriteLine(renderContext.FrustumCullCount + " / " + renderContext.RenderCount);
@@ -251,15 +255,11 @@ namespace GameLibrary.SceneGraph
             if (CaptureFrustrum)
             {
                 CaptureFrustrum = false;
-                boundingFrustum = CameraComponent.BoundingFrustum;
-                viewMatrix = CameraComponent.ViewMatrix;
                 if (frustrumGeo == null)
                 {
+                    BoundingFrustum boundingFrustum = CameraComponent.BoundingFrustum;
                     frustrumGeo = GeometryUtil.CreateFrustrum("FRUSTRUM", boundingFrustum);
-                    //frustrumGeo.Scene = this;
                     frustrumGeo.RenderGroupId = FRUSTRUM;
-                    //frustrumGeo.Scale = new Vector3(0.9f);
-                    //frustrumGeo.Translation = new Vector3(0, -1f, 0);
                     frustrumGeo.Initialize(GraphicsDevice);
                     frustrumGeo.UpdateTransform();
                     frustrumGeo.UpdateWorldTransform(null);
@@ -268,21 +268,19 @@ namespace GameLibrary.SceneGraph
                 {
                     frustrumGeo.Dispose();
                     frustrumGeo = null;
-                    boundingFrustum = null;
                 }
             }
+
             if (ShowFrustrum && (frustrumGeo != null))
             {
-                AddToBin(FRUSTRUM, frustrumGeo);
+                renderContext.AddToBin(FRUSTRUM, frustrumGeo);
             }
         }
 
         public void Draw(GameTime gameTime)
         {
-            Render(gameTime, renderBins, renderers);
+            Render(gameTime, renderContext.renderBins, renderers);
         }
-
-        private GraphicsContext gc = new GraphicsContext();
 
         public void Render(GameTime gameTime, Dictionary<int, List<Drawable>> renderBins, Dictionary<int, Renderer> renderers)
         {
@@ -432,18 +430,16 @@ namespace GameLibrary.SceneGraph
             return true;
         };
 
-        public class RenderContext
+        public sealed class RenderContext
         {
-            public readonly Scene Scene;
-
             // camera
-            public readonly Vector3 CameraPosition;
-            public readonly int VisitOrder;
+            public int VisitOrder;
+            public Vector3 CameraPosition;
 
             // culling
             public bool FrustrumCullingEnabled;
             public ulong FrustrumCullingOwner;
-            public readonly BoundingFrustum BoundingFrustum;
+            public BoundingFrustum BoundingFrustum;
 
             public bool DistanceCullingEnabled;
             public ulong DistanceCullingOwner;
@@ -451,35 +447,49 @@ namespace GameLibrary.SceneGraph
             public readonly float CullDistanceSquared;
 
             // flags
+            public bool Debug = false;
             public readonly bool AddBoundingGeometry;
+            public bool ShowBoundingVolumes = false;
+            public bool ShowCulledBoundingVolumes = false;
+            public bool ShowCollisionVolumes = false;
 
             // stats
             public int DistanceCullCount;
             public int FrustumCullCount;
             public int RenderCount;
 
-            public RenderContext(Scene scene)
-            {
-                Scene = scene;
+            public readonly Dictionary<int, List<Drawable>> renderBins;
 
+            public RenderContext()
+            {
                 FrustrumCullingEnabled = true;
                 DistanceCullingEnabled = true;
 
                 FrustrumCullingOwner = 0;
                 DistanceCullingOwner = 0;
 
+                // distance culling
+                CullDistance = 256f;
+                CullDistanceSquared = CullDistance * CullDistance;
+
+                // flags
+                AddBoundingGeometry = false;
+
+                // stats
+                DistanceCullCount = 0;
+                FrustumCullCount = 0;
+                RenderCount = 0;
+
+                // state
+                renderBins = new Dictionary<int, List<Drawable>>();
+            }
+
+            public void UpdateCamera(ICameraComponent cameraComponent)
+            {
                 // TODO performance: don't do both Matrix inverse and transpose
 
                 // compute visit order based on view direction
-                Matrix viewMatrix;
-                if (scene.boundingFrustum != null)
-                {
-                    viewMatrix = scene.viewMatrix;
-                }
-                else
-                {
-                    viewMatrix = scene.CameraComponent.ViewMatrix;
-                }
+                Matrix viewMatrix = cameraComponent.ViewMatrix;
 
                 Matrix vt = Matrix.Transpose(viewMatrix);
                 Vector3 dir = vt.Forward;
@@ -489,95 +499,134 @@ namespace GameLibrary.SceneGraph
                 // frustrum culling
                 if (FrustrumCullingEnabled)
                 {
-                    if (scene.boundingFrustum != null)
-                    {
-                        BoundingFrustum = scene.boundingFrustum;
-                    }
-                    else
-                    {
-                        BoundingFrustum = scene.cameraComponent.BoundingFrustum;
-                    }
-                }
-                else
-                {
-                    BoundingFrustum = scene.boundingFrustum;
+                    BoundingFrustum = cameraComponent.BoundingFrustum;
                 }
 
                 if (DistanceCullingEnabled)
                 {
-                    CullDistance = 256f;
-                    CullDistanceSquared = CullDistance * CullDistance;
-
                     Matrix vi = Matrix.Invert(viewMatrix);
                     CameraPosition = vi.Translation;
                 }
+            }
+
+            public void AddToBin(Drawable drawable)
+            {
+                AddToBin(drawable.RenderGroupId, drawable);
+            }
+
+            public void AddToBin(int binId, Drawable drawable)
+            {
+                if (binId < 0)
+                {
+                    return;
+                }
+                List<Drawable> list;
+                if (!renderBins.TryGetValue(binId, out list))
+                {
+                    list = new List<Drawable>();
+                    renderBins[binId] = list;
+                }
+                if (Debug && list.Contains(drawable))
+                {
+                    throw new Exception("Node already in group " + binId);
+                }
+                list.Add(drawable);
+            }
+
+            public void ClearBins()
+            {
+                foreach (KeyValuePair<int, List<Drawable>> drawableListKVP in renderBins)
+                {
+                    List<Drawable> drawableList = drawableListKVP.Value;
+                    drawableList.Clear();
+                }
+            }
+
+            public void AddBoundingVolume(Drawable drawable, bool culled)
+            {
+                AddBoundingVolume(drawable, drawable.BoundingVolume.GetBoundingType(), culled);
+            }
+
+            public void AddBoundingVolume(Drawable drawable, BoundingType boundingType, bool culled)
+            {
+                Boolean collided = false;
+                if (ShowCollisionVolumes)
+                {
+                    // collided = (collisionCache != null) ? collisionCache.ContainsKey(drawable.Id) : false;
+                }
+                if (!culled)
+                {
+                    if (collided)
+                    {
+                        AddToBin((boundingType == BoundingType.Sphere) ? COLLISION_SPHERE : COLLISION_BOX, drawable);
+                    }
+                    else if (ShowBoundingVolumes)
+                    {
+                        AddToBin((boundingType == BoundingType.Sphere) ? BOUNDING_SPHERE : BOUNDING_BOX, drawable);
+                    }
+                }
                 else
                 {
-                    CullDistance = 0.0f;
-                    CullDistanceSquared = 0.0f;
-                    CameraPosition = Vector3.Zero;
+                    // handle culled nodes
+                    if (ShowCulledBoundingVolumes)
+                    {
+                        AddToBin((boundingType == BoundingType.Sphere) ? CULLED_BOUNDING_SPHERE : CULLED_BOUNDING_BOX, drawable);
+                    }
                 }
-
-                // flags
-                AddBoundingGeometry = false;
-
-                // stats
-                DistanceCullCount = 0;
-                FrustumCullCount = 0;
-                RenderCount = 0;
             }
+
         }
 
         private static readonly Node.Visitor RENDER_VISITOR = delegate (Node node, ref Object arg)
-        {
-            if (!node.Visible)
             {
-                return false;
-            }
-
-            RenderContext ctxt = arg as RenderContext;
-
-            if (node is VoxelOctreeGeometry voxelOctreeGeometry)
-            {
-                voxelOctreeGeometry.voxelOctree.ClearLoadQueue();
-                voxelOctreeGeometry.voxelOctree.Visit(
-                    ctxt.VisitOrder, VOXEL_OCTREE_RENDER_PRE_VISITOR, null, VOXEL_OCTREE_RENDER_POST_VISITOR, ref arg);
-                return true;
-            }
-            else if (node is Drawable drawable)
-            {
-                BoundingVolume bv = drawable.WorldBoundingVolume;
-                bool cull = false;
-                if (bv != null)
+                if (!node.Visible)
                 {
-                    BoundingFrustum boundingFrustum = ctxt.BoundingFrustum;
-                    if (bv.IsContained(boundingFrustum) == ContainmentType.Disjoint)
+                    return false;
+                }
+
+                RenderContext ctxt = arg as RenderContext;
+
+                if (node is VoxelOctreeGeometry voxelOctreeGeometry)
+                {
+                    voxelOctreeGeometry.voxelOctree.ClearLoadQueue();
+                    voxelOctreeGeometry.voxelOctree.Visit(
+                        ctxt.VisitOrder, VOXEL_OCTREE_RENDER_PRE_VISITOR, null, VOXEL_OCTREE_RENDER_POST_VISITOR, ref arg);
+                    return true;
+                }
+                else if (node is Drawable drawable)
+                {
+                    BoundingVolume bv = drawable.WorldBoundingVolume;
+                    bool cull = false;
+                    if (bv != null)
                     {
-                        //if (Debug) Console.WriteLine("Culling " + node.Name);
-                        cull = true;
-                        ctxt.FrustumCullCount++;
+                        BoundingFrustum boundingFrustum = ctxt.BoundingFrustum;
+                        if (bv.IsContained(boundingFrustum) == ContainmentType.Disjoint)
+                        {
+                            //if (Debug) Console.WriteLine("Culling " + node.Name);
+                            cull = true;
+                            ctxt.FrustumCullCount++;
+                        }
+                    }
+                    if (!cull)
+                    {
+                        ctxt.AddToBin(drawable);
+                        ctxt.RenderCount++;
+                    }
+                    if (drawable.BoundingVolumeVisible)
+                    {
+                        ctxt.AddBoundingVolume(drawable, cull);
                     }
                 }
-                if (!cull)
-                {
-                    ctxt.Scene.AddToBin(drawable);
-                    ctxt.RenderCount++;
-                }
-                if (drawable.BoundingVolumeVisible)
-                {
-                    ctxt.Scene.AddBoundingVolume(drawable, cull);
-                }
-            }
-            // TODO should return !cull
-            return true;
-        };
+                // TODO should return !cull
+                return true;
+            };
 
         private static readonly VoxelOctree.Visitor<VoxelChunk> VOXEL_OCTREE_RENDER_PRE_VISITOR = delegate (Octree<VoxelChunk> octree, OctreeNode<VoxelChunk> node, ref Object arg)
         {
             RenderContext ctxt = arg as RenderContext;
 
             bool culled = false;
-            
+
             // frustrum culling
             if (!culled && ctxt.FrustrumCullingEnabled)
             {
@@ -641,7 +690,7 @@ namespace GameLibrary.SceneGraph
                 }
             }
 
-            if (culled && !ctxt.Scene.ShowCulledBoundingVolumes)
+            if (culled && !ctxt.ShowCulledBoundingVolumes)
             {
                 // early exit !!!
                 return false;
@@ -662,12 +711,12 @@ namespace GameLibrary.SceneGraph
             {
                 if (drawable.Visible && !culled)
                 {
-                    ctxt.Scene.AddToBin(drawable);
+                    ctxt.AddToBin(drawable);
                     ctxt.RenderCount++;
                 }
                 if (drawable.BoundingVolumeVisible)
                 {
-                    ctxt.Scene.AddBoundingVolume(drawable, BoundingType.AABB, culled);
+                    ctxt.AddBoundingVolume(drawable, BoundingType.AABB, culled);
                 }
             }
             return !culled;
@@ -719,39 +768,6 @@ namespace GameLibrary.SceneGraph
             arg = level + 1;
             return true;
         };
-
-        public void AddBoundingVolume(Drawable drawable, bool culled)
-        {
-            AddBoundingVolume(drawable, drawable.BoundingVolume.GetBoundingType(), culled);
-        }
-
-        public void AddBoundingVolume(Drawable drawable, BoundingType boundingType, bool culled)
-        {
-            Boolean collided = false;
-            if (ShowCollisionVolumes)
-            {
-                // collided = (collisionCache != null) ? collisionCache.ContainsKey(drawable.Id) : false;
-            }
-            if (!culled)
-            {
-                if (collided)
-                {
-                    AddToBin((boundingType == BoundingType.Sphere) ? COLLISION_SPHERE : COLLISION_BOX, drawable);
-                }
-                else if (ShowBoundingVolumes)
-                {
-                    AddToBin((boundingType == BoundingType.Sphere) ? BOUNDING_SPHERE : BOUNDING_BOX, drawable);
-                }
-            }
-            else
-            {
-                // handle culled nodes
-                if (ShowCulledBoundingVolumes)
-                {
-                    AddToBin((boundingType == BoundingType.Sphere) ? CULLED_BOUNDING_SPHERE : CULLED_BOUNDING_BOX, drawable);
-                }
-            }
-        }
 
         struct Collision
         {
@@ -831,39 +847,5 @@ namespace GameLibrary.SceneGraph
             }
         }
 
-        internal void ClearBins()
-        {
-            foreach (KeyValuePair<int, List<Drawable>> drawableListKVP in renderBins)
-            {
-                List<Drawable> drawableList = drawableListKVP.Value;
-                drawableList.Clear();
-            }
-        }
-
-        internal void AddToBin(Drawable drawable)
-        {
-            AddToBin(drawable.RenderGroupId, drawable);
-        }
-
-        internal void AddToBin(int binId, Drawable drawable)
-        {
-            if (binId < 0)
-            {
-                return;
-            }
-            List<Drawable> list;
-            if (!renderBins.TryGetValue(binId, out list))
-            {
-                list = new List<Drawable>();
-                renderBins[binId] = list;
-            }
-            if (Debug && list.Contains(drawable))
-            {
-                throw new Exception("Node already in group " + binId);
-            }
-            list.Add(drawable);
-        }
-
     }
-
 }

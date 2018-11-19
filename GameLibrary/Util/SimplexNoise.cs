@@ -51,6 +51,22 @@ namespace GameLibrary.Util
             return Generate(x * scale, y * scale) * 128 + 128;
         }
 
+        public static float Generate(float x, float y, float z, float persistence, int numOctaves)
+        {
+            float total = 0;
+            float frequency = 1;
+            float amplitude = 1;
+            for (int i = 0; i < numOctaves; i++)
+            {
+                // Add octave of noise
+                total = total + Generate(x * frequency, y * frequency, z * frequency) * amplitude;
+                // Update frequency and amplitude
+                frequency *= 2;
+                amplitude *= persistence;
+            }
+            return total;
+        }
+
         public static float CalcPixel3D(int x, int y, int z, float scale)
         {
             return Generate(x * scale, y * scale, z * scale) * 128 + 128;
@@ -364,4 +380,3 @@ namespace GameLibrary.Util
         }
     }
 }
-

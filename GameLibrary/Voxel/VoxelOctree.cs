@@ -203,8 +203,9 @@ namespace GameLibrary.Voxel
                     }
 
                     load(node);
+                    //Console.WriteLine("Loaded " + node.locCode);
                 }
-                Console.WriteLine("\r\nNo more items to take.");
+                Console.WriteLine("No more items to take.");
             });
         }
 
