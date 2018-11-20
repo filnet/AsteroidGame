@@ -89,6 +89,9 @@ namespace GameLibrary.SceneGraph
         public static int VOXEL = 12;
         public static int OCTREE = 15;
 
+        public static int TEXTURE = 18;
+
+
         public static int FRUSTRUM = 20;
 
         public static int BOUNDING_SPHERE = 30;
@@ -125,6 +128,8 @@ namespace GameLibrary.SceneGraph
             renderers[PLAYER] = new EffectRenderer(EffectFactory.CreateClippingEffect(GraphicsDevice));
             renderers[BULLET] = new EffectRenderer(EffectFactory.CreateBulletEffect(GraphicsDevice));
             renderers[ASTEROID] = new EffectRenderer(EffectFactory.CreateClippingEffect(GraphicsDevice));
+
+            renderers[TEXTURE] = new SpriteRenderer(GraphicsDevice);
 
             //renderers[VOXEL_MAP] = new VoxelMapRenderer(EffectFactory.CreateBasicEffect1(GraphicsDevice));
             //renderers[VOXEL_MAP] = new VoxelMapInstancedRenderer(EffectFactory.CreateInstancedEffect(GraphicsDevice));
@@ -294,14 +299,14 @@ namespace GameLibrary.SceneGraph
             foreach (KeyValuePair<int, List<Drawable>> renderBinKVP in renderBins)
             {
                 int renderBinId = renderBinKVP.Key;
-                List<Drawable> nodeList = renderBinKVP.Value;
-                if (nodeList.Count() == 0)
+                List<Drawable> drawableList = renderBinKVP.Value;
+                if (drawableList.Count() == 0)
                 {
                     // early exit !!!
                     break;
                 }
 
-                if (Debug) Console.WriteLine(renderBinId + " " + nodeList.Count);
+                if (Debug) Console.WriteLine(renderBinId + " " + drawableList.Count);
 
                 renderers.TryGetValue(renderBinId, out renderer);
                 if (renderer != null)
@@ -309,7 +314,7 @@ namespace GameLibrary.SceneGraph
                     gc.GraphicsDevice = GraphicsDevice;
                     gc.Camera = CameraComponent;
                     gc.GameTime = gameTime;
-                    renderer.Render(gc, nodeList);
+                    renderer.Render(gc, drawableList);
                 }
                 else
                 {

@@ -287,11 +287,15 @@ namespace AsteroidGame
             //Node voxelMapNode = createVoxelMapNode("VOXEL", 16);
             Node voxelOctreeNode = createVoxelOctreeNode("OCTREE", 512, 32);
 
+            TextureNode n2 = new NoiseTextureNode("NOISE_TEXTURE");
+            n2.RenderGroupId = Scene.TEXTURE;
+
             // root
             TransformNode node = new TransformNode("SCENE");
             //node.Scale = new Vector3(0.10f);
             //node.Add(voxelMapNode);
-            node.Add(voxelOctreeNode);
+            node.Add(n2);
+            //node.Add(voxelOctreeNode);
 
             return node;
         }
@@ -302,6 +306,33 @@ namespace AsteroidGame
             voxelOctreeGeometry.RenderGroupId = Scene.OCTREE;
             return voxelOctreeGeometry;
         }
+
+        public class NoiseTextureNode: TextureNode
+        {
+            public NoiseTextureNode(String name) : base(name)
+            {
+            }
+            public override void Initialize(GraphicsDevice graphicsDevice)
+            {
+                int width = 256;
+                int height = 256;
+                texture2D = new Texture2D(graphicsDevice, width, height);
+
+                Color[] data = new Color[width * height];
+                for (int pixel = 0; pixel < data.Count(); pixel++)
+                {
+                    int x = pixel % width;
+                    int y = pixel / width;
+                    float scale = 10f;
+                    float n = (float) Perlin.perlin(x / scale, y / scale, 0);
+                    data[pixel] = new Color(n, n, n);
+                }
+
+                //set the color
+                texture2D.SetData(data);
+            }
+        }
+
 
         private Node createCollisionTestScene()
         {

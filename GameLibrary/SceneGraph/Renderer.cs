@@ -197,4 +197,33 @@ namespace GameLibrary.SceneGraph
         }
     }
 
+    public class SpriteRenderer : Renderer
+    {
+        private SpriteBatch spriteBatch;
+
+        public SpriteRenderer(GraphicsDevice graphicsDevice)
+        {
+            spriteBatch = new SpriteBatch(graphicsDevice);
+        }
+
+        public override void Render(GraphicsContext gc, List<Drawable> drawableList)
+        {
+            spriteBatch.Begin();
+            foreach (Drawable drawable in drawableList)
+            {
+                /*
+                                    if (!drawable.Enabled || !drawable.Visible)
+                                    {
+                                        break;
+                                    }
+                                    */
+                if (drawable is Spritable spritable)
+                {
+                    spritable.Draw(spriteBatch);
+                }
+            }
+            spriteBatch.End();
+        }
+    }
 }
+

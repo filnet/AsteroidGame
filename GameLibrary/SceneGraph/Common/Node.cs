@@ -42,8 +42,6 @@ namespace GameLibrary.SceneGraph.Common
 
         public GroupNode ParentNode { get; set; }
 
-        //internal Scene Scene { get; set; }
-
         public List<Controller> Controllers
         {
             get { return controllers; }
@@ -79,7 +77,6 @@ namespace GameLibrary.SceneGraph.Common
             }
             Enabled = node.Enabled;
             Visible = node.Visible;
-            //Scene = node.Scene;
 
             // don't clone controllers !?
             controllers = new List<Controller>();
