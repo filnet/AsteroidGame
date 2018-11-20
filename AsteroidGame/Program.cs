@@ -1,4 +1,5 @@
 using System;
+using System.Threading;
 
 namespace AsteroidGame
 {
@@ -12,6 +13,7 @@ namespace AsteroidGame
         {
             using (AsteroidGame game = new AsteroidGame())
             {
+                Thread.CurrentThread.CurrentUICulture = new System.Globalization.CultureInfo("en");
                 game.Run();
             }
         }

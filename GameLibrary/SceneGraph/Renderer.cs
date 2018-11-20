@@ -140,7 +140,6 @@ namespace GameLibrary.SceneGraph
                 foreach (EffectPass pass in effect.CurrentTechnique.Passes)
                 {
                     pass.Apply();
-                    //dc.pass = pass;
                     drawable.Draw(gc.GraphicsDevice);
                 }
                 drawable.PostDraw(gc.GraphicsDevice);
@@ -197,4 +196,47 @@ namespace GameLibrary.SceneGraph
         }
     }
 
+    public class VoxelRenderer : Renderer
+    {
+        protected readonly Effect effect;
+
+        protected readonly IEffectMatrices effectMatrices;
+
+        public VoxelRenderer(Effect effect)
+        {
+            this.effect = effect;
+            effectMatrices = effect as IEffectMatrices;
+        }
+
+        public override void Render(GraphicsContext gc, List<Drawable> drawableList)
+        {
+            gc.GraphicsDevice.BlendState = BlendState;
+            gc.GraphicsDevice.DepthStencilState = DepthStencilState;
+            gc.GraphicsDevice.RasterizerState = RasterizerState;
+            gc.GraphicsDevice.SamplerStates[0] = SamplerState;
+
+            if (effectMatrices != null)
+            {
+                effectMatrices.Projection = gc.Camera.ProjectionMatrix;
+                effectMatrices.View = gc.Camera.ViewMatrix;
+                effectMatrices.World = Matrix.Identity;
+            }
+
+            foreach (EffectPass pass in effect.CurrentTechnique.Passes)
+            {
+                pass.Apply();
+                foreach (Drawable drawable in drawableList)
+                {
+                    if (!drawable.Enabled || !drawable.Visible)
+                    {
+                        break;
+                    }
+                    drawable.PreDraw(gc.GraphicsDevice);
+                    drawable.Draw(gc.GraphicsDevice);
+                    drawable.PostDraw(gc.GraphicsDevice);
+                }
+            }
+        }
+
+    }
 }

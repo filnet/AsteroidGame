@@ -43,7 +43,8 @@ namespace GameLibrary.Voxel
 
         private Task loadTask;
         private CancellationTokenSource cts = new CancellationTokenSource();
-        private BlockingCollection<OctreeNode<VoxelChunk>> loadQueue = new BlockingCollection<OctreeNode<VoxelChunk>>();
+        private ConcurrentQueue<OctreeNode<VoxelChunk>> queue = new ConcurrentQueue<OctreeNode<VoxelChunk>>();
+        private BlockingCollection<OctreeNode<VoxelChunk>> loadQueue;
 
         public int Depth { get { return depth; } }
 
@@ -138,6 +139,7 @@ namespace GameLibrary.Voxel
                 int y;
                 int z;
                 octree.GetNodeCoordinates(node, out x, out y, out z);
+                //VoxelMap map = new SpongeVoxelMap(chunkSize, x, y, z);
                 VoxelMap map = new PerlinNoiseVoxelMap(chunkSize, x, y, z);
                 //VoxelMap map = new AOTestVoxelMap(chunkSize, x, y, z);
                 if (!map.IsEmpty())
@@ -162,6 +164,10 @@ namespace GameLibrary.Voxel
 
         public override void ClearLoadQueue()
         {
+            // FIXME emptying the queue will cause the consumer thread to take "newer" items early
+            // should pause the thread
+            // TOOD don't clear on each redraw...
+            //queue.Clear();
             while (loadQueue.Count > 0)
             {
                 OctreeNode<VoxelChunk> node;
@@ -176,7 +182,8 @@ namespace GameLibrary.Voxel
 
         private void start()
         {
-            // A simple blocking consumer with no cancellation.
+            loadQueue = new BlockingCollection<OctreeNode<VoxelChunk>>(queue);
+            // A simple blocking consumer with cancellation.
             loadTask = Task.Run(() =>
             {
                 while (!loadQueue.IsCompleted)
@@ -211,8 +218,11 @@ namespace GameLibrary.Voxel
 
         private void load(OctreeNode<VoxelChunk> node)
         {
-            createMesh(node);
-            node.obj.State = VoxelChunkState.Ready;
+            if (node.obj.State == VoxelChunkState.Loading)
+            {
+                createMesh(node);
+                node.obj.State = VoxelChunkState.Ready;
+            }
         }
 
         public bool createMesh(OctreeNode<VoxelChunk> node)
@@ -251,7 +261,7 @@ namespace GameLibrary.Voxel
             return true;
         }
 
-        class MeshDrawable : Drawable, Transform
+        class MeshDrawable : Drawable/*, Transform*/
         {
             public bool Enabled { get; set; }
 
@@ -272,9 +282,10 @@ namespace GameLibrary.Voxel
             /// </summary>
             public BoundingVolume WorldBoundingVolume { get; }
 
+            /*
             public Matrix Transform { get; }
             public Matrix WorldTransform { get; }
-
+            */
             public void PreDraw(GraphicsDevice gd)
             {
                 if (mesh.IndexBuffer != null)
@@ -317,8 +328,8 @@ namespace GameLibrary.Voxel
                 Visible = true;
                 BoundingVolumeVisible = true;
                 // TODO keep only one transform
-                Transform = Matrix.CreateTranslation(boundingBox.Center);
-                WorldTransform = Transform;
+                //Transform = Matrix.CreateTranslation(boundingBox.Center);
+                //WorldTransform = Transform;
             }
         }
 

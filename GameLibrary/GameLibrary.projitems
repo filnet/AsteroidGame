@@ -30,10 +30,11 @@
     <Compile Include="$(MSBuildThisFileDirectory)SceneGraph\Common\Drawable.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)SceneGraph\Common\Physical.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)SceneGraph\Common\Transform.cs" />
-    <Compile Include="$(MSBuildThisFileDirectory)Util\NoiseGen.cs" />
-    <Compile Include="$(MSBuildThisFileDirectory)Util\Perlin.cs" />
-    <Compile Include="$(MSBuildThisFileDirectory)Util\SimplexNoiseGenerator.cs" />
-    <Compile Include="$(MSBuildThisFileDirectory)Util\SimplexNoise.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)Util\Noise\FastNoise.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)Util\Noise\NoiseGen.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)Util\Noise\Perlin.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)Util\Noise\SimplexNoiseGenerator.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)Util\Noise\SimplexNoise.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Voxel\Effect\VoxelEffect1.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Voxel\Effect\VoxelEffect.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)System\DebugManager.cs" />
@@ -63,6 +64,7 @@
     <Compile Include="$(MSBuildThisFileDirectory)StockEffects\C#\InstancingEffect.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Util\BitUtil.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Voxel\Mesh\VoxelMapMeshFactory1.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)Voxel\VoxelMapIterator.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Voxel\VoxelUtil.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Voxel\VoxelOctreeGeometry.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Voxel\VoxelOctree.cs" />

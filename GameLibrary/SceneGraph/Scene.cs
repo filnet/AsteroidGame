@@ -12,6 +12,172 @@ using GameLibrary.Voxel;
 
 namespace GameLibrary.SceneGraph
 {
+
+    public sealed class RenderContext
+    {
+        // camera
+        public Vector3 CameraPosition;
+
+        // culling
+        #region Properties
+        public bool FrustrumCullingEnabled
+        {
+            get { return frustrumCullingEnabled; }
+            set { frustrumCullingEnabled = value; }
+        }
+        public bool DistanceCullingEnabled
+        {
+            get { return distanceCullingEnabled; }
+            set { distanceCullingEnabled = value; }
+        }
+        public ulong FrustrumCullingOwner;
+        public BoundingFrustum BoundingFrustum;
+
+        public ulong DistanceCullingOwner;
+        public readonly float CullDistance;
+        public readonly float CullDistanceSquared;
+
+        public int VisitOrder
+        {
+            get { return visitOrder; }
+        }
+        #endregion
+
+        // flags
+        public bool Debug = false;
+        public readonly bool AddBoundingGeometry;
+        public bool ShowBoundingVolumes = false;
+        public bool ShowCulledBoundingVolumes = false;
+        public bool ShowCollisionVolumes = false;
+
+        // stats
+        public int DistanceCullCount;
+        public int FrustumCullCount;
+        public int RenderCount;
+
+        private int visitOrder;
+        private bool frustrumCullingEnabled;
+        private bool distanceCullingEnabled;
+
+        public readonly Dictionary<int, List<Drawable>> renderBins;
+
+        public RenderContext()
+        {
+            FrustrumCullingEnabled = true;
+            DistanceCullingEnabled = false;
+
+            FrustrumCullingOwner = 0;
+            DistanceCullingOwner = 0;
+
+            // distance culling
+            CullDistance = 4 * 512;
+            CullDistanceSquared = CullDistance * CullDistance;
+
+            // flags
+            AddBoundingGeometry = false;
+
+            // stats
+            DistanceCullCount = 0;
+            FrustumCullCount = 0;
+            RenderCount = 0;
+
+            // state
+            renderBins = new Dictionary<int, List<Drawable>>();
+        }
+
+        public void UpdateCamera(ICameraComponent cameraComponent)
+        {
+            // TODO performance: don't do both Matrix inverse and transpose
+
+            // compute visit order based on view direction
+            Matrix viewMatrix = cameraComponent.ViewMatrix;
+
+            Matrix vt = Matrix.Transpose(viewMatrix);
+            Vector3 dir = vt.Forward;
+            visitOrder = VectorUtil.visitOrder(dir);
+            //if (Debug) Console.WriteLine(dir + " : " + VisitOrder);
+
+            // frustrum culling
+            if (FrustrumCullingEnabled)
+            {
+                BoundingFrustum = cameraComponent.BoundingFrustum;
+            }
+
+            if (DistanceCullingEnabled)
+            {
+                Matrix vi = Matrix.Invert(viewMatrix);
+                CameraPosition = vi.Translation;
+            }
+        }
+
+        public void AddToBin(Drawable drawable)
+        {
+            AddToBin(drawable.RenderGroupId, drawable);
+        }
+
+        public void AddToBin(int binId, Drawable drawable)
+        {
+            if (binId < 0)
+            {
+                return;
+            }
+            List<Drawable> list;
+            if (!renderBins.TryGetValue(binId, out list))
+            {
+                list = new List<Drawable>();
+                renderBins[binId] = list;
+            }
+            if (Debug && list.Contains(drawable))
+            {
+                throw new Exception("Node already in group " + binId);
+            }
+            list.Add(drawable);
+        }
+
+        public void ClearBins()
+        {
+            foreach (KeyValuePair<int, List<Drawable>> drawableListKVP in renderBins)
+            {
+                List<Drawable> drawableList = drawableListKVP.Value;
+                drawableList.Clear();
+            }
+        }
+
+        public void AddBoundingVolume(Drawable drawable, bool culled)
+        {
+            AddBoundingVolume(drawable, drawable.BoundingVolume.GetBoundingType(), culled);
+        }
+
+        public void AddBoundingVolume(Drawable drawable, BoundingType boundingType, bool culled)
+        {
+            Boolean collided = false;
+            if (ShowCollisionVolumes)
+            {
+                // collided = (collisionCache != null) ? collisionCache.ContainsKey(drawable.Id) : false;
+            }
+            if (!culled)
+            {
+                if (collided)
+                {
+                    AddToBin((boundingType == BoundingType.Sphere) ? Scene.COLLISION_SPHERE : Scene.COLLISION_BOX, drawable);
+                }
+                else if (ShowBoundingVolumes)
+                {
+                    AddToBin((boundingType == BoundingType.Sphere) ? Scene.BOUNDING_SPHERE : Scene.BOUNDING_BOX, drawable);
+                }
+            }
+            else
+            {
+                // handle culled nodes
+                if (ShowCulledBoundingVolumes)
+                {
+                    AddToBin((boundingType == BoundingType.Sphere) ? Scene.CULLED_BOUNDING_SPHERE : Scene.CULLED_BOUNDING_BOX, drawable);
+                }
+            }
+        }
+
+    }
+
     public class Scene
     {
         private ICameraComponent cameraComponent;
@@ -53,7 +219,7 @@ namespace GameLibrary.SceneGraph
 
         public GraphicsDevice GraphicsDevice;
 
-        private readonly RenderContext renderContext = new RenderContext();
+        public readonly RenderContext renderContext = new RenderContext();
         private readonly GraphicsContext gc = new GraphicsContext();
 
         public Node RootNode
@@ -129,7 +295,7 @@ namespace GameLibrary.SceneGraph
             //renderers[VOXEL_MAP] = new VoxelMapRenderer(EffectFactory.CreateBasicEffect1(GraphicsDevice));
             //renderers[VOXEL_MAP] = new VoxelMapInstancedRenderer(EffectFactory.CreateInstancedEffect(GraphicsDevice));
 
-            renderers[VOXEL] = new ShowTimeRenderer(new EffectRenderer(VoxelUtil.CreateVoxelEffect(GraphicsDevice)));
+            renderers[VOXEL] = new ShowTimeRenderer(new VoxelRenderer(VoxelUtil.CreateVoxelEffect(GraphicsDevice)));
             //renderers[VOXEL].RasterizerState = RasterizerState.CullNone;
             //renderers[VOXEL].RasterizerState = Renderer.WireFrameRasterizer;
 
@@ -430,153 +596,6 @@ namespace GameLibrary.SceneGraph
             return true;
         };
 
-        public sealed class RenderContext
-        {
-            // camera
-            public int VisitOrder;
-            public Vector3 CameraPosition;
-
-            // culling
-            public bool FrustrumCullingEnabled;
-            public ulong FrustrumCullingOwner;
-            public BoundingFrustum BoundingFrustum;
-
-            public bool DistanceCullingEnabled;
-            public ulong DistanceCullingOwner;
-            public readonly float CullDistance;
-            public readonly float CullDistanceSquared;
-
-            // flags
-            public bool Debug = false;
-            public readonly bool AddBoundingGeometry;
-            public bool ShowBoundingVolumes = false;
-            public bool ShowCulledBoundingVolumes = false;
-            public bool ShowCollisionVolumes = false;
-
-            // stats
-            public int DistanceCullCount;
-            public int FrustumCullCount;
-            public int RenderCount;
-
-            public readonly Dictionary<int, List<Drawable>> renderBins;
-
-            public RenderContext()
-            {
-                FrustrumCullingEnabled = true;
-                DistanceCullingEnabled = true;
-
-                FrustrumCullingOwner = 0;
-                DistanceCullingOwner = 0;
-
-                // distance culling
-                CullDistance = 256f;
-                CullDistanceSquared = CullDistance * CullDistance;
-
-                // flags
-                AddBoundingGeometry = false;
-
-                // stats
-                DistanceCullCount = 0;
-                FrustumCullCount = 0;
-                RenderCount = 0;
-
-                // state
-                renderBins = new Dictionary<int, List<Drawable>>();
-            }
-
-            public void UpdateCamera(ICameraComponent cameraComponent)
-            {
-                // TODO performance: don't do both Matrix inverse and transpose
-
-                // compute visit order based on view direction
-                Matrix viewMatrix = cameraComponent.ViewMatrix;
-
-                Matrix vt = Matrix.Transpose(viewMatrix);
-                Vector3 dir = vt.Forward;
-                VisitOrder = VectorUtil.visitOrder(dir);
-                //if (Debug) Console.WriteLine(dir + " : " + VisitOrder);
-
-                // frustrum culling
-                if (FrustrumCullingEnabled)
-                {
-                    BoundingFrustum = cameraComponent.BoundingFrustum;
-                }
-
-                if (DistanceCullingEnabled)
-                {
-                    Matrix vi = Matrix.Invert(viewMatrix);
-                    CameraPosition = vi.Translation;
-                }
-            }
-
-            public void AddToBin(Drawable drawable)
-            {
-                AddToBin(drawable.RenderGroupId, drawable);
-            }
-
-            public void AddToBin(int binId, Drawable drawable)
-            {
-                if (binId < 0)
-                {
-                    return;
-                }
-                List<Drawable> list;
-                if (!renderBins.TryGetValue(binId, out list))
-                {
-                    list = new List<Drawable>();
-                    renderBins[binId] = list;
-                }
-                if (Debug && list.Contains(drawable))
-                {
-                    throw new Exception("Node already in group " + binId);
-                }
-                list.Add(drawable);
-            }
-
-            public void ClearBins()
-            {
-                foreach (KeyValuePair<int, List<Drawable>> drawableListKVP in renderBins)
-                {
-                    List<Drawable> drawableList = drawableListKVP.Value;
-                    drawableList.Clear();
-                }
-            }
-
-            public void AddBoundingVolume(Drawable drawable, bool culled)
-            {
-                AddBoundingVolume(drawable, drawable.BoundingVolume.GetBoundingType(), culled);
-            }
-
-            public void AddBoundingVolume(Drawable drawable, BoundingType boundingType, bool culled)
-            {
-                Boolean collided = false;
-                if (ShowCollisionVolumes)
-                {
-                    // collided = (collisionCache != null) ? collisionCache.ContainsKey(drawable.Id) : false;
-                }
-                if (!culled)
-                {
-                    if (collided)
-                    {
-                        AddToBin((boundingType == BoundingType.Sphere) ? COLLISION_SPHERE : COLLISION_BOX, drawable);
-                    }
-                    else if (ShowBoundingVolumes)
-                    {
-                        AddToBin((boundingType == BoundingType.Sphere) ? BOUNDING_SPHERE : BOUNDING_BOX, drawable);
-                    }
-                }
-                else
-                {
-                    // handle culled nodes
-                    if (ShowCulledBoundingVolumes)
-                    {
-                        AddToBin((boundingType == BoundingType.Sphere) ? CULLED_BOUNDING_SPHERE : CULLED_BOUNDING_BOX, drawable);
-                    }
-                }
-            }
-
-        }
-
         private static readonly Node.Visitor RENDER_VISITOR = delegate (Node node, ref Object arg)
             {
                 if (!node.Visible)
@@ -590,7 +609,7 @@ namespace GameLibrary.SceneGraph
                 {
                     voxelOctreeGeometry.voxelOctree.ClearLoadQueue();
                     voxelOctreeGeometry.voxelOctree.Visit(
-                        ctxt.VisitOrder, VOXEL_OCTREE_RENDER_PRE_VISITOR, null, VOXEL_OCTREE_RENDER_POST_VISITOR, ref arg);
+                        ctxt.VisitOrder, VOXEL_OCTREE_RENDER_VISITOR, null, VOXEL_OCTREE_RENDER_POST_VISITOR, ref arg);
                     return true;
                 }
                 else if (node is Drawable drawable)
@@ -621,7 +640,7 @@ namespace GameLibrary.SceneGraph
                 return true;
             };
 
-        private static readonly VoxelOctree.Visitor<VoxelChunk> VOXEL_OCTREE_RENDER_PRE_VISITOR = delegate (Octree<VoxelChunk> octree, OctreeNode<VoxelChunk> node, ref Object arg)
+        private static readonly VoxelOctree.Visitor<VoxelChunk> VOXEL_OCTREE_RENDER_VISITOR = delegate (Octree<VoxelChunk> octree, OctreeNode<VoxelChunk> node, ref Object arg)
         {
             RenderContext ctxt = arg as RenderContext;
 

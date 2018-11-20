@@ -1,12 +1,7 @@
 ﻿using System;
-using System.Collections.Generic;
-using System.Linq;
 using Microsoft.Xna.Framework;
 using GameLibrary.Geometry.Common;
 using Microsoft.Xna.Framework.Graphics;
-using GameLibrary.Component.Util;
-using GameLibrary.Util;
-using GameLibrary.Voxel;
 
 namespace GameLibrary.Voxel
 {
@@ -15,7 +10,7 @@ namespace GameLibrary.Voxel
     [Flags]
     public enum Face { Left, Right, Bottom, Top, Back, Front }
 
-    public class TileInfo
+    public sealed class TileInfo
     {
         String Name;
         bool IsSolid;
@@ -164,6 +159,7 @@ namespace GameLibrary.Voxel
 
             private static readonly TileInfo[] tiles = new TileInfo[] {
                 new TileInfo("Air",false),
+                new TileInfo("Dirt", FaceType.Earth, FaceType.Earth),
                 new TileInfo("Grass", FaceType.Grass, FaceType.Grass),
                 new TileInfo("GrassyEarth", FaceType.Grass, FaceType.Earth),
                 new TileInfo("Rock", FaceType.Rock, FaceType.Rock),
@@ -215,11 +211,17 @@ namespace GameLibrary.Voxel
                 TileInfo tileInfo = tiles[v];
 
                 // initialize 
-                Matrix m = Matrix.Identity; // Matrix.CreateScale(0.95f);
                 Vector3 t;
+                /*
                 t.X = 2 * d * (ite.X - (size - 1) / 2f);
                 t.Y = 2 * d * (ite.Y - (size - 1) / 2f);
                 t.Z = 2 * d * (ite.Z - (size - 1) / 2f);
+                */
+                t.X = 2 * d * ite.X + d;
+                t.Y = 2 * d * ite.Y + d;
+                t.Z = 2 * d * ite.Z + d;
+
+                //Matrix m = Matrix.Identity; // Matrix.CreateScale(0.95f);
                 //m = m * Matrix.CreateTranslation(2 * d * (ite.X - (size - 1) / 2f), 2 * d * (ite.Y - (size - 1) / 2f), 2 * d * (ite.Z - (size - 1) / 2f));
                 //m = m * Matrix.CreateTranslation(d * (2 * ite.X - size) / size, d * (2 * ite.Y - size) / size, d * (2 * ite.Z - size) / size);
                 //Console.Out.WriteLine(2 * d * (ite.X - (size - 1) / 2f) + " " + 2 * d * (ite.Y - (size - 1) / 2f) + " " + 2 * d * (ite.Z - (size - 1) / 2f));

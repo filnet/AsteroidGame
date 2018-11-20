@@ -17,6 +17,8 @@ using GameLibrary.Geometry.Common;
 using AsteroidGame.Geometry;
 using GameLibrary.Util;
 using GameLibrary.Voxel;
+using System.Threading;
+using WpfLibrary;
 
 namespace AsteroidGame
 {
@@ -42,13 +44,42 @@ namespace AsteroidGame
             instance = this;
         }
 
+        Thread t;
+        WpfControlWindow wnd;
+
         protected override void Initialize()
         {
             base.Initialize();
+            t = new Thread((ThreadStart)delegate
+            {
+                wnd = new WpfControlWindow();
+                // Do stuff here, e.g. to the window
+                //wnd.Title = "Something else";
+                //wnd.setSelected(Scene.CameraComponent);
+                wnd.setSelected(Scene.renderContext);
+                // Show the window
+                wnd.ShowDialog();
+            });
+            t.SetApartmentState(ApartmentState.STA);
+            t.Start();
+
+            /*
+                        while (wnd == null)
+                        {
+                        }
+                        while (!wnd.IsActive)
+            */
+            //wnd.setSelected(Scene.CameraComponent);
+
+            //From form = new Form();
+            //form.Show();
         }
 
         protected override void Dispose(bool disposing)
         {
+            //wnd.Close();
+            t.Abort();
+
             base.Dispose(disposing);
         }
 
