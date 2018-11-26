@@ -24,9 +24,11 @@ namespace System.Windows.Controls
         Alphabetical = 1,
         Categorized = 2,
         CategorizedAlphabetical = 3
-    }; 
+    };
 
     /// <summary>WPF Native PropertyGrid class, uses Workflow Foundation's PropertyInspector</summary>
+    /// See https://www.codeproject.com/Articles/87715/Native-WPF-PropertyGrid
+    /// All attributes are declared in the System.ComponentModel namespace
     public class WpfPropertyGrid : Grid
     {
         #region Private fields

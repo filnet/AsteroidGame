@@ -20,7 +20,7 @@ namespace GameLibrary.SceneGraph
 
     public abstract class Renderer
     {
-        protected BlendState BlendState;
+        public BlendState BlendState;
         protected DepthStencilState DepthStencilState;
         public RasterizerState RasterizerState;
         public SamplerState SamplerState;
@@ -196,6 +196,58 @@ namespace GameLibrary.SceneGraph
         }
     }
 
+    public class HortographicRenderer : EffectRenderer
+    {
+        //private Matrix projectionMatrix;
+        //private Matrix viewMatrix;
+
+        public HortographicRenderer(Effect effect) : base(effect)
+        {
+            //BlendState = BlendState.AlphaBlend;        
+        }
+
+        public override void Render(GraphicsContext gc, List<Drawable> drawableList)
+        {
+            gc.GraphicsDevice.BlendState = BlendState;
+            gc.GraphicsDevice.DepthStencilState = DepthStencilState;
+            gc.GraphicsDevice.RasterizerState = RasterizerState;
+            gc.GraphicsDevice.SamplerStates[0] = SamplerState;
+
+            if (effectMatrices != null)
+            {
+                Vector2 center;
+                center.X = gc.GraphicsDevice.Viewport.Width * 0.5f;
+                center.Y = gc.GraphicsDevice.Viewport.Height * 0.5f;
+
+                Matrix view = Matrix.CreateLookAt(new Vector3(center, 0), new Vector3(center, 1), new Vector3(0, -1, 0));
+                Matrix projection = Matrix.CreateOrthographic(center.X * 2, center.Y * 2, -0.5f, 1);
+
+                // FIXME...
+                effectMatrices.Projection = projection;
+                effectMatrices.View = view;
+            }
+
+            foreach (EffectPass pass in effect.CurrentTechnique.Passes)
+            {
+                foreach (Drawable drawable in drawableList)
+                {
+                    if (!drawable.Enabled || !drawable.Visible)
+                    {
+                        break;
+                    }
+                    if ((effectMatrices != null) && (drawable is Transform transform))
+                    {
+                        effectMatrices.World = transform.WorldTransform;
+                    }
+                    pass.Apply();
+                    drawable.PreDraw(gc.GraphicsDevice);
+                    drawable.Draw(gc.GraphicsDevice);
+                    drawable.PostDraw(gc.GraphicsDevice);
+                }
+            }
+        }
+    }
+
     public class VoxelRenderer : Renderer
     {
         protected readonly Effect effect;
@@ -206,6 +258,9 @@ namespace GameLibrary.SceneGraph
         {
             this.effect = effect;
             effectMatrices = effect as IEffectMatrices;
+
+            //RasterizerState = RasterizerState.CullNone;
+            //RasterizerState = Renderer.WireFrameRasterizer;
         }
 
         public override void Render(GraphicsContext gc, List<Drawable> drawableList)

@@ -11,27 +11,46 @@ namespace GameLibrary.Geometry
     public class LineMeshFactory : IMeshFactory
     {
         protected Vector3[] vertices;
+        protected bool close;
 
         public LineMeshFactory()
         {
         }
 
+        public LineMeshFactory(Vector3[] vertices) : this(vertices, false)
+        {
+        }
+
+        public LineMeshFactory(Vector3[] vertices, bool close)
+        {
+            this.vertices = vertices;
+            this.close = close;
+        }
+
         public Mesh CreateMesh(GraphicsDevice gd)
         {
-            vertices = new Vector3[2];
-            generateGeometry();
+            if (vertices == null)
+            {
+                vertices = new Vector3[2];
+                generateGeometry();
+            }
             Mesh mesh = generateMesh(gd);
             return mesh;
         }
 
         protected virtual Mesh generateMesh(GraphicsDevice gd)
         {
-            VertexBufferBuilder<VertexPositionColor> builder = VertexBufferBuilder<VertexPositionColor>.createVertexPositionColorBufferBuilder(gd, vertices.Count(), 0);
+            int vertexCount = close ? vertices.Count() + 1 : vertices.Count();
+            VertexBufferBuilder<VertexPositionColor> builder = VertexBufferBuilder<VertexPositionColor>.createVertexPositionColorBufferBuilder(gd, vertexCount, 0);
             foreach (Vector3 vertex in vertices)
             {
                 builder.AddVertex(vertex, Vector3.Zero, Color.White, Vector2.Zero);
             }
-            Mesh mesh = new Mesh(PrimitiveType.LineList, vertices.Count());
+            if (close)
+            {
+                builder.AddVertex(vertices[0], Vector3.Zero, Color.White, Vector2.Zero);
+            }
+            Mesh mesh = new Mesh(PrimitiveType.LineStrip, vertexCount - 1);
             mesh.BoundingVolume = new GameLibrary.SceneGraph.Bounding.BoundingSphere(new Vector3(0.5f, 0, 0), 0.5f);
             builder.SetToMesh(mesh);
             return mesh;

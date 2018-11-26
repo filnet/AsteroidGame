@@ -8,6 +8,7 @@ using Microsoft.Xna.Framework.Graphics;
 using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
@@ -24,6 +25,7 @@ namespace GameLibrary.Voxel
         public SceneGraph.Bounding.BoundingBox BoundingBox;
         public VoxelMap VoxelMap;
         public Drawable Drawable;
+        public Drawable TransparentDrawable;
 
         public VoxelChunk()
         {
@@ -41,10 +43,19 @@ namespace GameLibrary.Voxel
 
         private VoxelMapMeshFactory meshFactory;
 
+        private bool LoadOnInitialization = false;
+        //private bool CreateMeshOnInitialization = false;
+        private bool ExitAfterLoad = false;
+
         private Task loadTask;
         private CancellationTokenSource cts = new CancellationTokenSource();
+        private readonly int queueSize = 10;
         private ConcurrentQueue<OctreeNode<VoxelChunk>> queue = new ConcurrentQueue<OctreeNode<VoxelChunk>>();
         private BlockingCollection<OctreeNode<VoxelChunk>> loadQueue;
+
+        public delegate void ObjectLoadedCallback();
+
+        public ObjectLoadedCallback objectLoadedCallback;
 
         public int Depth { get { return depth; } }
 
@@ -55,33 +66,45 @@ namespace GameLibrary.Voxel
             depth = BitUtil.Log2(size / chunkSize);
 
             objectFactory = createObject;
-            RootNode.obj = createObject(this, RootNode);
-
-            //fill();
-            start();
         }
 
         public void Initialize(GraphicsDevice graphicsDevice)
         {
             this.graphicsDevice = graphicsDevice;
             meshFactory = new VoxelMapMeshFactory(this, graphicsDevice);
+
+            Stopwatch sw = new Stopwatch();
+            sw.Start();
+            RootNode.obj = createObject(this, RootNode);
+            sw.Stop();
+            Console.WriteLine("Creating VoxelOctree took {0} ms", sw.Elapsed);
+
+            //fill();
+            if (LoadOnInitialization)
+            {
+                Object d = Vector3.Zero;
+                sw.Start();
+                Visit(0, loadVisitor, ref d);
+                sw.Stop();
+                Console.WriteLine("Loading VoxelOctree took {0} ms", sw.Elapsed);
+                if (ExitAfterLoad)
+                {
+                    Environment.Exit(0);
+                }
+            }
+            StartLoadQueue();
+        }
+
+        private bool loadVisitor(Octree<VoxelChunk> octree, OctreeNode<VoxelChunk> node, ref Object arg)
+        {
+            node.obj.State = VoxelChunkState.Loading;
+            load(node);
+            return true;
         }
 
         public void Dispose()
         {
-            if (loadTask != null)
-            {
-                // complete adding and empty queue
-                loadQueue.CompleteAdding();
-                ClearLoadQueue();
-                // cancel load task
-                cts.Cancel();
-                // wait for load task to end
-                Task.WaitAll(loadTask);
-            }
-            loadTask.Dispose();
-            loadQueue.Dispose();
-            cts.Dispose();
+            DisposeLoadQueue();
         }
 
         private void fill()
@@ -156,17 +179,26 @@ namespace GameLibrary.Voxel
             return voxelChunk;
         }
 
-        public override void LoadNode(OctreeNode<VoxelChunk> node, ref Object arg)
+        public override bool LoadNode(OctreeNode<VoxelChunk> node, ref Object arg)
         {
             node.obj.State = VoxelChunkState.Loading;
+            bool queued = true;
             loadQueue.Add(node);
+            if (!queued)
+            {
+                node.obj.State = VoxelChunkState.Null;
+            }
+            return queued;
         }
 
         public override void ClearLoadQueue()
         {
             // FIXME emptying the queue will cause the consumer thread to take "newer" items early
             // should pause the thread
-            // TOOD don't clear on each redraw...
+            // TODO don't clear on each redraw...
+            // TODO should be able to add a new batch "in front"...
+            // so that the consumer loads "older" chunks if it gets a chance to do so...
+            // and there is no need to clear the queue anymore
             //queue.Clear();
             while (loadQueue.Count > 0)
             {
@@ -180,9 +212,9 @@ namespace GameLibrary.Voxel
             }
         }
 
-        private void start()
+        private void StartLoadQueue()
         {
-            loadQueue = new BlockingCollection<OctreeNode<VoxelChunk>>(queue);
+            loadQueue = new BlockingCollection<OctreeNode<VoxelChunk>>(queue/*, queueSize*/);
             // A simple blocking consumer with cancellation.
             loadTask = Task.Run(() =>
             {
@@ -210,37 +242,65 @@ namespace GameLibrary.Voxel
                     }
 
                     load(node);
+
+                    if (objectLoadedCallback != null)
+                    {
+                        objectLoadedCallback();
+                    }
                     //Console.WriteLine("Loaded " + node.locCode);
                 }
                 Console.WriteLine("No more items to take.");
             });
         }
 
+        private void DisposeLoadQueue()
+        {
+            if (loadTask != null)
+            {
+                // complete adding and empty queue
+                loadQueue.CompleteAdding();
+                ClearLoadQueue();
+                // cancel load task
+                cts.Cancel();
+                // wait for load task to end
+                Task.WaitAll(loadTask);
+            }
+            loadTask.Dispose();
+            loadQueue.Dispose();
+            cts.Dispose();
+        }
+
         private void load(OctreeNode<VoxelChunk> node)
         {
             if (node.obj.State == VoxelChunkState.Loading)
             {
-                createMesh(node);
+                createMeshes(node);
                 node.obj.State = VoxelChunkState.Ready;
             }
         }
 
-        public bool createMesh(OctreeNode<VoxelChunk> node)
+        public void createMeshes(OctreeNode<VoxelChunk> node)
         {
-            Drawable drawable = null;
             // TODO performance: the depth test is expensive...
             if (node.obj.VoxelMap != null && Octree<VoxelChunk>.GetNodeTreeDepth(node) == Depth)
             {
                 VoxelMap voxelMap = node.obj.VoxelMap;
 
-                // TODO performance: derive from a simpler geometry node (no child, no physics, etc...)
                 Mesh mesh = meshFactory.CreateMesh(node);
-                if (mesh == null)
+                if (mesh != null)
                 {
-                    return false;
+                    // FIXME should get bounding box from mesh...
+                    SceneGraph.Bounding.BoundingBox boundingBox = node.obj.BoundingBox;
+                    node.obj.Drawable = new MeshDrawable(Scene.VOXEL, mesh, boundingBox);
                 }
-                SceneGraph.Bounding.BoundingBox boundingBox = node.obj.BoundingBox;
-                drawable = new MeshDrawable(Scene.VOXEL, mesh, boundingBox);
+                // FIXME meshFactory API is bad...
+                Mesh transparentMesh = meshFactory.CreateTransparentMesh();
+                if (transparentMesh != null)
+                {
+                    // FIXME should get bounding box from transparentMesh...
+                    SceneGraph.Bounding.BoundingBox boundingBox = node.obj.BoundingBox;
+                    node.obj.TransparentDrawable = new MeshDrawable(Scene.VOXEL_WATER, transparentMesh, boundingBox);
+                }
             }
             else
             {
@@ -254,11 +314,9 @@ namespace GameLibrary.Voxel
                     // - no physics
                     // - no child, etc...
                     SceneGraph.Bounding.BoundingBox boundingBox = node.obj.BoundingBox;
-                    drawable = new FakeDrawable(Scene.VECTOR, boundingBox);
+                    node.obj.Drawable = new FakeDrawable(Scene.VECTOR, boundingBox);
                 }
             }
-            node.obj.Drawable = drawable;
-            return true;
         }
 
         class MeshDrawable : Drawable/*, Transform*/

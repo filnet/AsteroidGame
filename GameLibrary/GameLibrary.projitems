@@ -30,6 +30,7 @@
     <Compile Include="$(MSBuildThisFileDirectory)SceneGraph\Common\Drawable.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)SceneGraph\Common\Physical.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)SceneGraph\Common\Transform.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)SceneGraph\RenderContext.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Util\Noise\FastNoise.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Util\Noise\NoiseGen.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Util\Noise\Perlin.cs" />
@@ -64,6 +65,7 @@
     <Compile Include="$(MSBuildThisFileDirectory)StockEffects\C#\InstancingEffect.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Util\BitUtil.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Voxel\Mesh\VoxelMapMeshFactory1.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)Voxel\TileInfo.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Voxel\VoxelMapIterator.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Voxel\VoxelUtil.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Voxel\VoxelOctreeGeometry.cs" />
@@ -104,6 +106,7 @@
     <Content Include="$(MSBuildThisFileDirectory)Doc\Clipping Shader.txt" />
     <Content Include="$(MSBuildThisFileDirectory)Doc\Resources.txt" />
     <Content Include="$(MSBuildThisFileDirectory)Doc\Architecture.txt" />
+    <Content Include="$(MSBuildThisFileDirectory)Doc\TODO.txt" />
     <Content Include="$(MSBuildThisFileDirectory)StockEffects\HLSL\AlphaTestEffect.fx" />
     <Content Include="$(MSBuildThisFileDirectory)StockEffects\HLSL\BasicEffect.fx" />
     <Content Include="$(MSBuildThisFileDirectory)StockEffects\HLSL\DualTextureEffect.fx" />

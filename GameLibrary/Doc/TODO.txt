@@ -1,0 +1,46 @@
+﻿Mesh
+
+Simplify VoxelDrawable (not need for world transform)
+
+Octree
+
+http://old.cescg.org/CESCG-2002/DSykoraJJelinek/
+Shows how to :
+- Take into account view vector to optimize AABB vs frustrum intersection test
+- How to reduce the number of tests for child AABB
+- And finally, how to benefit from frame coherency (i.e. 1st test the plane that “failed” in the previous frame).
+
+http://www.flipcode.com/archives/Harmless_Algorithms-Issue_02_Scene_Traversal_Algorithms.shtml
+non recursive « point location », « region location » and « neighbor searching » in octrees.
+http://www.merl.com/publications/docs/TR2002-41.pdf
+
+http://mcmains.me.berkeley.edu/pubs/TVCG2010finalKrishnamurthyMcMains.pdf
+
+http://www.scratchapixel.com/lessons/3d-basic-rendering/perspective-and-orthographic-projection-matrix/projection-matrices-what-you-need-to-know-first
+https://www.scratchapixel.com/lessons/3d-basic-rendering/perspective-and-orthographic-projection-matrix/opengl-perspective-projection-matrix
+
+Screen size culling
+
+For an OBB https://pdfs.semanticscholar.org/1f59/8266e387cf367702d16acf5a4e02cc72cb99.pdf
+But can be simplified for AABB ?
+And a fast way to transform an AABB : http://www.cs.unc.edu/~zhangh/technotes/bbox.pdf
+
+Noise
+
+http://libnoise.sourceforge.net/glossary/index.html#coherentnoise
+
+Geomety Shader
+
+This one : https://gist.github.com/JSandusky/82cf0022ba78c83e1d436947a6e00926
+http://community.monogame.net/t/how-to-incorporate-an-algorithm-into-a-geometry-shader/10602/7
+https://gist.github.com/OptimisticPeach/353b04699a1df134356cfbb16a03f635
+https://github.com/OptimisticPeach/GardeningGame
+
+Object Pool
+
+https://docs.microsoft.com/fr-fr/dotnet/standard/collections/thread-safe/how-to-create-an-object-pool
+
+Wire Frame 
+
+A lot of very good tutorials : https://catlikecoding.com/unity/tutorials/
+https://catlikecoding.com/unity/tutorials/advanced-rendering/flat-and-wireframe-shading/

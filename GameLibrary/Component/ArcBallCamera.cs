@@ -78,7 +78,7 @@ namespace GameLibrary
             {
                 if (viewProjectionMatrixDirty)
                 {
-                    viewProjectionMatrix = viewMatrix * projectionMatrix;
+                    Matrix.Multiply(ref viewMatrix, ref projectionMatrix, out viewProjectionMatrix);
                     viewProjectionMatrixDirty = false;
                 }
                 return viewProjectionMatrix;
@@ -91,7 +91,7 @@ namespace GameLibrary
             {
                 if (boundingFrustumDirty)
                 {
-                    boundingFrustum = new BoundingFrustum(ViewMatrix * ProjectionMatrix);
+                    boundingFrustum = new BoundingFrustum(ViewProjectionMatrix);
                     boundingFrustumDirty = false;
                 }
                 return boundingFrustum;

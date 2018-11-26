@@ -83,6 +83,41 @@ namespace GameLibrary.Voxel
             return effect;
         }
 
+        public static Effect CreateVoxelWaterEffect(GraphicsDevice gd)
+        {
+            VoxelEffect effect = new VoxelEffect(gd);
+
+            // primitive color
+            effect.AmbientLightColor = new Vector3(0.3f, 0.3f, 0.3f);
+            effect.DiffuseColor = new Vector3(1.0f, 1.0f, 1.0f);
+            effect.SpecularColor = new Vector3(1.0f, 1.0f, 1.0f); ; // new Vector3(0.25f, 0.25f, 0.25f);
+            effect.SpecularPower = 5.0f;
+            effect.Alpha = 0.5f;
+
+            //effect.VertexColorEnabled = true;
+            effect.PreferPerPixelLighting = true;
+
+            effect.LightingEnabled = true;
+            if (effect.LightingEnabled)
+            {
+                effect.DirectionalLight0.Enabled = true;
+                if (effect.DirectionalLight0.Enabled)
+                {
+                    effect.DirectionalLight0.DiffuseColor = new Vector3(0.5f, 0.5f, 0.5f); // range is 0 to 1
+                    effect.DirectionalLight0.Direction = Vector3.Normalize(new Vector3(-1, -1, -1));
+                    // points from the light to the origin of the scene
+                    effect.DirectionalLight0.SpecularColor = Vector3.One;
+                }
+
+                effect.DirectionalLight1.Enabled = false;
+                effect.DirectionalLight2.Enabled = false;
+            }
+
+            effect.TextureEnabled = true;
+            effect.Texture = createTileTextureArray(gd, getTiles());
+            return effect;
+        }
+
         public static Effect CreateVoxelEffect1(GraphicsDevice gd)
         {
             VoxelEffect effect = new VoxelEffect(gd);
@@ -128,7 +163,7 @@ namespace GameLibrary.Voxel
             // snow
             String[] tiles = new String[]
             {
-                "earth", "grass", "rock", "snow", "test", "test_left", "test_right", "test_bottom", "test_top", "test_back", "test_front"
+                "earth", "grass", "rock", "snow", "water", "test", "test_left", "test_right", "test_bottom", "test_top", "test_back", "test_front"
             };
 
             return tiles;

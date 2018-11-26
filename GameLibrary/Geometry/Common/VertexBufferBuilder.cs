@@ -17,6 +17,11 @@ namespace GameLibrary.Geometry.Common
         protected int[] indices;
         protected int iIndex;
 
+        public int VertexCount
+        {
+            get { return vIndex; }
+        }
+
         public VertexBufferBuilder(GraphicsDevice gd) : this(gd, 0, 0)
         {
         }
@@ -36,25 +41,28 @@ namespace GameLibrary.Geometry.Common
             }
         }
 
-        public void AddVertex(Vector3 position, Vector3 normal, Vector2 textureCoordinate)
+        public int AddVertex(Vector3 position, Vector3 normal, Vector2 textureCoordinate)
         {
-            AddVertex(position, normal, Color.White, textureCoordinate);
+            return AddVertex(position, normal, Color.White, textureCoordinate);
         }
 
-        public void AddVertex(Vector3 position, Vector3 normal, Color color, Vector2 textureCoordinate)
+        public int AddVertex(Vector3 position, Vector3 normal, Color color, Vector2 textureCoordinate)
         {
-            AddVertex(position, normal, color, textureCoordinate, 0, 0);
+            return AddVertex(position, normal, color, textureCoordinate, 0, 0);
         }
 
-        public void AddVertex(Vector3 position, Vector3 normal, Color color, Vector2 textureCoordinate, int textureIndex)
+        public int AddVertex(Vector3 position, Vector3 normal, Color color, Vector2 textureCoordinate, int textureIndex)
         {
-            AddVertex(position, normal, color, textureCoordinate, textureIndex, 0);
+            return AddVertex(position, normal, color, textureCoordinate, textureIndex, 0);
         }
 
-        public void AddVertex(Vector3 position, Vector3 normal, Color color, Vector2 textureCoordinate, int textureIndex, int lightTextureIndex)
+        public int AddVertex(Vector3 position, Vector3 normal, Color color, Vector2 textureCoordinate, int textureIndex, int lightTextureIndex)
         {
             ensureVertexCapacity();
-            vertices[vIndex++] = createVertex(position, normal, color, textureCoordinate, textureIndex, lightTextureIndex);
+            int index = vIndex;
+            vertices[index] = createVertex(position, normal, color, textureCoordinate, textureIndex, lightTextureIndex);
+            vIndex++;
+            return index;
         }
 
         protected abstract VertexDeclaration getVertexDeclaration();

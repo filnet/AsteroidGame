@@ -5,7 +5,9 @@
     xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
     xmlns:wpg="clr-namespace:System.Windows.Controls"
     Title="Control Window" mc:Ignorable="d" ResizeMode="CanResizeWithGrip" 
-    Width="360" Height="360" MinWidth="360" MinHeight="400">
+    Width="360" Height="360" MinWidth="360" MinHeight="400"
+    WindowStartupLocation="Manual" 
+    Left="10" Top="10">
 
     <Grid VerticalAlignment="Stretch" HorizontalAlignment="Stretch">
         <wpg:WpfPropertyGrid x:Name="PropertyGrid1"/>

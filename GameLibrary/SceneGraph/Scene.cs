@@ -9,175 +9,10 @@ using GameLibrary.SceneGraph.Bounding;
 using GameLibrary.Geometry.Common;
 using GameLibrary.Geometry;
 using GameLibrary.Voxel;
+using System.ComponentModel;
 
 namespace GameLibrary.SceneGraph
 {
-
-    public sealed class RenderContext
-    {
-        // camera
-        public Vector3 CameraPosition;
-
-        // culling
-        #region Properties
-        public bool FrustrumCullingEnabled
-        {
-            get { return frustrumCullingEnabled; }
-            set { frustrumCullingEnabled = value; }
-        }
-        public bool DistanceCullingEnabled
-        {
-            get { return distanceCullingEnabled; }
-            set { distanceCullingEnabled = value; }
-        }
-        public ulong FrustrumCullingOwner;
-        public BoundingFrustum BoundingFrustum;
-
-        public ulong DistanceCullingOwner;
-        public readonly float CullDistance;
-        public readonly float CullDistanceSquared;
-
-        public int VisitOrder
-        {
-            get { return visitOrder; }
-        }
-        #endregion
-
-        // flags
-        public bool Debug = false;
-        public readonly bool AddBoundingGeometry;
-        public bool ShowBoundingVolumes = false;
-        public bool ShowCulledBoundingVolumes = false;
-        public bool ShowCollisionVolumes = false;
-
-        // stats
-        public int DistanceCullCount;
-        public int FrustumCullCount;
-        public int RenderCount;
-
-        private int visitOrder;
-        private bool frustrumCullingEnabled;
-        private bool distanceCullingEnabled;
-
-        public readonly Dictionary<int, List<Drawable>> renderBins;
-
-        public RenderContext()
-        {
-            FrustrumCullingEnabled = true;
-            DistanceCullingEnabled = false;
-
-            FrustrumCullingOwner = 0;
-            DistanceCullingOwner = 0;
-
-            // distance culling
-            CullDistance = 4 * 512;
-            CullDistanceSquared = CullDistance * CullDistance;
-
-            // flags
-            AddBoundingGeometry = false;
-
-            // stats
-            DistanceCullCount = 0;
-            FrustumCullCount = 0;
-            RenderCount = 0;
-
-            // state
-            renderBins = new Dictionary<int, List<Drawable>>();
-        }
-
-        public void UpdateCamera(ICameraComponent cameraComponent)
-        {
-            // TODO performance: don't do both Matrix inverse and transpose
-
-            // compute visit order based on view direction
-            Matrix viewMatrix = cameraComponent.ViewMatrix;
-
-            Matrix vt = Matrix.Transpose(viewMatrix);
-            Vector3 dir = vt.Forward;
-            visitOrder = VectorUtil.visitOrder(dir);
-            //if (Debug) Console.WriteLine(dir + " : " + VisitOrder);
-
-            // frustrum culling
-            if (FrustrumCullingEnabled)
-            {
-                BoundingFrustum = cameraComponent.BoundingFrustum;
-            }
-
-            if (DistanceCullingEnabled)
-            {
-                Matrix vi = Matrix.Invert(viewMatrix);
-                CameraPosition = vi.Translation;
-            }
-        }
-
-        public void AddToBin(Drawable drawable)
-        {
-            AddToBin(drawable.RenderGroupId, drawable);
-        }
-
-        public void AddToBin(int binId, Drawable drawable)
-        {
-            if (binId < 0)
-            {
-                return;
-            }
-            List<Drawable> list;
-            if (!renderBins.TryGetValue(binId, out list))
-            {
-                list = new List<Drawable>();
-                renderBins[binId] = list;
-            }
-            if (Debug && list.Contains(drawable))
-            {
-                throw new Exception("Node already in group " + binId);
-            }
-            list.Add(drawable);
-        }
-
-        public void ClearBins()
-        {
-            foreach (KeyValuePair<int, List<Drawable>> drawableListKVP in renderBins)
-            {
-                List<Drawable> drawableList = drawableListKVP.Value;
-                drawableList.Clear();
-            }
-        }
-
-        public void AddBoundingVolume(Drawable drawable, bool culled)
-        {
-            AddBoundingVolume(drawable, drawable.BoundingVolume.GetBoundingType(), culled);
-        }
-
-        public void AddBoundingVolume(Drawable drawable, BoundingType boundingType, bool culled)
-        {
-            Boolean collided = false;
-            if (ShowCollisionVolumes)
-            {
-                // collided = (collisionCache != null) ? collisionCache.ContainsKey(drawable.Id) : false;
-            }
-            if (!culled)
-            {
-                if (collided)
-                {
-                    AddToBin((boundingType == BoundingType.Sphere) ? Scene.COLLISION_SPHERE : Scene.COLLISION_BOX, drawable);
-                }
-                else if (ShowBoundingVolumes)
-                {
-                    AddToBin((boundingType == BoundingType.Sphere) ? Scene.BOUNDING_SPHERE : Scene.BOUNDING_BOX, drawable);
-                }
-            }
-            else
-            {
-                // handle culled nodes
-                if (ShowCulledBoundingVolumes)
-                {
-                    AddToBin((boundingType == BoundingType.Sphere) ? Scene.CULLED_BOUNDING_SPHERE : Scene.CULLED_BOUNDING_BOX, drawable);
-                }
-            }
-        }
-
-    }
-
     public class Scene
     {
         private ICameraComponent cameraComponent;
@@ -219,7 +54,7 @@ namespace GameLibrary.SceneGraph
 
         public GraphicsDevice GraphicsDevice;
 
-        public readonly RenderContext renderContext = new RenderContext();
+        public RenderContext renderContext;
         private readonly GraphicsContext gc = new GraphicsContext();
 
         public Node RootNode
@@ -251,9 +86,10 @@ namespace GameLibrary.SceneGraph
         public static int BULLET = 7;
         public static int ASTEROID = 8;
 
-        //public static int VOXEL_MAP = 10;
+        public static int OCTREE = 10;
+        //public static int VOXEL_MAP = 11;
         public static int VOXEL = 12;
-        public static int OCTREE = 15;
+        public static int VOXEL_WATER = 13;
 
         public static int FRUSTRUM = 20;
 
@@ -266,8 +102,12 @@ namespace GameLibrary.SceneGraph
         public static int COLLISION_SPHERE = 40;
         public static int COLLISION_BOX = 41;
 
+        public static int HORTO = 45;
+
         public void Initialize()
         {
+            //VectorUtil.CreateAABBAreaLookupTable();
+
             boundingSphereGeo = GeometryUtil.CreateGeodesicWF("BOUNDING_SPHERE", 1);
             //boundingSphereGeo.Scene = this;
             //boundingGeo.Scale = new Vector3(1.05f);
@@ -296,8 +136,10 @@ namespace GameLibrary.SceneGraph
             //renderers[VOXEL_MAP] = new VoxelMapInstancedRenderer(EffectFactory.CreateInstancedEffect(GraphicsDevice));
 
             renderers[VOXEL] = new ShowTimeRenderer(new VoxelRenderer(VoxelUtil.CreateVoxelEffect(GraphicsDevice)));
-            //renderers[VOXEL].RasterizerState = RasterizerState.CullNone;
-            //renderers[VOXEL].RasterizerState = Renderer.WireFrameRasterizer;
+            renderers[VOXEL_WATER] = new VoxelRenderer(VoxelUtil.CreateVoxelWaterEffect(GraphicsDevice));
+            renderers[VOXEL_WATER].RasterizerState = RasterizerState.CullNone;
+            renderers[VOXEL_WATER].BlendState = BlendState.AlphaBlend;
+
 
             //renderers[OCTREE] = new OctreeRenderer(EffectFactory.CreateBasicEffect3(GraphicsDevice)); // no light
             //renderers[OCTREE] = new OctreeRenderer(EffectFactory.CreateBasicEffect1(GraphicsDevice)); // 3 lights
@@ -312,8 +154,12 @@ namespace GameLibrary.SceneGraph
             renderers[COLLISION_SPHERE] = new BoundRenderer(EffectFactory.CreateCollisionEffect(GraphicsDevice, clip), boundingSphereGeo); // clipping
             renderers[COLLISION_BOX] = new BoundRenderer(EffectFactory.CreateCollisionEffect(GraphicsDevice, clip), boundingBoxGeo); // clipping
 
+            renderers[HORTO] = new HortographicRenderer(EffectFactory.CreateBasicEffect3(GraphicsDevice));
+
             rootNode.Initialize(GraphicsDevice);
             rootNode.Visit(COMMIT_VISITOR, this);
+
+            renderContext = new RenderContext(GraphicsDevice, CameraComponent);
         }
 
         public void Dispose()
@@ -386,7 +232,12 @@ namespace GameLibrary.SceneGraph
             cameraDirty = cameraDirty || (!previousProjectionMatrix.Equals(cameraComponent.ProjectionMatrix));
             cameraDirty = cameraDirty || (!previousViewMatrix.Equals(cameraComponent.ViewMatrix));
 
-            bool sceneDirty = true;
+            // TODO implement sceneDirty (easy)
+            // Octree should set it when needed
+            // LIMIT LOAD QUEUE SIZE (100?)
+            // !!! and flush only when ADDING a 1st new chunk !!!!!!
+            // but it won't work
+            bool sceneDirty = false;
 
             // do the RENDER_GROUP_VISITOR only if:
             // - camera is dirty
@@ -402,7 +253,7 @@ namespace GameLibrary.SceneGraph
                     // and not the current one at the time the camera was frozen
                     if (frustrumGeo == null)
                     {
-                        renderContext.UpdateCamera(cameraComponent);
+                        renderContext.UpdateCamera();
                     }
                 }
                 if (structureDirty)
@@ -448,7 +299,7 @@ namespace GameLibrary.SceneGraph
             Render(gameTime, renderContext.renderBins, renderers);
         }
 
-        public void Render(GameTime gameTime, Dictionary<int, List<Drawable>> renderBins, Dictionary<int, Renderer> renderers)
+        public void Render(GameTime gameTime, SortedDictionary<int, List<Drawable>> renderBins, Dictionary<int, Renderer> renderers)
         {
             BlendState oldBlendState = GraphicsDevice.BlendState;
             DepthStencilState oldDepthStencilState = GraphicsDevice.DepthStencilState;
@@ -640,6 +491,7 @@ namespace GameLibrary.SceneGraph
                 return true;
             };
 
+        static float minA = float.MaxValue;
         private static readonly VoxelOctree.Visitor<VoxelChunk> VOXEL_OCTREE_RENDER_VISITOR = delegate (Octree<VoxelChunk> octree, OctreeNode<VoxelChunk> node, ref Object arg)
         {
             RenderContext ctxt = arg as RenderContext;
@@ -662,6 +514,7 @@ namespace GameLibrary.SceneGraph
                     // contained: no need to cull further down
                     ctxt.FrustrumCullingEnabled = false;
                     ctxt.FrustrumCullingOwner = node.locCode;
+                    //Console.WriteLine("Fully contained");
                 }
             }
 
@@ -671,25 +524,26 @@ namespace GameLibrary.SceneGraph
                 // TODO move to BoundingBox
                 // compute min and max distance (squared) of a point to an AABB
                 // see http://mcmains.me.berkeley.edu/pubs/TVCG2010finalKrishnamurthyMcMains.pdf
-                // the above reference also shows how to compute min and max distance (squared) of between two AABBs
-                Vector3 dist;
-                dist.X = Math.Abs(node.obj.BoundingBox.Center.X - ctxt.CameraPosition.X);
-                dist.Y = Math.Abs(node.obj.BoundingBox.Center.Y - ctxt.CameraPosition.Y);
-                dist.Z = Math.Abs(node.obj.BoundingBox.Center.Z - ctxt.CameraPosition.Z);
-                // max distance
-                Vector3 max;
-                max.X = dist.X + node.obj.BoundingBox.HalfSize.X;
-                max.Y = dist.Y + node.obj.BoundingBox.HalfSize.Y;
-                max.Z = dist.Z + node.obj.BoundingBox.HalfSize.Z;
-                float maxDistanceSquared = (max.X * max.X) + (max.Y * max.Y) + (max.Z * max.Z);
-                // min distance
-                Vector3 min;
-                min.X = Math.Max(dist.X - node.obj.BoundingBox.HalfSize.X, 0);
-                min.Y = Math.Max(dist.Y - node.obj.BoundingBox.HalfSize.Y, 0);
-                min.Z = Math.Max(dist.Z - node.obj.BoundingBox.HalfSize.Z, 0);
-                float minDistanceSquared = (min.X * min.X) + (min.Y * min.Y) + (min.Z * min.Z);
+                // the above reference also shows how to compute min and max distance (squared) between two AABBs
+                Vector3 centerDist;
+                centerDist.X = Math.Abs(node.obj.BoundingBox.Center.X - ctxt.CameraPosition.X);
+                centerDist.Y = Math.Abs(node.obj.BoundingBox.Center.Y - ctxt.CameraPosition.Y);
+                centerDist.Z = Math.Abs(node.obj.BoundingBox.Center.Z - ctxt.CameraPosition.Z);
 
-                if (minDistanceSquared > ctxt.CullDistanceSquared && maxDistanceSquared > ctxt.CullDistanceSquared)
+                // max distance
+                Vector3 dist;
+                dist.X = centerDist.X + node.obj.BoundingBox.HalfSize.X;
+                dist.Y = centerDist.Y + node.obj.BoundingBox.HalfSize.Y;
+                dist.Z = centerDist.Z + node.obj.BoundingBox.HalfSize.Z;
+                float maxDistanceSquared = (dist.X * dist.X) + (dist.Y * dist.Y) + (dist.Z * dist.Z);
+
+                // min distance
+                dist.X = Math.Max(centerDist.X - node.obj.BoundingBox.HalfSize.X, 0);
+                dist.Y = Math.Max(centerDist.Y - node.obj.BoundingBox.HalfSize.Y, 0);
+                dist.Z = Math.Max(centerDist.Z - node.obj.BoundingBox.HalfSize.Z, 0);
+                float minDistanceSquared = (dist.X * dist.X) + (dist.Y * dist.Y) + (dist.Z * dist.Z);
+
+                if (minDistanceSquared > ctxt.cullDistanceSquared && maxDistanceSquared > ctxt.cullDistanceSquared)
                 {
                     // disjoint
                     culled = true;
@@ -698,7 +552,7 @@ namespace GameLibrary.SceneGraph
                     //Console.WriteLine("Distance Culling: DISJOINT");
                     //Console.WriteLine("Distance Culling " + minDistanceSquared + ", " + maxDistanceSquared + " / " + ctxt.CullDistanceSquared);
                 }
-                else if (minDistanceSquared < ctxt.CullDistanceSquared && maxDistanceSquared < ctxt.CullDistanceSquared)
+                else if (minDistanceSquared < ctxt.cullDistanceSquared && maxDistanceSquared < ctxt.cullDistanceSquared)
                 {
                     // contained: no need to cull further down
                     ctxt.DistanceCullingEnabled = false;
@@ -709,15 +563,35 @@ namespace GameLibrary.SceneGraph
                 }
             }
 
+            if (!culled && ctxt.ScreenSizeCullingEnabled)
+            {
+                //if (node.locCode == 0b1100)
+                //{
+                    AddBBoxHull(ctxt, ref node.obj.BoundingBox);
+                    float a = VectorUtil.BBoxArea(ref ctxt.CameraPosition, ref node.obj.BoundingBox, ctxt.ProjectToScreen);
+                    if (a != -1 && a < minA)
+                    {
+                        minA = a;
+                        Console.WriteLine("* " + minA);
+                    }
+                    Console.WriteLine(a);
+                //}
+            }
+
             if (culled && !ctxt.ShowCulledBoundingVolumes)
             {
-                // early exit !!!
+                // early exit !
                 return false;
             }
 
             if (node.obj.State == VoxelChunkState.Null)
             {
-                octree.LoadNode(node, ref arg);
+                bool queued = octree.LoadNode(node, ref arg);
+                if (!queued)
+                {
+                    // queue is full, bail out...
+                    return false;
+                }
             }
             if (node.obj.State != VoxelChunkState.Ready)
             {
@@ -736,6 +610,15 @@ namespace GameLibrary.SceneGraph
                 if (drawable.BoundingVolumeVisible)
                 {
                     ctxt.AddBoundingVolume(drawable, BoundingType.AABB, culled);
+                }
+            }
+            Drawable transparentDrawable = node.obj.TransparentDrawable;
+            if (transparentDrawable != null)
+            {
+                if (transparentDrawable.Visible && !culled)
+                {
+                    ctxt.AddToBin(transparentDrawable);
+                    ctxt.RenderCount++;
                 }
             }
             return !culled;
@@ -787,6 +670,52 @@ namespace GameLibrary.SceneGraph
             arg = level + 1;
             return true;
         };
+
+        public static void AddBBoxHull(RenderContext ctxt, ref Bounding.BoundingBox boundingBox)
+        {
+            bool addHull = false;
+            bool addProjectedHull = !addHull;
+            bool addBorder = true;
+
+            if (addBorder)
+            {
+                Vector3[] borderVertices = new Vector3[4]
+                {
+                new Vector3(10, 10, 0),
+                new Vector3(950, 10, 0),
+                new Vector3(950, 530, 0),
+                new Vector3(10, 530, 0),
+                };
+
+                GeometryNode borderNode = new MeshNode("HORTO_CORDER", new LineMeshFactory(borderVertices, true));
+                borderNode.RenderGroupId = Scene.HORTO;
+                borderNode.Initialize(ctxt.GraphicsDevice);
+                ctxt.AddToBin(borderNode);
+            }
+
+            if (addHull)
+            {
+                Vector3[] hull = VectorUtil.BBoxHull(ref ctxt.CameraPosition, ref boundingBox);
+                if (hull.Length > 0)
+                {
+                    GeometryNode n = new MeshNode("BBOX_HULL", new LineMeshFactory(hull, true));
+                    n.RenderGroupId = Scene.VECTOR;
+                    n.Initialize(ctxt.GraphicsDevice);
+                    ctxt.AddToBin(n);
+                }
+            }
+            if (addProjectedHull)
+            {
+                Vector3[] hull = VectorUtil.BBoxProjectedHull(ref ctxt.CameraPosition, ref boundingBox, ctxt.ProjectToScreen);
+                if (hull.Length > 0)
+                {
+                    GeometryNode n = new MeshNode("BBOX_PROJECTED_HULL", new LineMeshFactory(hull, true));
+                    n.RenderGroupId = Scene.HORTO;
+                    n.Initialize(ctxt.GraphicsDevice);
+                    ctxt.AddToBin(n);
+                }
+            }
+        }
 
         struct Collision
         {

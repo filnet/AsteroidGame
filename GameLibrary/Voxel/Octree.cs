@@ -5,6 +5,7 @@ using System;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Linq;
+using System.Runtime.CompilerServices;
 using System.Text;
 
 namespace GameLibrary.Voxel
@@ -159,7 +160,7 @@ namespace GameLibrary.Voxel
 
         // all octant visit order permutations
         // for each 48 visit orders gives the 8 octants in appropriate order
-        private static readonly Octant[,] OCTANT_VISIT_ORDER = computeVisitOrderPermutations();
+        private static readonly Octant[] OCTANT_VISIT_ORDER = computeVisitOrderPermutations();
 
         // gives the Direction by lookup index
         // lookup index is the bit sequence LEFT RIGHT BOTTOM TOP BACK FRONT
@@ -189,26 +190,31 @@ namespace GameLibrary.Voxel
             nodes.Add(RootNode.locCode, RootNode);
         }
 
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static ulong ParentLocCode(ulong locCode)
         {
             return locCode >> 3;
         }
 
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static ulong ChildLocCode(ulong locCode, Octant octant)
         {
             return (locCode << 3) | (ulong)octant;
         }
 
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static bool HasChild(OctreeNode<T> node, Octant octant)
         {
             return ((node.childExists & (1 << (int)octant)) != 0);
         }
 
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static bool HasChildren(OctreeNode<T> node)
         {
             return (node.childExists != 0);
         }
 
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public OctreeNode<T> GetChildNode(OctreeNode<T> node, Octant octant)
         {
             ulong childLocCode = ChildLocCode(node.locCode, octant);
@@ -220,16 +226,68 @@ namespace GameLibrary.Voxel
             return Convert.ToString((long)locCode, 2);
         }
 
+        /*[MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static Octant GetOctant(OctreeNode<T> node)
+        {
+            return GetOctant(node.locCode);
+        }*/
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static Octant GetOctant(ulong locCode)
+        {
+            return (Octant)(locCode & Mask.LEAF);
+        }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static int GetNodeTreeDepth(OctreeNode<T> node)
+        {
+            // at least flag bit must be set
+            Debug.Assert(node.locCode != 0);
+
+            int msbPosition = BitUtil.BitScanReverse(node.locCode);
+            return msbPosition / 3;
+        }
+
+        /*
+                public static int GetNodeTreeDepth2(OctreeNode<T> node)
+                {
+                    // at least flag bit must be set
+                    Debug.Assert(node.locCode != 0);
+
+                    int depth = 0;
+                    for (ulong lc = node.locCode; lc != 1; lc >>= 3)
+                    {
+                        depth++;
+                    }
+                    return depth;
+                }
+        */
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public OctreeNode<T> LookupNode(ulong locCode)
+        {
+            OctreeNode<T> node;
+            nodes.TryGetValue(locCode, out node);
+            return node;
+        }
+
         // TODO does not belong here
-        public virtual void LoadNode(OctreeNode<T> node, ref Object arg)
+        public virtual bool LoadNode(OctreeNode<T> node, ref Object arg)
         {
             // NOOP
+            return true;
         }
 
         // TODO does not belong here
         public virtual void ClearLoadQueue()
         {
             // NOOP
+        }
+
+        public void GetNodeHalfSize(OctreeNode<T> node, out Vector3 halfSize)
+        {
+            int depth = GetNodeTreeDepth(node);
+            halfSize = Vector3.Divide(HalfSize, (float)Math.Pow(2, depth));
         }
 
         protected void GetNodeBoundingBox(OctreeNode<T> node, ref SceneGraph.Bounding.BoundingBox boundingBox)
@@ -251,7 +309,7 @@ namespace GameLibrary.Voxel
             ulong locCode = node.locCode;
             for (int d = depth - 1; d >= 0; d--)
             {
-                Octant octant = (Octant)((node.locCode >> (d * 3)) & Mask.LEAF);
+                Octant octant = GetOctant(node.locCode >> (d * 3));
 
                 halfSize /= 2f;
 
@@ -259,7 +317,9 @@ namespace GameLibrary.Voxel
                 c.X *= halfSize.X;
                 c.Y *= halfSize.Y;
                 c.Z *= halfSize.Z;
-                center += c;
+                center.X += c.X;
+                center.Y += c.Y;
+                center.Z += c.Z;
             }
         }
 
@@ -276,7 +336,7 @@ namespace GameLibrary.Voxel
             for (int d = depth - 1; d >= 0; d--)
             {
                 h2 /= 2;
-                Octant octant = (Octant)((node.locCode >> (d * 3)) & Mask.LEAF);
+                Octant octant = GetOctant(node.locCode >> (d * 3));
 
                 x += OCTANT_DELTAS[(int)octant, 0] * h2;
                 y += OCTANT_DELTAS[(int)octant, 1] * h2;
@@ -285,58 +345,6 @@ namespace GameLibrary.Voxel
             x -= h2;
             y -= h2;
             z -= h2;
-        }
-
-        public static Octant GetOctant(OctreeNode<T> node)
-        {
-            return GetOctant(node.locCode);
-        }
-
-        public static Octant GetOctant(ulong locCode)
-        {
-            return (Octant)(locCode & Mask.LEAF);
-        }
-
-        public void GetNodeHalfSize(OctreeNode<T> node, out Vector3 halfSize)
-        {
-            int depth = GetNodeTreeDepth(node);
-            halfSize = Vector3.Divide(HalfSize, (float)Math.Pow(2, depth));
-        }
-
-        public static int GetNodeTreeDepth(OctreeNode<T> node)
-        {
-            // at least flag bit must be set
-            Debug.Assert(node.locCode != 0);
-
-            int msbPosition = BitUtil.BitScanReverse(node.locCode);
-            return msbPosition / 3;
-        }
-
-        public static int GetNodeTreeDepth2(OctreeNode<T> node)
-        {
-            // at least flag bit must be set
-            Debug.Assert(node.locCode != 0);
-
-            int depth = 0;
-            for (ulong lc = node.locCode; lc != 1; lc >>= 3)
-            {
-                depth++;
-            }
-            return depth;
-        }
-
-        public OctreeNode<T> LookupNode(ulong locCode)
-        {
-            if (locCode == 1)
-            {
-                return RootNode;
-            }
-            OctreeNode<T> node;
-            if (nodes.TryGetValue(locCode, out node))
-            {
-                return node;
-            }
-            return null;
         }
 
         public OctreeNode<T> AddChild(OctreeNode<T> parent, Octant octant)
@@ -350,6 +358,7 @@ namespace GameLibrary.Voxel
             }
             // create octree node
             OctreeNode<T> node = new OctreeNode<T>();
+
             node.locCode = ChildLocCode(parent.locCode, octant);
             node.childExists = 0;
 
@@ -404,7 +413,9 @@ namespace GameLibrary.Voxel
                     c.X *= halfSize.X;
                     c.Y *= halfSize.Y;
                     c.Z *= halfSize.Z;
-                    center += c;
+                    center.X += c.X;
+                    center.Y += c.Y;
+                    center.Z += c.Z;
                 }
             }
             return parent;
@@ -415,7 +426,7 @@ namespace GameLibrary.Voxel
             Octant octant = 0;
             if (point.X >= center.X) octant = (Octant)(((int)octant) | Mask.X);
             if (point.Y >= center.Y) octant = (Octant)(((int)octant) | Mask.Y);
-            if (point.Z < center.Z) octant = (Octant)(((int)octant) | Mask.Z);
+            if (point.Z <= center.Z) octant = (Octant)(((int)octant) | Mask.Z);
             return octant;
         }
 
@@ -429,7 +440,7 @@ namespace GameLibrary.Voxel
             }
 
             DirData dirData = DIR_DATA[(int)direction];
-            Octant nodeOctant = (Octant)(nodeLocCode & Mask.LEAF);
+            Octant nodeOctant = GetOctant(nodeLocCode);
 
             ulong parentLocCode = ParentLocCode(nodeLocCode);
 
@@ -573,19 +584,22 @@ namespace GameLibrary.Voxel
             }
             if (cont && (node.childExists != 0))
             {
+                int permutationIndex = ctxt.visitOrder * 8;
                 for (ushort i = 0; i < 8; i++)
                 {
-                    Octant octant = (Octant)OCTANT_VISIT_ORDER[ctxt.visitOrder, i];
+                    Octant octant = (Octant)OCTANT_VISIT_ORDER[permutationIndex++];
                     if (!HasChild(node, octant))
                     {
                         continue;
                     }
-                    ulong childLocCode = (node.locCode << 3) | (ulong)octant;
-                    OctreeNode<T> childNode = LookupNode(childLocCode);
+                    //ulong childLocCode = (node.locCode << 3) | (ulong)octant;
+                    //OctreeNode<T> childNode = LookupNode(childLocCode);
+                    OctreeNode<T> childNode = GetChildNode(node, octant);
+                    /*
                     if (childNode == null)
                     {
                         continue;
-                    }
+                    }*/
                     visit(childNode, ref ctxt, ref arg);
                     ctxt.inVisitor?.Invoke(this, childNode, ref arg);
                 }
@@ -594,9 +608,10 @@ namespace GameLibrary.Voxel
             return true;
         }
 
-        private static Octant[,] computeVisitOrderPermutations()
+        private static Octant[] computeVisitOrderPermutations()
         {
-            Octant[,] permutations = new Octant[48, 8];
+            Octant[] permutations = new Octant[48 * 8];
+            int index = 0;
             for (int order = 0; order < 48; order++)
             {
                 int perm = order >> 3;
@@ -615,7 +630,7 @@ namespace GameLibrary.Voxel
                     VectorUtil.PERMUTATIONS[perm](x, y, z, out x, out y, out z);
                     //Console.WriteLine("{0} {1} {2}", x, y, z);
                     o = (x * Mask.X) | (y * Mask.Y) | (z * Mask.Z) ^ Mask.Z;
-                    permutations[order, i] = (Octant)o;
+                    permutations[index++] = (Octant)o;
                 }
             }
             return permutations;

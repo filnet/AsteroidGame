@@ -82,9 +82,9 @@ namespace GameLibrary.Voxel
 
         protected readonly int size;
 
-        protected readonly int x0;
-        protected readonly int y0;
-        protected readonly int z0;
+        protected int x0;
+        protected int y0;
+        protected int z0;
 
         public static bool Debug = false;
 
@@ -94,6 +94,10 @@ namespace GameLibrary.Voxel
             this.x0 = x0;
             this.y0 = y0;
             this.z0 = z0;
+        }
+
+        public AbstractVoxelMap(VoxelMap map) : this(map.Size(), map.X0(), map.Y0(), map.Z0())
+        {
         }
 
         public int X0() { return x0; }
@@ -146,18 +150,20 @@ namespace GameLibrary.Voxel
             // TODO do front to back (to benefit from depth culling)
             // do back face culling
             // transparency...
+            int index = 0;
             for (int z = z0; z < z0 + size; z++)
             {
                 for (int y = y0; y < y0 + size; y++)
                 {
-                    ite.Set(x0, y, z);
+                    //ite.Set(x0, y, z, Get(x0, y, z));
                     for (int x = x0; x < x0 + size; x++)
                     {
+                        ite.Set(x, y, z, internalGet(x, y, z, index++));
                         //int v = ite.Value();
                         abort = !visitor.Visit(ite);
                         if (abort) break;
                         /*if (x < size - 1)*/
-                        ite.TranslateX();
+                        //ite.TranslateX(Get(x + 1, y, z));
                     }
                     if (abort) break;
                 }
@@ -174,12 +180,17 @@ namespace GameLibrary.Voxel
             }
         }
 
+        protected virtual int internalGet(int x, int y, int z, int index)
+        {
+            return Get(x, y, z);
+        }
+
     }
 
     class ArrayVoxelMap : AbstractVoxelMap
     {
         protected readonly int size2;
-        private int[] map;
+        private int[] data;
 
         public ArrayVoxelMap(int size, int x0, int y0, int z0) : base(size, x0, y0, z0)
         {
@@ -187,20 +198,59 @@ namespace GameLibrary.Voxel
             {
                 //throw new Exception("!!!");
             }
-            map = new int[size * size * size];
+            data = new int[size * size * size];
             size2 = size * size;
+        }
+
+        public ArrayVoxelMap(VoxelMap map) : base(map)
+        {
+            if (size > 16)
+            {
+                //throw new Exception("!!!");
+            }
+            data = new int[size * size * size];
+            size2 = size * size;
+        }
+
+        public void InitializeFrom(VoxelMap map)
+        {
+            if (size != map.Size())
+            {
+                throw new Exception("!!!");
+            }
+            x0 = map.X0();
+            y0 = map.Y0();
+            z0 = map.Z0();
+
+            int index = 0;
+            for (int z = z0; z < z0 + size; z++)
+            {
+                for (int y = y0; y < y0 + size; y++)
+                {
+                    for (int x = x0; x < x0 + size; x++)
+                    {
+                        data[index++] = map.Get(x, y, z);
+                    }
+                }
+            }
+
+        }
+
+        protected override int internalGet(int x, int y, int z, int index)
+        {
+            return data[index];
         }
 
         public override int Get(int x, int y, int z)
         {
             int index = (x - x0) + (y - y0) * size + (z - z0) * size2;
-            return map[index];
+            return data[index];
         }
 
         public override void Set(int x, int y, int z, int v)
         {
             int index = (x - x0) + (y - y0) * size + (z - z0) * size2;
-            map[index] = v;
+            data[index] = v;
         }
 
     }
@@ -310,27 +360,20 @@ namespace GameLibrary.Voxel
     }
     class PerlinNoiseVoxelMap : FunctionVoxelMap
     {
-        //private SimplexNoiseGenerator g = new SimplexNoiseGenerator();
-        private NoiseGen g = new NoiseGen();
-        private FastNoise fn = new FastNoise();
+        //private static SimplexNoiseGenerator g = new SimplexNoiseGenerator();
+        private static readonly NoiseGen g = new NoiseGen();
+        private static readonly FastNoise fn = new FastNoise(37);
 
         private static float max = float.MinValue;
         private static float min = float.MaxValue;
-        private static int maxX = int.MinValue;
-        private static int minX = int.MaxValue;
-        private static int maxY = int.MinValue;
-        private static int minY = int.MaxValue;
-        private static int maxZ = int.MinValue;
-        private static int minZ = int.MaxValue;
 
         public PerlinNoiseVoxelMap(int size, int x0, int y0, int z0) : base(size, x0, y0, z0)
         {
         }
 
-
         public override bool IsEmpty()
         {
-            return (y0 >= 0);
+            return false;// (y0 >= 0);
         }
 
         protected override int F(int x, int y, int z)
@@ -347,28 +390,31 @@ namespace GameLibrary.Voxel
             bool b = false;
             if (n > max) { max = n; b = true; }
             if (n < min) { min = n; b = true; }
-            /*
-            if (x > maxX) { maxX = x; b = true; }
-            if (x < minX) { minX = x; b = true; }
-            if (y > maxY) { maxY = y; b = true; }
-            if (y < minY) { minY = y; b = true; }
-            if (z > maxZ) { maxZ = z; b = true; }
-            if (z < minZ) { minZ = z; b = true; }
-            */
             if (b)
             {
-                Console.WriteLine((max - min) + " " + min + " " + max);
-                Console.WriteLine(x + " " + y + " " + z);
-                //Console.WriteLine(minX + " " + minY + " " + minZ);
-                //Console.WriteLine(maxX + " " + maxY + " " + maxZ);
+                //Console.WriteLine((max - min) + " " + min + " " + max);
+                //Console.WriteLine(x + " " + y + " " + z);
             }
 
             if (y >= 0)
             {
-                float f = (float)y / 256f;
-                n = -2;
+                //if (n < 0.2f) return 3;
+                return 0;
             }
-            return (n > 0.5f) ? 1 : (n >= -1) ? 4 : 0;
+            if (n < 0.05f)
+            {
+                if (y == -1)
+                {
+                    return (int)VoxelType.GrassyDirt;
+                }
+                return (int)VoxelType.Rock;
+            }
+            if (n < 0.2f) return (int)VoxelType.GrassyDirt; 
+            if (y >= -10)
+            {
+                return (n > 0.5f) ? (int)VoxelType.Water : (int)VoxelType.Dirt; 
+            }
+            return (n > 0.5f) ? (int)VoxelType.Water : (int)VoxelType.Dirt;
         }
 
         /*

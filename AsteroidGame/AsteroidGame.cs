@@ -19,6 +19,7 @@ using GameLibrary.Util;
 using GameLibrary.Voxel;
 using System.Threading;
 using WpfLibrary;
+using static GameLibrary.VectorUtil;
 
 namespace AsteroidGame
 {
@@ -132,13 +133,12 @@ namespace AsteroidGame
                     Scene.RootNode = createGeodesicTestScene();
                     break;
                 case 2:
-                    Scene.RootNode = createCollisionTestScene();
-                    break;
-                case 3:
                     Scene.RootNode = createCubeTestScene();
                     break;
+                case 3:
+                    Scene.RootNode = createBoundingBoxHullSceneTest();
+                    break;
                 case 4:
-                default:
                     if (camera != null)
                     {
                         camera.ZoomMin = 0.01f;
@@ -148,6 +148,9 @@ namespace AsteroidGame
                         camera.VerticalAngle = -MathHelper.PiOver4;
                     }
                     Scene.RootNode = createVoxelTestScene();
+                    break;
+                case 5:
+                    Scene.RootNode = createCollisionTestScene();
                     break;
             }
             Scene.Initialize();
@@ -315,13 +318,9 @@ namespace AsteroidGame
 
         private Node createVoxelTestScene()
         {
-            //Node voxelMapNode = createVoxelMapNode("VOXEL", 16);
             Node voxelOctreeNode = createVoxelOctreeNode("OCTREE", 512, 32);
 
-            // root
             TransformNode node = new TransformNode("SCENE");
-            //node.Scale = new Vector3(0.10f);
-            //node.Add(voxelMapNode);
             node.Add(voxelOctreeNode);
 
             return node;
@@ -334,48 +333,57 @@ namespace AsteroidGame
             return voxelOctreeGeometry;
         }
 
-        private Node createCollisionTestScene()
+        private Node createBoundingBoxHullSceneTest()
         {
-            GeometryNode node1 = new MeshNode("RECT_1", new SquareMeshFactory());
-            node1.RenderGroupId = Scene.ASTEROID;
-            node1.CollisionGroupId = Scene.ASTEROID;
-            //node1.Scale = new Vector3(0.40f);
-            //node1.Rotation = Quaternion.CreateFromAxisAngle(Vector3.UnitZ, MathHelper.PiOver4);
-            //node1.Translation = position;
-
-            GeometryNode node2 = new MeshNode("RECT_2", new SquareMeshFactory());
-            node2.RenderGroupId = Scene.ASTEROID;
-            node2.CollisionGroupId = Scene.ASTEROID;
-            //node2.Rotation = Quaternion.CreateFromAxisAngle(Vector3.UnitZ, MathHelper.PiOver4);
-            node2.Translation = new Vector3(0.75f, 0.75f, 0);
-
-            GeometryNode node3 = new MeshNode("POLY_1", new PolygonMeshFactory(new Polygon(
-                new Vector2(0, 0), new Vector2(0, 1), new Vector2(2f, 2f)
-            //new Vector2(0, 0), new Vector2(0, 0), new Vector2(0, 0)
-            )));
-            node3.RenderGroupId = Scene.ASTEROID;
-            node3.CollisionGroupId = Scene.ASTEROID;
-            //node1.Scale = new Vector3(0.40f);
-            //node1.Rotation = Quaternion.CreateFromAxisAngle(Vector3.UnitZ, MathHelper.PiOver4);
-            //node3.Translation = new Vector3(-2.5f, 0, 0);
-
-            GeometryNode node4 = new MeshNode("POLY_2", new PolygonMeshFactory(new Polygon(
-                new Vector2(0, 0), new Vector2(0, 1), new Vector2(2f, 2f)
-            //new Vector2(0, 0), new Vector2(0, 0), new Vector2(0, 0)
-            )));
-            node4.RenderGroupId = Scene.ASTEROID;
-            node4.CollisionGroupId = Scene.ASTEROID;
-            //node1.Scale = new Vector3(0.40f);
-            //node1.Rotation = Quaternion.CreateFromAxisAngle(Vector3.UnitZ, MathHelper.PiOver4);
-            node4.Translation = new Vector3(0f, 0.5f, 0);
-
             // root
             GroupNode rootNode = new GroupNode("ROOT_NODE");
-            //rootNode.Add(node1);
-            //rootNode.Add(node2);
-            rootNode.Add(node3);
-            rootNode.Add(node4);
 
+            for (int z = -1; z <= 1; z++)
+            {
+                for (int y = -1; y <= 1; y++)
+                {
+                    for (int x = -1; x <= 1; x++)
+                    {
+                        float x0 = (x + 0) * 2.50f;
+                        float y0 = (y + 0) * 1.50f;
+                        float z0 = (z + 0) * 1.50f;
+                        Vector3 v = new Vector3(x, y, z);
+                        int p = ((v.X < 0) ? 1 : 0)      //  1 = left
+                            + ((v.X > 0 ? 1 : 0) << 1)      //  2 = right
+                            + ((v.Y < 0 ? 1 : 0) << 2)      //  4 = bottom
+                            + ((v.Y > 0 ? 1 : 0) << 3)      //  8 = top
+                            + ((v.Z < 0 ? 1 : 0) << 5)      // 32 = back !!!
+                            + ((v.Z > 0 ? 1 : 0) << 4);     // 16 = front !!!
+
+                        //Hull hull = VectorUtil.AABB_HULLS[p];
+
+                        p *= 7;
+                        int verticeCount = VectorUtil.HULL_LOOKUP_TABLE[p];
+                        if (verticeCount == 0)
+                        {
+                            continue;
+                        }
+
+                        Vector3[] vertices = new Vector3[verticeCount];
+                        for (int i = 0; i < verticeCount; i++)
+                        {
+                            vertices[i] = VectorUtil.HULL_VERTICES[VectorUtil.HULL_LOOKUP_TABLE[++p]];
+                        }
+                        Console.WriteLine(verticeCount + " " + vertices);
+
+                        GeometryNode geo = new MeshNode("X", new LineMeshFactory(vertices));
+                        geo.RenderGroupId = Scene.VECTOR;
+                        //node.CollisionGroupId = Scene.ASTEROID;
+
+                        TransformNode node = new TransformNode("TRANSFORM");
+                        node.Scale = new Vector3(0.45f);
+                        node.Translation = new Vector3(x0, y0, z0);
+                        node.Add(geo);
+
+                        rootNode.Add(node);
+                    }
+                }
+            }
             return rootNode;
         }
 
@@ -443,10 +451,53 @@ namespace AsteroidGame
                     rootNode.Add(node);
                 }
             }
-
             return rootNode;
         }
 
+        private Node createCollisionTestScene()
+        {
+            GeometryNode node1 = new MeshNode("RECT_1", new SquareMeshFactory());
+            node1.RenderGroupId = Scene.ASTEROID;
+            node1.CollisionGroupId = Scene.ASTEROID;
+            //node1.Scale = new Vector3(0.40f);
+            //node1.Rotation = Quaternion.CreateFromAxisAngle(Vector3.UnitZ, MathHelper.PiOver4);
+            //node1.Translation = position;
+
+            GeometryNode node2 = new MeshNode("RECT_2", new SquareMeshFactory());
+            node2.RenderGroupId = Scene.ASTEROID;
+            node2.CollisionGroupId = Scene.ASTEROID;
+            //node2.Rotation = Quaternion.CreateFromAxisAngle(Vector3.UnitZ, MathHelper.PiOver4);
+            node2.Translation = new Vector3(0.75f, 0.75f, 0);
+
+            GeometryNode node3 = new MeshNode("POLY_1", new PolygonMeshFactory(new Polygon(
+                new Vector2(0, 0), new Vector2(0, 1), new Vector2(2f, 2f)
+            //new Vector2(0, 0), new Vector2(0, 0), new Vector2(0, 0)
+            )));
+            node3.RenderGroupId = Scene.ASTEROID;
+            node3.CollisionGroupId = Scene.ASTEROID;
+            //node1.Scale = new Vector3(0.40f);
+            //node1.Rotation = Quaternion.CreateFromAxisAngle(Vector3.UnitZ, MathHelper.PiOver4);
+            //node3.Translation = new Vector3(-2.5f, 0, 0);
+
+            GeometryNode node4 = new MeshNode("POLY_2", new PolygonMeshFactory(new Polygon(
+                new Vector2(0, 0), new Vector2(0, 1), new Vector2(2f, 2f)
+            //new Vector2(0, 0), new Vector2(0, 0), new Vector2(0, 0)
+            )));
+            node4.RenderGroupId = Scene.ASTEROID;
+            node4.CollisionGroupId = Scene.ASTEROID;
+            //node1.Scale = new Vector3(0.40f);
+            //node1.Rotation = Quaternion.CreateFromAxisAngle(Vector3.UnitZ, MathHelper.PiOver4);
+            node4.Translation = new Vector3(0f, 0.5f, 0);
+
+            // root
+            GroupNode rootNode = new GroupNode("ROOT_NODE");
+            //rootNode.Add(node1);
+            //rootNode.Add(node2);
+            rootNode.Add(node3);
+            rootNode.Add(node4);
+
+            return rootNode;
+        }
 
     }
 }

@@ -11,6 +11,7 @@ namespace GameLibrary.Voxel
         protected int x;
         protected int y;
         protected int z;
+        protected int v;
 
         protected readonly int x0;
         protected readonly int y0;
@@ -34,24 +35,20 @@ namespace GameLibrary.Voxel
         public int X { get { return x; } }
         public int Y { get { return y; } }
         public int Z { get { return z; } }
+        public int V { get { return v; } }
 
         public int X0 { get { return x0; } }
         public int Y0 { get { return y0; } }
         public int Z0 { get { return z0; } }
 
-        public abstract void Set(int x, int y, int z);
+        public abstract void Set(int x, int y, int z, int v);
 
-        public abstract void TranslateX();
+        public abstract void TranslateX(int v);
         //public abstract void TranslateY();
         //public abstract void TranslateZ();
 
         public abstract int Value();
         public abstract int Value(Direction direction);
-
-        protected void update()
-        {
-        }
-
     }
 
     class DefaultVoxelMapIterator : VoxelMapIterator
@@ -69,7 +66,7 @@ namespace GameLibrary.Voxel
 
         public override int Value()
         {
-            return map.Get(x, y, z);
+            return v;// map.Get(x, y, z);
         }
 
         public override int Value(Direction direction)
@@ -126,18 +123,18 @@ namespace GameLibrary.Voxel
             return nMap.Get(nx, ny, nz);
         }
 
-        public override void Set(int x, int y, int z)
+        public override void Set(int x, int y, int z, int v)
         {
             this.x = x;
             this.y = y;
             this.z = z;
-            update();
+            this.v = v;
         }
 
-        public override void TranslateX()
+        public override void TranslateX(int v)
         {
             x += 1;
-            update();
+            this.v = v;
         }
 
         private VoxelMap getNeighbourMap(Direction direction)
@@ -161,61 +158,6 @@ namespace GameLibrary.Voxel
         }
     }
 
-    class CachedVoxelMapIterator : VoxelMapIterator
-    {
-        private readonly int[,,] n = new int[3, 3, 3];
-
-        public CachedVoxelMapIterator(VoxelMap map) : base(map)
-        {
-        }
-
-        public override int Value()
-        {
-            return n[1, 1, 1];
-        }
-
-        public override int Value(Direction direction)
-        {
-            VoxelOctree.DirData dirData = VoxelOctree.DIR_DATA[(int)direction];
-            return n[1 + dirData.dX, 1 + dirData.dY, 1 + dirData.dZ];
-        }
-
-        public override void Set(int x, int y, int z)
-        {
-            this.x = x;
-            this.y = y;
-            this.z = z;
-            for (int i = 0; i < 3; i++)
-            {
-                for (int j = 0; j < 3; j++)
-                {
-                    for (int k = 0; k < 3; k++)
-                    {
-                        int v = map.GetSafe(x + i - 1, y + j - 1, z + k - 1);
-                        n[i, j, k] = v;
-                    }
-                }
-            }
-            update();
-        }
-
-        public override void TranslateX()
-        {
-            for (int j = 0; j < 3; z++)
-            {
-                for (int k = 0; k < 3; k++)
-                {
-                    n[0, j, k] = n[1, j, k];
-                    n[1, j, k] = n[2, j, k];
-                    n[2, j, k] = map.GetSafe(x + 1, y + j, z + k);
-                }
-            }
-            x += 1;
-            update();
-        }
-
-    }
-
     class SimpleVoxelMapIterator : VoxelMapIterator
     {
         public SimpleVoxelMapIterator(VoxelMap map) : base(map)
@@ -236,18 +178,18 @@ namespace GameLibrary.Voxel
             return map.GetSafe(nx, ny, nz);
         }
 
-        public override void Set(int x, int y, int z)
+        public override void Set(int x, int y, int z, int v)
         {
             this.x = x;
             this.y = y;
             this.z = z;
-            update();
+            this.v = v;
         }
 
-        public override void TranslateX()
+        public override void TranslateX(int v)
         {
             x += 1;
-            update();
+            this.v = v;
         }
 
     }

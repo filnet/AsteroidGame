@@ -21,6 +21,15 @@ namespace GameLibrary.Voxel
         public VoxelOctreeGeometry(String name, int size, int chunkSize) : base(name)
         {
             voxelOctree = new VoxelOctree(size, chunkSize);
+            voxelOctree.objectLoadedCallback = CB;
+
+        }
+
+        private void CB()
+        {
+            // TODO not thread safe
+            setDirty(DirtyFlag.Structure);
+            setParentDirty(DirtyFlag.ChildStructure);
         }
 
         public override void Initialize(GraphicsDevice gd)

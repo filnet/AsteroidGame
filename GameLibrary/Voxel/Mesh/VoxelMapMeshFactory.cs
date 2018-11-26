@@ -5,49 +5,6 @@ using Microsoft.Xna.Framework.Graphics;
 
 namespace GameLibrary.Voxel
 {
-    public enum FaceType { Earth, Grass, Rock, Snow, Test, TestLeft, TestRight, TestBottom, TestTop, TestBack, TestFront }
-
-    [Flags]
-    public enum Face { Left, Right, Bottom, Top, Back, Front }
-
-    public sealed class TileInfo
-    {
-        String Name;
-        bool IsSolid;
-
-        FaceType[] faces = new FaceType[6];
-
-        public TileInfo(String name, bool solid) : this(name, FaceType.Test, solid) { }
-
-        public TileInfo(String name, FaceType face) : this(name, face, true) { }
-
-        public TileInfo(String name, FaceType face, bool solid) : this(name, face, face, face, face, face, face, solid) { }
-
-        public TileInfo(String name, FaceType top, FaceType other) : this(name, other, other, other, top, other, other, true) { }
-
-        public TileInfo(String name, FaceType left, FaceType right, FaceType bottom, FaceType top, FaceType back, FaceType front)
-            : this(name, left, right, bottom, top, back, front, true)
-        {
-        }
-
-        public TileInfo(String name, FaceType left, FaceType right, FaceType bottom, FaceType top, FaceType back, FaceType front, bool solid)
-        {
-            Name = name;
-            IsSolid = solid;
-            faces[(int)Face.Left] = left;
-            faces[(int)Face.Right] = right;
-            faces[(int)Face.Bottom] = bottom;
-            faces[(int)Face.Top] = top;
-            faces[(int)Face.Back] = back;
-            faces[(int)Face.Front] = front;
-        }
-
-        public int TextureIndex(Face face)
-        {
-            return (int)faces[(int)face];
-        }
-    }
-
     public class VoxelMapMeshFactory : IMeshFactory
     {
         private readonly VoxelOctree octree;
@@ -62,7 +19,8 @@ namespace GameLibrary.Voxel
             this.graphicsDevice = graphicsDevice;
 
             drawVisitor = new DrawVisitor(this);
-            drawVisitor.builder = VertexBufferBuilder<VoxelVertex>.createVoxelVertexBufferBuilder(graphicsDevice);
+            drawVisitor.opaqueBuilder = VertexBufferBuilder<VoxelVertex>.createVoxelVertexBufferBuilder(graphicsDevice);
+            drawVisitor.transparentBuilder = VertexBufferBuilder<VoxelVertex>.createVoxelVertexBufferBuilder(graphicsDevice);
         }
 
         public Mesh CreateMesh(GraphicsDevice graphicsDevice)
@@ -71,22 +29,51 @@ namespace GameLibrary.Voxel
             return null;
         }
 
+        ArrayVoxelMap arrayVoxelMap;
+
         public Mesh CreateMesh(OctreeNode<VoxelChunk> node)
         {
-            drawVisitor.builder.Reset();
+            drawVisitor.opaqueBuilder.Reset();
+            drawVisitor.transparentBuilder.Reset();
 
+            if (arrayVoxelMap == null)
+            {
+                arrayVoxelMap = new ArrayVoxelMap(node.obj.VoxelMap);
+            }
+            arrayVoxelMap.InitializeFrom(node.obj.VoxelMap);
+
+            // HURK
+            VoxelMap tmpVoxelMap = node.obj.VoxelMap;
+            node.obj.VoxelMap = arrayVoxelMap;
+
+            // FIXME : garbage
             VoxelMapIterator ite = new DefaultVoxelMapIterator(octree, node);
 
             node.obj.VoxelMap.Visit(drawVisitor, ite);
 
-            if (drawVisitor.primitiveCount <= 0)
+            node.obj.VoxelMap = tmpVoxelMap;
+
+            if (drawVisitor.opaqueBuilder.VertexCount <= 0)
             {
                 return null;
             }
-            Mesh mesh = new Mesh(PrimitiveType.TriangleList, drawVisitor.primitiveCount);
+            Mesh mesh = new Mesh(PrimitiveType.TriangleList, drawVisitor.opaqueBuilder.VertexCount / 2);
+            drawVisitor.opaqueBuilder.SetToMesh(mesh);
             mesh.BoundingVolume = new GameLibrary.SceneGraph.Bounding.BoundingBox(octree.Center, octree.HalfSize);
 
-            drawVisitor.builder.SetToMesh(mesh);
+            return mesh;
+        }
+
+        public Mesh CreateTransparentMesh()
+        {
+            if (drawVisitor.transparentBuilder.VertexCount <= 0)
+            {
+                return null;
+            }
+            Mesh mesh = new Mesh(PrimitiveType.TriangleList, drawVisitor.transparentBuilder.VertexCount / 2);
+            drawVisitor.transparentBuilder.SetToMesh(mesh);
+            mesh.BoundingVolume = new GameLibrary.SceneGraph.Bounding.BoundingBox(octree.Center, octree.HalfSize);
+
             return mesh;
         }
 
@@ -95,16 +82,14 @@ namespace GameLibrary.Voxel
             //private static float DEFAULT_VOXEL_SIZE = 0.5773502692f; // 1 over the square root of 3
 
             private readonly VoxelMapMeshFactory factory;
-            public VertexBufferBuilder<VoxelVertex> builder;
+            public VertexBufferBuilder<VoxelVertex> opaqueBuilder;
+            public VertexBufferBuilder<VoxelVertex> transparentBuilder;
 
             private readonly float d = 0.5f;
             private int size;
 
             private bool scale = false;
             private Vector3 s = new Vector3(0.75f, 0.75f, 0.75f);
-
-            public short vertexCount;
-            public short primitiveCount;
 
             // top face vertices
             Vector3 topLeftFront;
@@ -157,16 +142,6 @@ namespace GameLibrary.Voxel
             Vector3 leftNormal = new Vector3(-1.0f, 0.0f, 0.0f);
             Vector3 rightNormal = new Vector3(1.0f, 0.0f, 0.0f);
 
-            private static readonly TileInfo[] tiles = new TileInfo[] {
-                new TileInfo("Air",false),
-                new TileInfo("Dirt", FaceType.Earth, FaceType.Earth),
-                new TileInfo("Grass", FaceType.Grass, FaceType.Grass),
-                new TileInfo("GrassyEarth", FaceType.Grass, FaceType.Earth),
-                new TileInfo("Rock", FaceType.Rock, FaceType.Rock),
-                new TileInfo("SnowyRock", FaceType.Snow, FaceType.Rock),
-                new TileInfo("Test", FaceType.TestLeft, FaceType.TestRight, FaceType.TestBottom, FaceType.TestTop, FaceType.TestBack, FaceType.TestFront)
-            };
-
             public DrawVisitor(VoxelMapMeshFactory factory)
             {
                 this.factory = factory;
@@ -191,13 +166,8 @@ namespace GameLibrary.Voxel
             public bool Begin(int size)
             {
                 this.size = size;
-                vertexCount = 0;
-                primitiveCount = 0;
                 return true;
             }
-
-
-            //static int c = 0;
 
             public bool Visit(VoxelMapIterator ite)
             {
@@ -208,23 +178,26 @@ namespace GameLibrary.Voxel
                     return true;
                 }
 
-                TileInfo tileInfo = tiles[v];
+                TileInfo tileInfo = TileInfo.TILES[v];
 
                 // initialize 
                 Vector3 t;
-                /*
-                t.X = 2 * d * (ite.X - (size - 1) / 2f);
-                t.Y = 2 * d * (ite.Y - (size - 1) / 2f);
-                t.Z = 2 * d * (ite.Z - (size - 1) / 2f);
-                */
                 t.X = 2 * d * ite.X + d;
                 t.Y = 2 * d * ite.Y + d;
                 t.Z = 2 * d * ite.Z + d;
 
-                //Matrix m = Matrix.Identity; // Matrix.CreateScale(0.95f);
-                //m = m * Matrix.CreateTranslation(2 * d * (ite.X - (size - 1) / 2f), 2 * d * (ite.Y - (size - 1) / 2f), 2 * d * (ite.Z - (size - 1) / 2f));
-                //m = m * Matrix.CreateTranslation(d * (2 * ite.X - size) / size, d * (2 * ite.Y - size) / size, d * (2 * ite.Z - size) / size);
-                //Console.Out.WriteLine(2 * d * (ite.X - (size - 1) / 2f) + " " + 2 * d * (ite.Y - (size - 1) / 2f) + " " + 2 * d * (ite.Z - (size - 1) / 2f));
+                VertexBufferBuilder<VoxelVertex> builder;
+                if (tileInfo.IsOpaque)
+                {
+                    builder = opaqueBuilder;
+        }
+                else
+                {
+                    builder = transparentBuilder;
+
+                    // FIXME hack
+                    t.Y -= 0.33f;
+                }
 
                 if (!scale)
                 {
@@ -239,8 +212,10 @@ namespace GameLibrary.Voxel
                     Vector3.Add(ref topLeftBack, ref t, out _topLeftBack);
                 }
 
-                bool showFrontFace = (ite.Value(Direction.Front) == 0);
-                if (showFrontFace)
+                int faceCount = 0;
+
+                // Front
+                if (ShowFace(ite, tileInfo, Direction.Front, Direction.Back))
                 {
                     if (scale)
                     {
@@ -255,37 +230,35 @@ namespace GameLibrary.Voxel
                         Vector3.Add(ref _topRightFront, ref t, out _topRightFront);
                     }
 
-                    int tile = tileInfo.TextureIndex(Face.Front);
+                    int tile = tileInfo.TextureIndex(Direction.Front);
 
-                    // BottomLeftFront
-                    int a00 = VertexAmbientOcclusion(ite, Direction.LeftFront, Direction.BottomFront, Direction.BottomLeftFront);
-                    // TopLeftFront
-                    int a01 = VertexAmbientOcclusion(ite, Direction.LeftFront, Direction.TopFront, Direction.TopLeftFront);
-                    // BottomRightFront
-                    int a10 = VertexAmbientOcclusion(ite, Direction.RightFront, Direction.BottomFront, Direction.BottomRightFront);
-                    // TopRightFront
-                    int a11 = VertexAmbientOcclusion(ite, Direction.RightFront, Direction.TopFront, Direction.TopRightFront);
-                    int ao = VoxelUtil.CombineVertexAmbientOcclusion(a00, a01, a10, a11);
+                    int ao = 0b11111111;
+                    if (!tileInfo.IsTransparent)
+                    {
+                        int a00 = VertexAmbientOcclusion(ite, Direction.LeftFront, Direction.BottomFront, Direction.BottomLeftFront);
+                        int a01 = VertexAmbientOcclusion(ite, Direction.LeftFront, Direction.TopFront, Direction.TopLeftFront);
+                        int a10 = VertexAmbientOcclusion(ite, Direction.RightFront, Direction.BottomFront, Direction.BottomRightFront);
+                        int a11 = VertexAmbientOcclusion(ite, Direction.RightFront, Direction.TopFront, Direction.TopRightFront);
+                        ao = VoxelUtil.CombineVertexAmbientOcclusion(a00, a01, a10, a11);
+                    }
 
-                    builder.AddVertex(_bottomLeftFront, frontNormal, Color.White, tex00, tile, ao);
+                    int i = builder.AddVertex(_bottomLeftFront, frontNormal, Color.White, tex00, tile, ao);
                     builder.AddVertex(_topLeftFront, frontNormal, Color.White, tex01, tile, ao);
                     builder.AddVertex(_bottomRightFront, frontNormal, Color.White, tex10, tile, ao);
                     builder.AddVertex(_topRightFront, frontNormal, Color.White, tex11, tile, ao);
 
-                    builder.AddIndex((short)(vertexCount + 1));
-                    builder.AddIndex((short)(vertexCount + 0));
-                    builder.AddIndex((short)(vertexCount + 3));
+                    builder.AddIndex(i + 1);
+                    builder.AddIndex(i);
+                    builder.AddIndex(i + 3);
 
-                    builder.AddIndex((short)(vertexCount + 2));
-                    builder.AddIndex((short)(vertexCount + 3));
-                    builder.AddIndex((short)(vertexCount + 0));
+                    builder.AddIndex(i + 2);
+                    builder.AddIndex(i + 3);
+                    builder.AddIndex(i);
 
-                    vertexCount += 4;
-                    primitiveCount += 2;
+                    faceCount++;
                 }
-
-                bool showBackFace = (ite.Value(Direction.Back) == 0);
-                if (showBackFace)
+                // Back
+                if (ShowFace(ite, tileInfo, Direction.Back, Direction.Front))
                 {
                     if (scale)
                     {
@@ -300,33 +273,35 @@ namespace GameLibrary.Voxel
                         Vector3.Add(ref _topLeftBack, ref t, out _topLeftBack);
                     }
 
-                    int tile = tileInfo.TextureIndex(Face.Back);
+                    int tile = tileInfo.TextureIndex(Direction.Back);
 
-                    int a00 = VertexAmbientOcclusion(ite, Direction.RightBack, Direction.BottomBack, Direction.BottomRightBack);
-                    int a01 = VertexAmbientOcclusion(ite, Direction.RightBack, Direction.TopBack, Direction.TopRightBack);
-                    int a10 = VertexAmbientOcclusion(ite, Direction.LeftBack, Direction.BottomBack, Direction.BottomLeftBack);
-                    int a11 = VertexAmbientOcclusion(ite, Direction.LeftBack, Direction.TopBack, Direction.TopLeftBack);
-                    int ao = VoxelUtil.CombineVertexAmbientOcclusion(a00, a01, a10, a11);
+                    int ao = 0b11111111;
+                    if (!tileInfo.IsTransparent)
+                    {
+                        int a00 = VertexAmbientOcclusion(ite, Direction.RightBack, Direction.BottomBack, Direction.BottomRightBack);
+                        int a01 = VertexAmbientOcclusion(ite, Direction.RightBack, Direction.TopBack, Direction.TopRightBack);
+                        int a10 = VertexAmbientOcclusion(ite, Direction.LeftBack, Direction.BottomBack, Direction.BottomLeftBack);
+                        int a11 = VertexAmbientOcclusion(ite, Direction.LeftBack, Direction.TopBack, Direction.TopLeftBack);
+                        ao = VoxelUtil.CombineVertexAmbientOcclusion(a00, a01, a10, a11);
+                    }
 
-                    builder.AddVertex(_bottomRightBack, backNormal, Color.White, tex00, tile, ao);
+                    int i = builder.AddVertex(_bottomRightBack, backNormal, Color.White, tex00, tile, ao);
                     builder.AddVertex(_topRightBack, backNormal, Color.White, tex01, tile, ao);
                     builder.AddVertex(_bottomLeftBack, backNormal, Color.White, tex10, tile, ao);
                     builder.AddVertex(_topLeftBack, backNormal, Color.White, tex11, tile, ao);
 
-                    builder.AddIndex((short)(vertexCount + 1));
-                    builder.AddIndex((short)(vertexCount + 0));
-                    builder.AddIndex((short)(vertexCount + 3));
+                    builder.AddIndex(i + 1);
+                    builder.AddIndex(i);
+                    builder.AddIndex(i + 3);
 
-                    builder.AddIndex((short)(vertexCount + 2));
-                    builder.AddIndex((short)(vertexCount + 3));
-                    builder.AddIndex((short)(vertexCount + 0));
+                    builder.AddIndex(i + 2);
+                    builder.AddIndex(i + 3);
+                    builder.AddIndex(i);
 
-                    vertexCount += 4;
-                    primitiveCount += 2;
+                    faceCount++;
                 }
-
-                bool showTopFace = (ite.Value(Direction.Top) == 0);
-                if (showTopFace)
+                // Top
+                if (ShowFace(ite, tileInfo, Direction.Top, Direction.Bottom))
                 {
                     if (scale)
                     {
@@ -341,33 +316,35 @@ namespace GameLibrary.Voxel
                         Vector3.Add(ref _topRightBack, ref t, out _topRightBack);
                     }
 
-                    int tile = tileInfo.TextureIndex(Face.Top);
+                    int tile = tileInfo.TextureIndex(Direction.Top);
 
-                    int a00 = VertexAmbientOcclusion(ite, Direction.TopLeft, Direction.TopFront, Direction.TopLeftFront);
-                    int a01 = VertexAmbientOcclusion(ite, Direction.TopLeft, Direction.TopBack, Direction.TopLeftBack);
-                    int a10 = VertexAmbientOcclusion(ite, Direction.TopRight, Direction.TopFront, Direction.TopRightFront);
-                    int a11 = VertexAmbientOcclusion(ite, Direction.TopRight, Direction.TopBack, Direction.TopRightBack);
-                    int ao = VoxelUtil.CombineVertexAmbientOcclusion(a00, a01, a10, a11);
+                    int ao = 0b11111111;
+                    if (!tileInfo.IsTransparent)
+                    {
+                        int a00 = VertexAmbientOcclusion(ite, Direction.TopLeft, Direction.TopFront, Direction.TopLeftFront);
+                        int a01 = VertexAmbientOcclusion(ite, Direction.TopLeft, Direction.TopBack, Direction.TopLeftBack);
+                        int a10 = VertexAmbientOcclusion(ite, Direction.TopRight, Direction.TopFront, Direction.TopRightFront);
+                        int a11 = VertexAmbientOcclusion(ite, Direction.TopRight, Direction.TopBack, Direction.TopRightBack);
+                        ao = VoxelUtil.CombineVertexAmbientOcclusion(a00, a01, a10, a11);
+                    }
 
-                    builder.AddVertex(_topLeftFront, topNormal, Color.White, tex00, tile, ao);
+                    int i = builder.AddVertex(_topLeftFront, topNormal, Color.White, tex00, tile, ao);
                     builder.AddVertex(_topLeftBack, topNormal, Color.White, tex01, tile, ao);
                     builder.AddVertex(_topRightFront, topNormal, Color.White, tex10, tile, ao);
                     builder.AddVertex(_topRightBack, topNormal, Color.White, tex11, tile, ao);
 
-                    builder.AddIndex((short)(vertexCount + 1));
-                    builder.AddIndex((short)(vertexCount + 0));
-                    builder.AddIndex((short)(vertexCount + 3));
+                    builder.AddIndex(i + 1);
+                    builder.AddIndex(i);
+                    builder.AddIndex(i + 3);
 
-                    builder.AddIndex((short)(vertexCount + 2));
-                    builder.AddIndex((short)(vertexCount + 3));
-                    builder.AddIndex((short)(vertexCount + 0));
+                    builder.AddIndex(i + 2);
+                    builder.AddIndex(i + 3);
+                    builder.AddIndex(i);
 
-                    vertexCount += 4;
-                    primitiveCount += 2;
+                    faceCount++;
                 }
-
-                bool showBottomFace = (ite.Value(Direction.Bottom) == 0);
-                if (showBottomFace)
+                // Bottom
+                if (ShowFace(ite, tileInfo, Direction.Bottom, Direction.Top))
                 {
                     if (scale)
                     {
@@ -382,33 +359,35 @@ namespace GameLibrary.Voxel
                         Vector3.Add(ref _bottomLeftBack, ref t, out _bottomLeftBack);
                     }
 
-                    int tile = tileInfo.TextureIndex(Face.Bottom);
+                    int tile = tileInfo.TextureIndex(Direction.Bottom);
 
-                    int a00 = VertexAmbientOcclusion(ite, Direction.BottomRight, Direction.BottomFront, Direction.BottomRightFront);
-                    int a01 = VertexAmbientOcclusion(ite, Direction.BottomRight, Direction.BottomBack, Direction.BottomRightBack);
-                    int a10 = VertexAmbientOcclusion(ite, Direction.BottomLeft, Direction.BottomFront, Direction.BottomLeftFront);
-                    int a11 = VertexAmbientOcclusion(ite, Direction.BottomLeft, Direction.BottomBack, Direction.BottomLeftBack);
-                    int ao = VoxelUtil.CombineVertexAmbientOcclusion(a00, a01, a10, a11);
+                    int ao = 0b11111111;
+                    if (!tileInfo.IsTransparent)
+                    {
+                        int a00 = VertexAmbientOcclusion(ite, Direction.BottomRight, Direction.BottomFront, Direction.BottomRightFront);
+                        int a01 = VertexAmbientOcclusion(ite, Direction.BottomRight, Direction.BottomBack, Direction.BottomRightBack);
+                        int a10 = VertexAmbientOcclusion(ite, Direction.BottomLeft, Direction.BottomFront, Direction.BottomLeftFront);
+                        int a11 = VertexAmbientOcclusion(ite, Direction.BottomLeft, Direction.BottomBack, Direction.BottomLeftBack);
+                        ao = VoxelUtil.CombineVertexAmbientOcclusion(a00, a01, a10, a11);
+                    }
 
-                    builder.AddVertex(_bottomRightFront, bottomNormal, Color.White, tex00, tile, ao);
+                    int i = builder.AddVertex(_bottomRightFront, bottomNormal, Color.White, tex00, tile, ao);
                     builder.AddVertex(_bottomRightBack, bottomNormal, Color.White, tex01, tile, ao);
                     builder.AddVertex(_bottomLeftFront, bottomNormal, Color.White, tex10, tile, ao);
                     builder.AddVertex(_bottomLeftBack, bottomNormal, Color.White, tex11, tile, ao);
 
-                    builder.AddIndex((short)(vertexCount + 1));
-                    builder.AddIndex((short)(vertexCount + 0));
-                    builder.AddIndex((short)(vertexCount + 3));
+                    builder.AddIndex(i + 1);
+                    builder.AddIndex(i);
+                    builder.AddIndex(i + 3);
 
-                    builder.AddIndex((short)(vertexCount + 2));
-                    builder.AddIndex((short)(vertexCount + 3));
-                    builder.AddIndex((short)(vertexCount + 0));
+                    builder.AddIndex(i + 2);
+                    builder.AddIndex(i + 3);
+                    builder.AddIndex(i);
 
-                    vertexCount += 4;
-                    primitiveCount += 2;
+                    faceCount++;
                 }
-
-                bool showLeftFace = (ite.Value(Direction.Left) == 0);
-                if (showLeftFace)
+                // Left
+                if (ShowFace(ite, tileInfo, Direction.Left, Direction.Right))
                 {
                     if (scale)
                     {
@@ -423,33 +402,35 @@ namespace GameLibrary.Voxel
                         Vector3.Add(ref _topLeftBack, ref t, out _topLeftBack);
                     }
 
-                    int tile = tileInfo.TextureIndex(Face.Left);
+                    int tile = tileInfo.TextureIndex(Direction.Left);
 
-                    int a00 = VertexAmbientOcclusion(ite, Direction.BottomLeft, Direction.LeftBack, Direction.BottomLeftBack);
-                    int a01 = VertexAmbientOcclusion(ite, Direction.TopLeft, Direction.LeftBack, Direction.TopLeftBack);
-                    int a10 = VertexAmbientOcclusion(ite, Direction.BottomLeft, Direction.LeftFront, Direction.BottomLeftFront);
-                    int a11 = VertexAmbientOcclusion(ite, Direction.TopLeft, Direction.LeftFront, Direction.TopLeftFront);
-                    int ao = VoxelUtil.CombineVertexAmbientOcclusion(a00, a01, a10, a11);
+                    int ao = 0b11111111;
+                    if (!tileInfo.IsTransparent)
+                    {
+                        int a00 = VertexAmbientOcclusion(ite, Direction.BottomLeft, Direction.LeftBack, Direction.BottomLeftBack);
+                        int a01 = VertexAmbientOcclusion(ite, Direction.TopLeft, Direction.LeftBack, Direction.TopLeftBack);
+                        int a10 = VertexAmbientOcclusion(ite, Direction.BottomLeft, Direction.LeftFront, Direction.BottomLeftFront);
+                        int a11 = VertexAmbientOcclusion(ite, Direction.TopLeft, Direction.LeftFront, Direction.TopLeftFront);
+                        ao = VoxelUtil.CombineVertexAmbientOcclusion(a00, a01, a10, a11);
+                    }
 
-                    builder.AddVertex(_bottomLeftBack, leftNormal, Color.White, tex00, tile, ao);
+                    int i = builder.AddVertex(_bottomLeftBack, leftNormal, Color.White, tex00, tile, ao);
                     builder.AddVertex(_topLeftBack, leftNormal, Color.White, tex01, tile, ao);
                     builder.AddVertex(_bottomLeftFront, leftNormal, Color.White, tex10, tile, ao);
                     builder.AddVertex(_topLeftFront, leftNormal, Color.White, tex11, tile, ao);
 
-                    builder.AddIndex((short)(vertexCount + 1));
-                    builder.AddIndex((short)(vertexCount + 0));
-                    builder.AddIndex((short)(vertexCount + 3));
+                    builder.AddIndex(i + 1);
+                    builder.AddIndex(i);
+                    builder.AddIndex(i + 3);
 
-                    builder.AddIndex((short)(vertexCount + 2));
-                    builder.AddIndex((short)(vertexCount + 3));
-                    builder.AddIndex((short)(vertexCount + 0));
+                    builder.AddIndex(i + 2);
+                    builder.AddIndex(i + 3);
+                    builder.AddIndex(i);
 
-                    vertexCount += 4;
-                    primitiveCount += 2;
+                    faceCount++;
                 }
-
-                bool showRightFace = (ite.Value(Direction.Right) == 0);
-                if (showRightFace)
+                // Right
+                if (ShowFace(ite, tileInfo, Direction.Right, Direction.Left))
                 {
                     if (scale)
                     {
@@ -464,39 +445,57 @@ namespace GameLibrary.Voxel
                         Vector3.Add(ref _topRightBack, ref t, out _topRightBack);
                     }
 
-                    int tile = tileInfo.TextureIndex(Face.Right);
+                    int tile = tileInfo.TextureIndex(Direction.Right);
 
-                    int a00 = VertexAmbientOcclusion(ite, Direction.BottomRight, Direction.RightFront, Direction.BottomRightFront);
-                    int a01 = VertexAmbientOcclusion(ite, Direction.TopRight, Direction.RightFront, Direction.TopRightFront);
-                    int a10 = VertexAmbientOcclusion(ite, Direction.BottomRight, Direction.RightBack, Direction.BottomRightBack);
-                    int a11 = VertexAmbientOcclusion(ite, Direction.TopRight, Direction.RightBack, Direction.TopRightBack);
-                    int ao = VoxelUtil.CombineVertexAmbientOcclusion(a00, a01, a10, a11);
+                    int ao = 0b11111111;
+                    if (!tileInfo.IsTransparent)
+                    {
+                        int a00 = VertexAmbientOcclusion(ite, Direction.BottomRight, Direction.RightFront, Direction.BottomRightFront);
+                        int a01 = VertexAmbientOcclusion(ite, Direction.TopRight, Direction.RightFront, Direction.TopRightFront);
+                        int a10 = VertexAmbientOcclusion(ite, Direction.BottomRight, Direction.RightBack, Direction.BottomRightBack);
+                        int a11 = VertexAmbientOcclusion(ite, Direction.TopRight, Direction.RightBack, Direction.TopRightBack);
+                        ao = VoxelUtil.CombineVertexAmbientOcclusion(a00, a01, a10, a11);
+                    }
 
-                    builder.AddVertex(_bottomRightFront, rightNormal, Color.White, tex00, tile, ao);
+                    int i = builder.AddVertex(_bottomRightFront, rightNormal, Color.White, tex00, tile, ao);
                     builder.AddVertex(_topRightFront, rightNormal, Color.White, tex01, tile, ao);
                     builder.AddVertex(_bottomRightBack, rightNormal, Color.White, tex10, tile, ao);
                     builder.AddVertex(_topRightBack, rightNormal, Color.White, tex11, tile, ao);
 
-                    builder.AddIndex((short)(vertexCount + 1));
-                    builder.AddIndex((short)(vertexCount + 0));
-                    builder.AddIndex((short)(vertexCount + 3));
+                    builder.AddIndex(i + 1);
+                    builder.AddIndex(i);
+                    builder.AddIndex(i + 3);
 
-                    builder.AddIndex((short)(vertexCount + 2));
-                    builder.AddIndex((short)(vertexCount + 3));
-                    builder.AddIndex((short)(vertexCount + 0));
+                    builder.AddIndex(i + 2);
+                    builder.AddIndex(i + 3);
+                    builder.AddIndex(i);
 
-                    vertexCount += 4;
-                    primitiveCount += 2;
+                    faceCount++;
                 }
-                ite.voxelsCount += (primitiveCount > 0) ? 1 : 0;
-                ite.facesCount += primitiveCount / 2;
+                ite.voxelsCount += (faceCount > 0) ? 1 : 0;
+                ite.facesCount += faceCount;
                 return true;
             }
 
-            public int VertexAmbientOcclusion(VoxelMapIterator ite, Direction side1, Direction side2, Direction corner)
+            public bool ShowFace(VoxelMapIterator ite, TileInfo tileInfo, Direction face, Direction oppositeFace)
+            {
+                TileInfo oppositeTileInfo = TileInfo.TILES[ite.Value(face)];
+                // check if voxel has a face in given direction
+                bool show = tileInfo.HasFace(face);
+                // check if neighbour opposite face is opaque and, if yes, di=on't show this face
+                show = show && !oppositeTileInfo.HasOpaqueFace(oppositeFace);
+                // check that both are not transparent (transparent cancels out...)
+                show = show && !(tileInfo.IsTransparent && oppositeTileInfo.IsSolid && oppositeTileInfo.IsTransparent);
+                return show;
+            }
+
+            public int VertexAmbientOcclusion(VoxelMapIterator ite, Direction dir1, Direction dir2, Direction dirCorner)
             {
                 // TODO cache values...
-                return VoxelUtil.VertexAmbientOcclusion(ite.Value(side1) != 0, ite.Value(side2) != 0, ite.Value(corner) != 0);
+                bool side1 = !TileInfo.TILES[ite.Value(dir1)].IsTransparent;
+                bool side2 = !TileInfo.TILES[ite.Value(dir2)].IsTransparent;
+                bool corner = !TileInfo.TILES[ite.Value(dirCorner)].IsTransparent;
+                return VoxelUtil.VertexAmbientOcclusion(side1, side2, corner);
             }
 
             public bool End()

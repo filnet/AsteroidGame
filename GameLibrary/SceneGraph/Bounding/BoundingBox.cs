@@ -70,7 +70,7 @@ namespace GameLibrary.SceneGraph.Bounding
             return new BoundingBox(this);
         }
 
-        private Microsoft.Xna.Framework.BoundingBox asXnaBoundingBox()
+        public Microsoft.Xna.Framework.BoundingBox asXnaBoundingBox()
         {
             xnaBoundingBox.Max = center + halfSize;
             xnaBoundingBox.Min = center - halfSize;
