@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Text;
 
 namespace GameLibrary.Voxel
@@ -11,7 +12,7 @@ namespace GameLibrary.Voxel
         protected int x;
         protected int y;
         protected int z;
-        protected int v;
+        protected ushort v;
 
         protected readonly int x0;
         protected readonly int y0;
@@ -29,23 +30,19 @@ namespace GameLibrary.Voxel
             size = map.Size();
             this.x0 = map.X0();
             this.y0 = map.Y0();
-            this.z0 = map.Z0(); 
+            this.z0 = map.Z0();
         }
 
         public int X { get { return x; } }
         public int Y { get { return y; } }
         public int Z { get { return z; } }
-        public int V { get { return v; } }
+        public ushort V { get { return v; } }
 
         public int X0 { get { return x0; } }
         public int Y0 { get { return y0; } }
         public int Z0 { get { return z0; } }
 
-        public abstract void Set(int x, int y, int z, int v);
-
-        public abstract void TranslateX(int v);
-        //public abstract void TranslateY();
-        //public abstract void TranslateZ();
+        public abstract void Set(int x, int y, int z, ushort v);
 
         public abstract int Value();
         public abstract int Value(Direction direction);
@@ -76,64 +73,51 @@ namespace GameLibrary.Voxel
             int ny = y + dirData.dY;
             int nz = z + dirData.dZ;
 
-            bool inside = true;
             int lookupIndex = 0;
             if (nx < x0)
             {
                 lookupIndex |= Mask.LEFT;
-                inside = false;
             }
             else if (nx >= x0 + size)
             {
                 lookupIndex |= Mask.RIGHT;
-                inside = false;
             }
             if (ny < y0)
             {
                 lookupIndex |= Mask.BOTTOM;
-                inside = false;
             }
             else if (ny >= y0 + size)
             {
                 lookupIndex |= Mask.TOP;
-                inside = false;
             }
             if (nz < z0)
             {
                 lookupIndex |= Mask.BACK;
-                inside = false;
             }
             else if (nz >= z0 + size)
             {
                 lookupIndex |= Mask.FRONT;
-                inside = false;
             }
 
-            if (inside)
+            if (lookupIndex == 0)
             {
+                // inside
                 return map.Get(nx, ny, nz);
             }
-
+         
+            // outside
             Direction nDirection = Octree<VoxelChunk>.DIR_LOOKUP_TABLE[lookupIndex];
             VoxelMap nMap = getNeighbourMap(nDirection);
-            if (nMap.IsEmpty())
-            {
-                return 0;
-            }
+
+            Debug.Assert(nMap.Contains(nx, ny, nz));
             return nMap.Get(nx, ny, nz);
         }
 
-        public override void Set(int x, int y, int z, int v)
+        public override void Set(int x, int y, int z, ushort v)
         {
             this.x = x;
             this.y = y;
             this.z = z;
-            this.v = v;
-        }
-
-        public override void TranslateX(int v)
-        {
-            x += 1;
             this.v = v;
         }
 
@@ -150,7 +134,7 @@ namespace GameLibrary.Voxel
             {
                 ulong l = octree.GetNeighborOfGreaterOrEqualSize(node.locCode, direction);
                 OctreeNode<VoxelChunk> neighbourNode = octree.LookupNode(l);
-                map = (neighbourNode != null) ? neighbourNode.obj.VoxelMap : AbstractVoxelMap.EMPTY_VOXEL_MAP;
+                map = (neighbourNode != null) ? neighbourNode.obj.VoxelMap : EmptyVoxelMap.INSTANCE;
                 neighboursMap[(int)direction] = map;
             }
 
@@ -178,17 +162,11 @@ namespace GameLibrary.Voxel
             return map.GetSafe(nx, ny, nz);
         }
 
-        public override void Set(int x, int y, int z, int v)
+        public override void Set(int x, int y, int z, ushort v)
         {
             this.x = x;
             this.y = y;
             this.z = z;
-            this.v = v;
-        }
-
-        public override void TranslateX(int v)
-        {
-            x += 1;
             this.v = v;
         }
 

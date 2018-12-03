@@ -1,5 +1,8 @@
 ﻿using GameLibrary.Util;
 using System;
+using System.Diagnostics;
+using System.Runtime.CompilerServices;
+using System.Runtime.InteropServices;
 
 namespace GameLibrary.Voxel
 {
@@ -10,87 +13,107 @@ namespace GameLibrary.Voxel
         bool End();
     }
 
+    [StructLayout(LayoutKind.Explicit)]
+    public struct MapIterator
+    {
+        [FieldOffset(0)]
+        private readonly VoxelMap map;
+        [FieldOffset(4)]
+        internal int index;
+        [FieldOffset(8)]
+        internal int count;
+        [FieldOffset(4)]
+        internal int x;
+        [FieldOffset(8)]
+        internal int y;
+        [FieldOffset(12)]
+        internal int z;
+
+        public MapIterator(VoxelMap map)
+        {
+            this.map = map;
+            index = 0;
+            count = 0;
+            x = 0;
+            y = 0;
+            z = 0;
+        }
+
+        public bool Next(out ushort value)
+        {
+            return map.Next(ref this, out value);
+        }
+    }
+
     public interface VoxelMap
     {
-        int Size();
-
-        bool IsEmpty();
-
         int X0();
         int Y0();
         int Z0();
 
-        int Get(int x, int y, int z);
-        int GetSafe(int x, int y, int z);
+        int Size();
 
-        void Set(int x, int y, int z, int v);
-        void SetSafe(int x, int y, int z, int v);
+        bool IsEmpty();
+
+        bool Contains(int x, int y, int z);
+
+        ushort Get(int x, int y, int z);
+        ushort GetSafe(int x, int y, int z);
+
+        void Set(int x, int y, int z, ushort v);
+        void SetSafe(int x, int y, int z, ushort v);
+
+        bool Next(ref MapIterator ite, out ushort value);
 
         void Visit(Visitor visitor, VoxelMapIterator ite);
     }
 
     class EmptyVoxelMap : VoxelMap
     {
-        public EmptyVoxelMap()
-        {
-        }
+        public static readonly VoxelMap INSTANCE = new EmptyVoxelMap();
+
+        public EmptyVoxelMap() { }
 
         public int X0() { return 0; }
         public int Y0() { return 0; }
         public int Z0() { return 0; }
 
+        public int Size() { return 0; }
 
-        public bool IsEmpty()
+        public bool IsEmpty() { return true; }
+
+        public bool Contains(int x, int y, int z) { return true; }
+
+        public ushort Get(int x, int y, int z) { return 0; }
+        public ushort GetSafe(int x, int y, int z) { return 0; }
+
+        public void Set(int x, int y, int z, ushort v) { }
+        public void SetSafe(int x, int y, int z, ushort v) { }
+
+        public bool Next(ref MapIterator ite, out ushort value)
         {
-            return true;
+            value = 0;
+            return false;
         }
 
-        public int Size()
-        {
-            return 0;
-        }
-
-        public int Get(int x, int y, int z)
-        {
-            return 0;
-        }
-
-        public int GetSafe(int x, int y, int z)
-        {
-            return 0;
-        }
-
-        public void Set(int x, int y, int z, int v)
-        {
-            // TODO assert if called
-        }
-
-        public void SetSafe(int x, int y, int z, int v)
-        {
-            // TODO assert if called
-        }
-
-        public void Visit(Visitor visitor, VoxelMapIterator ite)
-        {
-
-        }
+        public void Visit(Visitor visitor, VoxelMapIterator ite) { }
     }
 
-    abstract class AbstractVoxelMap : VoxelMap
+    public abstract class AbstractVoxelMap : VoxelMap
     {
-        public static readonly VoxelMap EMPTY_VOXEL_MAP = new EmptyVoxelMap();
-
         protected readonly int size;
+        protected readonly int size2;
+        protected readonly int size3;
 
         protected int x0;
         protected int y0;
         protected int z0;
 
-        public static bool Debug = false;
-
         public AbstractVoxelMap(int size, int x0, int y0, int z0)
         {
             this.size = size;
+            this.size2 = size * size;
+            this.size3 = size2 * size;
             this.x0 = x0;
             this.y0 = y0;
             this.z0 = z0;
@@ -114,29 +137,32 @@ namespace GameLibrary.Voxel
             return (size == 0);
         }
 
-        public abstract int Get(int x, int y, int z);
-
-        public int GetSafe(int x, int y, int z)
+        public bool Contains(int x, int y, int z)
         {
-            if (x >= x0 && x < x0 + size && y >= y0 && y < y0 + size && z >= z0 && z < z0 + size)
-            {
-                return Get(x, y, z);
-            }
-            return 0;
+            return (x >= x0 && x < x0 + size && y >= y0 && y < y0 + size && z >= z0 && z < z0 + size);
         }
 
-        public virtual void Set(int x, int y, int z, int v)
+        public abstract ushort Get(int x, int y, int z);
+
+        public ushort GetSafe(int x, int y, int z)
+        {
+            return Contains(x, y, z) ? Get(x, y, z) : (ushort)0;
+        }
+
+        public virtual void Set(int x, int y, int z, ushort v)
         {
             throw new Exception("Unsupported operation");
         }
 
-        public void SetSafe(int x, int y, int z, int v)
+        public void SetSafe(int x, int y, int z, ushort v)
         {
-            if (x >= x0 && x < x0 + size && y >= y0 && y < y0 + size && z >= z0 && z < z0 + size)
+            if (Contains(x, y, z))
             {
                 Set(x, y, z, v);
             }
         }
+
+        public abstract bool Next(ref MapIterator ite, out ushort value);
 
         public void Visit(Visitor visitor, VoxelMapIterator ite)
         {
@@ -150,27 +176,32 @@ namespace GameLibrary.Voxel
             // TODO do front to back (to benefit from depth culling)
             // do back face culling
             // transparency...
-            int index = 0;
-            for (int z = z0; z < z0 + size; z++)
+
+            int x = 0;
+            int y = 0;
+            int z = 0;
+
+            MapIterator iterator = new MapIterator(this);
+            ushort value;
+            while (iterator.Next(out value))
             {
-                for (int y = y0; y < y0 + size; y++)
-                {
-                    //ite.Set(x0, y, z, Get(x0, y, z));
-                    for (int x = x0; x < x0 + size; x++)
-                    {
-                        ite.Set(x, y, z, internalGet(x, y, z, index++));
-                        //int v = ite.Value();
-                        abort = !visitor.Visit(ite);
-                        if (abort) break;
-                        /*if (x < size - 1)*/
-                        //ite.TranslateX(Get(x + 1, y, z));
-                    }
-                    if (abort) break;
-                }
+                ite.Set(x0 + x, y0 + y, z0 + z, value);
+                abort = !visitor.Visit(ite);
                 if (abort) break;
+                x++;
+                if (x >= size)
+                {
+                    x = 0;
+                    y++;
+                    if (y >= size)
+                    {
+                        y = 0;
+                        z++;
+                    }
+                }
             }
             visitor.End();
-            if (Debug)
+            if (false)
             {
                 int voxelsCount = size * size * size;
                 int facesCount = voxelsCount * 6;
@@ -180,36 +211,29 @@ namespace GameLibrary.Voxel
             }
         }
 
-        protected virtual int internalGet(int x, int y, int z, int index)
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        protected int toIndex(int x, int y, int z)
         {
-            return Get(x, y, z);
+            return (x - x0) + (y - y0) * size + (z - z0) * size2;
         }
-
     }
 
-    class ArrayVoxelMap : AbstractVoxelMap
+    public class ArrayVoxelMap : AbstractVoxelMap
     {
-        protected readonly int size2;
-        private int[] data;
+        private ushort[] data;
 
         public ArrayVoxelMap(int size, int x0, int y0, int z0) : base(size, x0, y0, z0)
         {
-            if (size > 16)
+            if (size > 32)
             {
                 //throw new Exception("!!!");
             }
-            data = new int[size * size * size];
-            size2 = size * size;
+            data = new ushort[size3];
         }
 
         public ArrayVoxelMap(VoxelMap map) : base(map)
         {
-            if (size > 16)
-            {
-                //throw new Exception("!!!");
-            }
-            data = new int[size * size * size];
-            size2 = size * size;
+            data = new ushort[size3];
         }
 
         public void InitializeFrom(VoxelMap map)
@@ -223,217 +247,158 @@ namespace GameLibrary.Voxel
             z0 = map.Z0();
 
             int index = 0;
-            for (int z = z0; z < z0 + size; z++)
+            MapIterator iterator = new MapIterator(map);
+            ushort value;
+            while (iterator.Next(out value))
             {
-                for (int y = y0; y < y0 + size; y++)
+                data[index++] = value;
+            }
+        }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public override ushort Get(int x, int y, int z)
+        {
+            return data[toIndex(x, y, z)];
+        }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public override void Set(int x, int y, int z, ushort v)
+        {
+            data[toIndex(x, y, z)] = v;
+        }
+
+        public override bool Next(ref MapIterator ite, out ushort value)
+        {
+            if (ite.index >= size3)
+            {
+                value = 0;
+                return false;
+            }
+            value = data[ite.index];
+            ite.index++;
+            return true;
+        }
+    }
+
+    public class RLEVoxelMap : AbstractVoxelMap
+    {
+        private ushort[] data;
+        private bool empty;
+
+        public RLEVoxelMap(int size, int x0, int y0, int z0) : base(size, x0, y0, z0)
+        {
+        }
+
+        public RLEVoxelMap(VoxelMap map) : base(map)
+        {
+        }
+
+        public override bool IsEmpty()
+        {
+            return empty;
+        }
+
+        public void InitializeFrom(VoxelMap map)
+        {
+            if (size != map.Size())
+            {
+                throw new Exception("!!!");
+            }
+            x0 = map.X0();
+            y0 = map.Y0();
+            z0 = map.Z0();
+
+            int totalValue = 0;
+
+            MapIterator iterator = new MapIterator(map);
+            ushort lastValue;
+            if (iterator.Next(out lastValue))
+            {
+                data = new ushort[size2];
+
+                ushort count = 1;
+                int pos = 0;
+                ushort value;
+                while (iterator.Next(out value))
                 {
-                    for (int x = x0; x < x0 + size; x++)
+                    if (lastValue == value)
                     {
-                        data[index++] = map.Get(x, y, z);
+                        count++;
                     }
-                }
-            }
+                    else
+                    {
+                        if (pos == data.Length)
+                        {
+                            Array.Resize(ref data, data.Length * 2);
+                        }
+                        data[pos++] = count;
+                        data[pos++] = lastValue;
+                        totalValue += lastValue;
+                        lastValue = value;
+                        count = 1;
+                    }
 
+                }
+                Array.Resize(ref data, pos + 2);
+                data[pos++] = count;
+                data[pos++] = lastValue;
+                totalValue += lastValue;
+            }
+            //check();
+
+            empty = (totalValue == 0);
         }
 
-        protected override int internalGet(int x, int y, int z, int index)
+        private void check()
+        {
+            int count = 0;
+            for (int i = 0; i < data.Length; i += 2)
+            {
+                count += data[i];
+            }
+            Debug.Assert(count == size3);
+        }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public ushort Get(int index)
         {
             return data[index];
         }
 
-        public override int Get(int x, int y, int z)
+        public override ushort Get(int x, int y, int z)
         {
-            int index = (x - x0) + (y - y0) * size + (z - z0) * size2;
-            return data[index];
-        }
+            int p2 = toIndex(x, y, z);
 
-        public override void Set(int x, int y, int z, int v)
-        {
-            int index = (x - x0) + (y - y0) * size + (z - z0) * size2;
-            data[index] = v;
-        }
-
-    }
-
-    abstract class FunctionVoxelMap : AbstractVoxelMap
-    {
-        public FunctionVoxelMap(int size, int x0, int y0, int z0) : base(size, x0, y0, z0)
-        {
-        }
-
-        public override int Get(int x, int y, int z)
-        {
-            return F(x, y, z);
-        }
-
-        public override void Set(int x, int y, int z, int v)
-        {
-        }
-
-        protected abstract int F(int x, int y, int z);
-    }
-
-    class PlaneVoxelMap : FunctionVoxelMap
-    {
-        public PlaneVoxelMap(int size, int x0, int y0, int z0) : base(size, x0, y0, z0)
-        {
-        }
-
-        public override bool IsEmpty()
-        {
-            return !(y0 == 0);
-        }
-        protected override int F(int x, int y, int z)
-        {
-            if (y == 0)
+            int index = 0;
+            int p = data[index];
+            while (p <= p2)
             {
-                if (x == 0 || z == 0) return 3;
-                return 2;
+                index += 2;
+                p += data[index];
             }
-            return 0;
+            return data[index + 1];
+        }
+
+        public override void Set(int x, int y, int z, ushort v)
+        {
+        }
+
+        public override bool Next(ref MapIterator ite, out ushort value)
+        {
+            if (ite.index >= data.Length)
+            {
+                value = 0;
+                return false;
+            }
+            value = data[ite.index + 1];
+            ite.count++;
+            if (ite.count >= data[ite.index])
+            {
+                ite.count = 0;
+                ite.index += 2;
+            }
+            return true;
         }
     }
 
-    class AOTestVoxelMap : FunctionVoxelMap
-    {
-        public AOTestVoxelMap(int size, int x0, int y0, int z0) : base(size, x0, y0, z0)
-        {
-        }
-
-        public override bool IsEmpty()
-        {
-            return !((x0 == 0 || x0 == size) && y0 == 0 && z0 == 0);
-        }
-
-        protected override int F(int x, int y, int z)
-        {
-            int xx = x - x0;
-            if (z < 1 && y < 2) return 1;
-            if (xx < 1 && y < 2) return 1;
-            //if (z < 1) return 0;
-            if (y < 1) return 2;
-            //if (y > 14) return 2;
-            // if (y < 5 && x > 3 && x < size - 3 && z > 3 && z < size - 3) return 2;
-            //if (y < 7 && x > 6 && x < size - 6 && z > 6 && z < size - 6) return 3;
-            // (y < 8 && x > 7 && x < size - 7 && z > 7 && z < size - 7) return 4;
-            //if (y == 12 && x > 7 && x < size - 7 && z > 7 && z < size - 7) return 4;
-            //if (y == 13 && x > 6 && x < size - 6 && z > 6 && z < size - 6) return 3;
-            //if (y == 14 && x > 4 && x < size - 4 && z > 4 && z < size - 4) return 3;
-            //if (y == 9 && x == 8 && z == 8) return 5;
-            return 0;
-        }
-    }
-
-    class SpongeVoxelMap : FunctionVoxelMap
-    {
-        private FastNoise fn = new FastNoise();
-
-        public SpongeVoxelMap(int size, int x0, int y0, int z0) : base(size, x0, y0, z0)
-        {
-        }
-
-        protected override int F(int x, int y, int z)
-        {
-            float scale = 0.50f;
-            float n = fn.GetSimplex(x / scale, y / scale, z / scale);
-            return (n > 0.5f) ? 2 : 0;
-        }
-
-        /*
-        for (int x = 0; x<Width) 
-        {
-          for (int y = 0; y<Depth) 
-          {
-            for (int z = 0; z<Height) 
-            {
-              if(z<Noise2D(x, y) * Height) 
-              {
-                Array[x][y][z] = Noise3D(x, y, z)
-              } else {
-                Array[x][y][z] = 0
-              }
-            } 
-          } 
-        } 
-        */
-
-    }
-    class PerlinNoiseVoxelMap : FunctionVoxelMap
-    {
-        //private static SimplexNoiseGenerator g = new SimplexNoiseGenerator();
-        private static readonly NoiseGen g = new NoiseGen();
-        private static readonly FastNoise fn = new FastNoise(37);
-
-        private static float max = float.MinValue;
-        private static float min = float.MaxValue;
-
-        public PerlinNoiseVoxelMap(int size, int x0, int y0, int z0) : base(size, x0, y0, z0)
-        {
-        }
-
-        public override bool IsEmpty()
-        {
-            return false;// (y0 >= 0);
-        }
-
-        protected override int F(int x, int y, int z)
-        {
-            //float n = SimplexNoise.Generate(x, y, z, 0.5f, 1);
-            //float n = SimplexNoise.CalcPixel3D(x, y, z,  1 / 10f);
-            float scale = 0.50f;
-            float n = fn.GetSimplex(x / scale, y / scale, z / scale);
-            //float n = SimplexNoise.Generate(x / scale, y / scale, z / scale);
-            //float n = g.noise(x / scale, y / scale, z / scale);
-            //float n = (float) Perlin.perlin(x / scale, y / scale, z / scale);
-            //float n = g.GetNoise(x / scale, y / scale, z / scale);
-
-            bool b = false;
-            if (n > max) { max = n; b = true; }
-            if (n < min) { min = n; b = true; }
-            if (b)
-            {
-                //Console.WriteLine((max - min) + " " + min + " " + max);
-                //Console.WriteLine(x + " " + y + " " + z);
-            }
-
-            if (y >= 0)
-            {
-                //if (n < 0.2f) return 3;
-                return 0;
-            }
-            if (n < 0.05f)
-            {
-                if (y == -1)
-                {
-                    return (int)VoxelType.GrassyDirt;
-                }
-                return (int)VoxelType.Rock;
-            }
-            if (n < 0.2f) return (int)VoxelType.GrassyDirt; 
-            if (y >= -10)
-            {
-                return (n > 0.5f) ? (int)VoxelType.Water : (int)VoxelType.Dirt; 
-            }
-            return (n > 0.5f) ? (int)VoxelType.Water : (int)VoxelType.Dirt;
-        }
-
-        /*
-        for (int x = 0; x<Width) 
-        {
-          for (int y = 0; y<Depth) 
-          {
-            for (int z = 0; z<Height) 
-            {
-              if(z<Noise2D(x, y) * Height) 
-              {
-                Array[x][y][z] = Noise3D(x, y, z)
-              } else {
-                Array[x][y][z] = 0
-              }
-            } 
-          } 
-        } 
-        */
-
-    }
 }

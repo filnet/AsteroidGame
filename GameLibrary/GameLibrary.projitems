@@ -66,6 +66,7 @@
     <Compile Include="$(MSBuildThisFileDirectory)Util\BitUtil.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Voxel\Mesh\VoxelMapMeshFactory1.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Voxel\TileInfo.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)Voxel\FunctionVoxelMap.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Voxel\VoxelMapIterator.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Voxel\VoxelUtil.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Voxel\VoxelOctreeGeometry.cs" />

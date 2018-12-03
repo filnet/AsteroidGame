@@ -42,7 +42,7 @@ namespace GameLibrary.Util
 {
     public class FastNoise
     {
-        private const Int16 FN_INLINE = 256; //(Int16)MethodImplOptions.AggressiveInlining;
+        private const Int16 FN_INLINE = /*256;*/ (Int16)MethodImplOptions.AggressiveInlining;
         private const int FN_CELLULAR_INDEX_MAX = 3;
 
         public enum NoiseType { Value, ValueFractal, Perlin, PerlinFractal, Simplex, SimplexFractal, Cellular, WhiteNoise, Cubic, CubicFractal };

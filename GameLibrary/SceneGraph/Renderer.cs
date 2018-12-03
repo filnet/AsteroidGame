@@ -11,13 +11,14 @@ using GameLibrary.Geometry;
 
 namespace GameLibrary.SceneGraph
 {
-    public class GraphicsContext
+/*
+    public class RenderContext
     {
         public GraphicsDevice GraphicsDevice;
         public ICameraComponent Camera;
         public GameTime GameTime;
     }
-
+*/
     public abstract class Renderer
     {
         public BlendState BlendState;
@@ -39,7 +40,7 @@ namespace GameLibrary.SceneGraph
             SamplerState = SamplerState.LinearWrap;
         }
 
-        public abstract void Render(GraphicsContext gc, List<Drawable> drawableList);
+        public abstract void Render(RenderContext rc, List<Drawable> drawableList);
     }
 
     public class ShowTimeRenderer : Renderer
@@ -59,13 +60,13 @@ namespace GameLibrary.SceneGraph
             //Enabled = true;
         }
 
-        public override void Render(GraphicsContext gc, List<Drawable> drawableList)
+        public override void Render(RenderContext rc, List<Drawable> drawableList)
         {
             if (!Enabled)
             {
-                renderer.Render(gc, drawableList);
+                renderer.Render(rc, drawableList);
             }
-            double currentTime = gc.GameTime.TotalGameTime.TotalMilliseconds;
+            double currentTime = rc.GameTime.TotalGameTime.TotalMilliseconds;
             if (lastTime == -1 || currentTime - lastTime >= 100)
             {
                 lastTime = currentTime;
@@ -74,7 +75,7 @@ namespace GameLibrary.SceneGraph
             index %= drawableList.Count;
             if (index != 0)
             {
-                renderer.Render(gc, drawableList.GetRange(0, index));
+                renderer.Render(rc, drawableList.GetRange(0, index));
             }
         }
     }
@@ -91,17 +92,17 @@ namespace GameLibrary.SceneGraph
             effectMatrices = effect as IEffectMatrices;
         }
 
-        public override void Render(GraphicsContext gc, List<Drawable> drawableList)
+        public override void Render(RenderContext rc, List<Drawable> drawableList)
         {
-            gc.GraphicsDevice.BlendState = BlendState;
-            gc.GraphicsDevice.DepthStencilState = DepthStencilState;
-            gc.GraphicsDevice.RasterizerState = RasterizerState;
-            gc.GraphicsDevice.SamplerStates[0] = SamplerState;
+            rc.GraphicsDevice.BlendState = BlendState;
+            rc.GraphicsDevice.DepthStencilState = DepthStencilState;
+            rc.GraphicsDevice.RasterizerState = RasterizerState;
+            rc.GraphicsDevice.SamplerStates[0] = SamplerState;
 
             if (effectMatrices != null)
             {
-                effectMatrices.Projection = gc.Camera.ProjectionMatrix;
-                effectMatrices.View = gc.Camera.ViewMatrix;
+                effectMatrices.Projection = rc.Camera.ProjectionMatrix;
+                effectMatrices.View = rc.Camera.ViewMatrix;
             }
 
             foreach (EffectPass pass in effect.CurrentTechnique.Passes)
@@ -117,14 +118,14 @@ namespace GameLibrary.SceneGraph
                         effectMatrices.World = transform.WorldTransform;
                     }
                     pass.Apply();
-                    drawable.PreDraw(gc.GraphicsDevice);
-                    drawable.Draw(gc.GraphicsDevice);
-                    drawable.PostDraw(gc.GraphicsDevice);
+                    drawable.PreDraw(rc.GraphicsDevice);
+                    drawable.Draw(rc.GraphicsDevice);
+                    drawable.PostDraw(rc.GraphicsDevice);
                 }
             }
         }
 
-        private void renderOld(GraphicsContext gc, List<Drawable> drawableList)
+        private void renderOld(RenderContext rc, List<Drawable> drawableList)
         {
             foreach (Drawable drawable in drawableList)
             {
@@ -132,7 +133,7 @@ namespace GameLibrary.SceneGraph
                 {
                     effectMatrices.World = transform.WorldTransform;
                 }
-                drawable.PreDraw(gc.GraphicsDevice);
+                drawable.PreDraw(rc.GraphicsDevice);
                 // TODO in case of multiple passes, it might be more efficient
                 // to loop over passes then over geometries and not the other
                 // way around as is currently done
@@ -140,9 +141,9 @@ namespace GameLibrary.SceneGraph
                 foreach (EffectPass pass in effect.CurrentTechnique.Passes)
                 {
                     pass.Apply();
-                    drawable.Draw(gc.GraphicsDevice);
+                    drawable.Draw(rc.GraphicsDevice);
                 }
-                drawable.PostDraw(gc.GraphicsDevice);
+                drawable.PostDraw(rc.GraphicsDevice);
             }
         }
     }
@@ -166,20 +167,20 @@ namespace GameLibrary.SceneGraph
             BlendState = BlendState.AlphaBlend;
         }
 
-        public override void Render(GraphicsContext gc, List<Drawable> drawableList)
+        public override void Render(RenderContext rc, List<Drawable> drawableList)
         {
-            gc.GraphicsDevice.BlendState = BlendState;
-            gc.GraphicsDevice.DepthStencilState = DepthStencilState;
-            gc.GraphicsDevice.RasterizerState = RasterizerState;
-            gc.GraphicsDevice.SamplerStates[0] = SamplerState;
+            rc.GraphicsDevice.BlendState = BlendState;
+            rc.GraphicsDevice.DepthStencilState = DepthStencilState;
+            rc.GraphicsDevice.RasterizerState = RasterizerState;
+            rc.GraphicsDevice.SamplerStates[0] = SamplerState;
 
             if (effectMatrices != null)
             {
-                effectMatrices.Projection = gc.Camera.ProjectionMatrix;
-                effectMatrices.View = gc.Camera.ViewMatrix;
+                effectMatrices.Projection = rc.Camera.ProjectionMatrix;
+                effectMatrices.View = rc.Camera.ViewMatrix;
             }
 
-            boundingGeometry.PreDraw(gc.GraphicsDevice);
+            boundingGeometry.PreDraw(rc.GraphicsDevice);
             foreach (EffectPass pass in effect.CurrentTechnique.Passes)
             {
                 foreach (Drawable drawable in drawableList)
@@ -189,10 +190,10 @@ namespace GameLibrary.SceneGraph
                         effectMatrices.World = drawable.WorldBoundingVolume.WorldMatrix;
                     }
                     pass.Apply();
-                    boundingGeometry.Draw(gc.GraphicsDevice);
+                    boundingGeometry.Draw(rc.GraphicsDevice);
                 }
             }
-            boundingGeometry.PostDraw(gc.GraphicsDevice);
+            boundingGeometry.PostDraw(rc.GraphicsDevice);
         }
     }
 
@@ -206,18 +207,18 @@ namespace GameLibrary.SceneGraph
             //BlendState = BlendState.AlphaBlend;        
         }
 
-        public override void Render(GraphicsContext gc, List<Drawable> drawableList)
+        public override void Render(RenderContext rc, List<Drawable> drawableList)
         {
-            gc.GraphicsDevice.BlendState = BlendState;
-            gc.GraphicsDevice.DepthStencilState = DepthStencilState;
-            gc.GraphicsDevice.RasterizerState = RasterizerState;
-            gc.GraphicsDevice.SamplerStates[0] = SamplerState;
+            rc.GraphicsDevice.BlendState = BlendState;
+            rc.GraphicsDevice.DepthStencilState = DepthStencilState;
+            rc.GraphicsDevice.RasterizerState = RasterizerState;
+            rc.GraphicsDevice.SamplerStates[0] = SamplerState;
 
             if (effectMatrices != null)
             {
                 Vector2 center;
-                center.X = gc.GraphicsDevice.Viewport.Width * 0.5f;
-                center.Y = gc.GraphicsDevice.Viewport.Height * 0.5f;
+                center.X = rc.GraphicsDevice.Viewport.Width * 0.5f;
+                center.Y = rc.GraphicsDevice.Viewport.Height * 0.5f;
 
                 Matrix view = Matrix.CreateLookAt(new Vector3(center, 0), new Vector3(center, 1), new Vector3(0, -1, 0));
                 Matrix projection = Matrix.CreateOrthographic(center.X * 2, center.Y * 2, -0.5f, 1);
@@ -240,9 +241,9 @@ namespace GameLibrary.SceneGraph
                         effectMatrices.World = transform.WorldTransform;
                     }
                     pass.Apply();
-                    drawable.PreDraw(gc.GraphicsDevice);
-                    drawable.Draw(gc.GraphicsDevice);
-                    drawable.PostDraw(gc.GraphicsDevice);
+                    drawable.PreDraw(rc.GraphicsDevice);
+                    drawable.Draw(rc.GraphicsDevice);
+                    drawable.PostDraw(rc.GraphicsDevice);
                 }
             }
         }
@@ -263,17 +264,17 @@ namespace GameLibrary.SceneGraph
             //RasterizerState = Renderer.WireFrameRasterizer;
         }
 
-        public override void Render(GraphicsContext gc, List<Drawable> drawableList)
+        public override void Render(RenderContext rc, List<Drawable> drawableList)
         {
-            gc.GraphicsDevice.BlendState = BlendState;
-            gc.GraphicsDevice.DepthStencilState = DepthStencilState;
-            gc.GraphicsDevice.RasterizerState = RasterizerState;
-            gc.GraphicsDevice.SamplerStates[0] = SamplerState;
+            rc.GraphicsDevice.BlendState = BlendState;
+            rc.GraphicsDevice.DepthStencilState = DepthStencilState;
+            rc.GraphicsDevice.RasterizerState = RasterizerState;
+            rc.GraphicsDevice.SamplerStates[0] = SamplerState;
 
             if (effectMatrices != null)
             {
-                effectMatrices.Projection = gc.Camera.ProjectionMatrix;
-                effectMatrices.View = gc.Camera.ViewMatrix;
+                effectMatrices.Projection = rc.Camera.ProjectionMatrix;
+                effectMatrices.View = rc.Camera.ViewMatrix;
                 effectMatrices.World = Matrix.Identity;
             }
 
@@ -286,9 +287,9 @@ namespace GameLibrary.SceneGraph
                     {
                         break;
                     }
-                    drawable.PreDraw(gc.GraphicsDevice);
-                    drawable.Draw(gc.GraphicsDevice);
-                    drawable.PostDraw(gc.GraphicsDevice);
+                    drawable.PreDraw(rc.GraphicsDevice);
+                    drawable.Draw(rc.GraphicsDevice);
+                    drawable.PostDraw(rc.GraphicsDevice);
                 }
             }
         }

@@ -203,6 +203,12 @@ namespace GameLibrary.Voxel
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static ulong SiblingLocCode(ulong locCode, Octant octant)
+        {
+            return (locCode & Mask.PARENT) | (ulong)octant;
+        }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static bool HasChild(OctreeNode<T> node, Octant octant)
         {
             return ((node.childExists & (1 << (int)octant)) != 0);
@@ -225,12 +231,6 @@ namespace GameLibrary.Voxel
         {
             return Convert.ToString((long)locCode, 2);
         }
-
-        /*[MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static Octant GetOctant(OctreeNode<T> node)
-        {
-            return GetOctant(node.locCode);
-        }*/
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static Octant GetOctant(ulong locCode)
@@ -433,27 +433,43 @@ namespace GameLibrary.Voxel
         public ulong GetNeighborOfGreaterOrEqualSize(ulong nodeLocCode, Direction direction)
         {
             //String nodeLocCodeString = Convert.ToString((long)nodeLocCode, 2);
+            DirData dirData = DIR_DATA[(int)direction];
+ /*           if (direction == Direction.TopRight)
+            {
+                Console.WriteLine("!!!");
+            }*/
+            return getNeighborOfGreaterOrEqualSize(nodeLocCode, dirData.mask, dirData.value);
+        }
+
+        // https://geidav.wordpress.com/2017/12/02/advanced-octrees-4-finding-neighbor-nodes/
+        public ulong getNeighborOfGreaterOrEqualSize(ulong nodeLocCode, int mask, int value)
+        {
             if (nodeLocCode == 1)
             {
                 // reached root
                 return 0;
             }
 
-            DirData dirData = DIR_DATA[(int)direction];
             Octant nodeOctant = GetOctant(nodeLocCode);
 
             ulong parentLocCode = ParentLocCode(nodeLocCode);
 
             // check if neighbour is in same parent node
-            Octant neighbourOctant = (Octant)((int)nodeOctant ^ dirData.mask);
-            if (((int)neighbourOctant & dirData.mask) == dirData.value)
+            Octant neighbourOctant = (Octant)((int)nodeOctant ^ mask);
+            if (((int)neighbourOctant & mask) == value)
             {
                 OctreeNode<T> parent = LookupNode(parentLocCode);
-                return HasChild(parent, neighbourOctant) ? (nodeLocCode & Mask.PARENT) | (ulong)neighbourOctant : 0;
+                return HasChild(parent, neighbourOctant) ? ChildLocCode(parentLocCode, neighbourOctant) : 0;
             }
+
             // not the case, go up...
             // TODO rename l to something more meaningful
-            ulong l = GetNeighborOfGreaterOrEqualSize(parentLocCode, direction);
+            // TODO explain logic / give an example
+            // find direction of neighbour search in parent
+            int v = ((int)neighbourOctant & mask) ^ value;
+            int n_mask = mask & v;
+            int n_value = value & n_mask;
+            ulong l = getNeighborOfGreaterOrEqualSize(parentLocCode, n_mask, n_value);
             if (l == 0)
             {
                 return 0;
@@ -465,7 +481,7 @@ namespace GameLibrary.Voxel
                 // leaf node
                 return l;
             }
-            return HasChild(n, neighbourOctant) ? (l << 3) | (ulong)neighbourOctant : 0;
+            return HasChild(n, neighbourOctant) ? ChildLocCode(l, neighbourOctant) : l;
         }
 
         /*

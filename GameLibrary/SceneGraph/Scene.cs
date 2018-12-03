@@ -55,7 +55,6 @@ namespace GameLibrary.SceneGraph
         public GraphicsDevice GraphicsDevice;
 
         public RenderContext renderContext;
-        private readonly GraphicsContext gc = new GraphicsContext();
 
         public Node RootNode
         {
@@ -239,16 +238,22 @@ namespace GameLibrary.SceneGraph
             // but it won't work
             bool sceneDirty = false;
 
+            renderContext.GameTime = gameTime;
+
             // do the RENDER_GROUP_VISITOR only if:
             // - camera is dirty
             // - TODO scene is dirty (something has moved in the scene)
             // - scene structure is dirty
-            if (cameraDirty || sceneDirty || structureDirty || (renderContext.renderBins.Count == 0))
+            if (cameraDirty || sceneDirty || structureDirty || renderContext.RedrawRequested())
             {
-                if (cameraDirty)
+                if (cameraDirty || renderContext.RedrawRequested())
                 {
-                    previousProjectionMatrix = cameraComponent.ProjectionMatrix;
-                    previousViewMatrix = cameraComponent.ViewMatrix;
+                    renderContext.ClearRedrawRequested();
+                    if (cameraDirty)
+                    {
+                        previousProjectionMatrix = cameraComponent.ProjectionMatrix;
+                        previousViewMatrix = cameraComponent.ViewMatrix;
+                    }
                     // TODO if frustrumGeo is null the previous camera position/etc will be used...
                     // and not the current one at the time the camera was frozen
                     if (frustrumGeo == null)
@@ -323,10 +328,7 @@ namespace GameLibrary.SceneGraph
                 renderers.TryGetValue(renderBinId, out renderer);
                 if (renderer != null)
                 {
-                    gc.GraphicsDevice = GraphicsDevice;
-                    gc.Camera = CameraComponent;
-                    gc.GameTime = gameTime;
-                    renderer.Render(gc, nodeList);
+                    renderer.Render(renderContext, nodeList);
                 }
                 else
                 {
@@ -501,6 +503,9 @@ namespace GameLibrary.SceneGraph
             // frustrum culling
             if (!culled && ctxt.FrustrumCullingEnabled)
             {
+                // TODO start from node that fully encompass the frustrum (no need to recurse from root)
+                // when recursing down some collision tests are not needed (possible to extend that from frame to frame)
+                // see TODO.txt for links that show how to do that
                 BoundingFrustum boundingFrustum = ctxt.BoundingFrustum;
                 ContainmentType containmentType = node.obj.BoundingBox.IsContained(boundingFrustum);
                 if (containmentType == ContainmentType.Disjoint)
@@ -512,8 +517,8 @@ namespace GameLibrary.SceneGraph
                 else if (containmentType == ContainmentType.Contains)
                 {
                     // contained: no need to cull further down
-                    ctxt.FrustrumCullingEnabled = false;
-                    ctxt.FrustrumCullingOwner = node.locCode;
+                    // take ownership of frustrum culling
+                    ctxt.frustrumCullingOwner = node.locCode;
                     //Console.WriteLine("Fully contained");
                 }
             }
@@ -555,8 +560,8 @@ namespace GameLibrary.SceneGraph
                 else if (minDistanceSquared < ctxt.cullDistanceSquared && maxDistanceSquared < ctxt.cullDistanceSquared)
                 {
                     // contained: no need to cull further down
-                    ctxt.DistanceCullingEnabled = false;
-                    ctxt.DistanceCullingOwner = node.locCode;
+                    // take ownership of frustrum culling
+                    ctxt.distanceCullingOwner = node.locCode;
 
                     //Console.WriteLine("Distance Culling: CONTAINED " + Octree<VoxelChunk>.LocCodeToString(node.locCode));
                     //Console.WriteLine("Distance Culling " + minDistanceSquared + ", " + maxDistanceSquared + " / " + ctxt.CullDistanceSquared);
@@ -565,8 +570,8 @@ namespace GameLibrary.SceneGraph
 
             if (!culled && ctxt.ScreenSizeCullingEnabled)
             {
-                //if (node.locCode == 0b1100)
-                //{
+                if (node.locCode == 0b1100)
+                {
                     AddBBoxHull(ctxt, ref node.obj.BoundingBox);
                     float a = VectorUtil.BBoxArea(ref ctxt.CameraPosition, ref node.obj.BoundingBox, ctxt.ProjectToScreen);
                     if (a != -1 && a < minA)
@@ -575,7 +580,7 @@ namespace GameLibrary.SceneGraph
                         Console.WriteLine("* " + minA);
                     }
                     Console.WriteLine(a);
-                //}
+                }
             }
 
             if (culled && !ctxt.ShowCulledBoundingVolumes)
@@ -628,15 +633,17 @@ namespace GameLibrary.SceneGraph
         {
             RenderContext ctxt = arg as RenderContext;
             // restore culling flags
-            if (ctxt.FrustrumCullingOwner == node.locCode)
+            if (ctxt.frustrumCullingOwner == node.locCode)
             {
-                ctxt.FrustrumCullingEnabled = true;
-                ctxt.FrustrumCullingOwner = 0;
+                ctxt.frustrumCullingOwner = 0;
             }
-            if (ctxt.DistanceCullingOwner == node.locCode)
+            if (ctxt.distanceCullingOwner == node.locCode)
             {
-                ctxt.DistanceCullingEnabled = true;
-                ctxt.DistanceCullingOwner = 0;
+                ctxt.distanceCullingOwner = 0;
+            }
+            if (ctxt.screenSizeCullingOwner == node.locCode)
+            {
+                ctxt.screenSizeCullingOwner = 0;
             }
             return true;
         };

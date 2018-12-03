@@ -17,7 +17,7 @@ using static GameLibrary.SceneGraph.Scene;
 namespace GameLibrary.Voxel
 {
 
-    public enum VoxelChunkState { Null, Loading, Ready }
+    public enum VoxelChunkState { Null, Queued, Loading, Ready }
 
     public sealed class VoxelChunk
     {
@@ -43,13 +43,14 @@ namespace GameLibrary.Voxel
 
         private VoxelMapMeshFactory meshFactory;
 
-        private bool LoadOnInitialization = false;
+        private bool CompressAtInitialization = true;
+        private bool LoadAtInitialization = false;
         //private bool CreateMeshOnInitialization = false;
         private bool ExitAfterLoad = false;
 
         private Task loadTask;
         private CancellationTokenSource cts = new CancellationTokenSource();
-        private readonly int queueSize = 10;
+        //private readonly int queueSize = 10;
         private ConcurrentQueue<OctreeNode<VoxelChunk>> queue = new ConcurrentQueue<OctreeNode<VoxelChunk>>();
         private BlockingCollection<OctreeNode<VoxelChunk>> loadQueue;
 
@@ -77,16 +78,16 @@ namespace GameLibrary.Voxel
             sw.Start();
             RootNode.obj = createObject(this, RootNode);
             sw.Stop();
-            Console.WriteLine("Creating VoxelOctree took {0} ms", sw.Elapsed);
+            Console.WriteLine("Creating VoxelOctree took {0}", sw.Elapsed);
 
             //fill();
-            if (LoadOnInitialization)
+            if (LoadAtInitialization)
             {
                 Object d = Vector3.Zero;
                 sw.Start();
                 Visit(0, loadVisitor, ref d);
                 sw.Stop();
-                Console.WriteLine("Loading VoxelOctree took {0} ms", sw.Elapsed);
+                Console.WriteLine("Loading VoxelOctree took {0}", sw.Elapsed);
                 if (ExitAfterLoad)
                 {
                     Environment.Exit(0);
@@ -97,7 +98,7 @@ namespace GameLibrary.Voxel
 
         private bool loadVisitor(Octree<VoxelChunk> octree, OctreeNode<VoxelChunk> node, ref Object arg)
         {
-            node.obj.State = VoxelChunkState.Loading;
+            node.obj.State = VoxelChunkState.Queued;
             load(node);
             return true;
         }
@@ -149,11 +150,26 @@ namespace GameLibrary.Voxel
                 if (Octree<VoxelChunk>.HasChildren(node))
                 {
                     voxelChunk = new VoxelChunk();
+                    // no need to load parent nodes
+                    voxelChunk.State = VoxelChunkState.Ready;
 
                     Vector3 center;
                     Vector3 halfSize;
                     GetNodeBoundingBox(node, out center, out halfSize);
                     voxelChunk.BoundingBox = new SceneGraph.Bounding.BoundingBox(center, halfSize);
+
+                    if (true /*ctxt.AddBoundingGeometry*/)
+                    {
+                        // No geometry, add fake geometry for displaying bounding boxes
+                        // do only displaying bounding boxes...
+                        // the place holder geometry should be as simple as possible:
+                        // - only bounding volume
+                        // - no mesh
+                        // - no physics
+                        // - no child, etc...
+                        voxelChunk.Drawable = new FakeDrawable(Scene.VECTOR, voxelChunk.BoundingBox);
+                    }
+
                 }
             }
             else
@@ -162,9 +178,19 @@ namespace GameLibrary.Voxel
                 int y;
                 int z;
                 octree.GetNodeCoordinates(node, out x, out y, out z);
-                //VoxelMap map = new SpongeVoxelMap(chunkSize, x, y, z);
-                VoxelMap map = new PerlinNoiseVoxelMap(chunkSize, x, y, z);
                 //VoxelMap map = new AOTestVoxelMap(chunkSize, x, y, z);
+                //VoxelMap map = new SpongeVoxelMap(chunkSize, x, y, z);
+                VoxelMap perlinNoiseMap = new PerlinNoiseVoxelMap(chunkSize, x, y, z);
+
+                VoxelMap map = perlinNoiseMap;
+
+                if (CompressAtInitialization)
+                {
+                    RLEVoxelMap rleMap = new RLEVoxelMap(map);
+                    rleMap.InitializeFrom(map);
+                    map = rleMap;
+                }
+
                 if (!map.IsEmpty())
                 {
                     voxelChunk = new VoxelChunk();
@@ -175,20 +201,20 @@ namespace GameLibrary.Voxel
                     GetNodeBoundingBox(node, out center, out halfSize);
                     voxelChunk.BoundingBox = new SceneGraph.Bounding.BoundingBox(center, halfSize);
                 }
+                else
+                {
+                    //voxelChunk.State = VoxelChunkState.Ready;
+                }
             }
             return voxelChunk;
         }
 
         public override bool LoadNode(OctreeNode<VoxelChunk> node, ref Object arg)
         {
-            node.obj.State = VoxelChunkState.Loading;
-            bool queued = true;
+            node.obj.State = VoxelChunkState.Queued;
+            //Console.WriteLine("Queuing " + node.locCode);
             loadQueue.Add(node);
-            if (!queued)
-            {
-                node.obj.State = VoxelChunkState.Null;
-            }
-            return queued;
+            return true;
         }
 
         public override void ClearLoadQueue()
@@ -206,7 +232,10 @@ namespace GameLibrary.Voxel
                 bool success = loadQueue.TryTake(out node);
                 if (success)
                 {
-                    node.obj.State = VoxelChunkState.Null;
+                    if (node.obj.State == VoxelChunkState.Queued)
+                    {
+                        node.obj.State = VoxelChunkState.Null;
+                    }
                     //obj.Dispose();
                 }
             }
@@ -272,8 +301,10 @@ namespace GameLibrary.Voxel
 
         private void load(OctreeNode<VoxelChunk> node)
         {
-            if (node.obj.State == VoxelChunkState.Loading)
+            if (node.obj.State == VoxelChunkState.Queued)
             {
+                node.obj.State = VoxelChunkState.Loading;
+                //Console.WriteLine("Loading node " + node.locCode);
                 createMeshes(node);
                 node.obj.State = VoxelChunkState.Ready;
             }
@@ -300,21 +331,6 @@ namespace GameLibrary.Voxel
                     // FIXME should get bounding box from transparentMesh...
                     SceneGraph.Bounding.BoundingBox boundingBox = node.obj.BoundingBox;
                     node.obj.TransparentDrawable = new MeshDrawable(Scene.VOXEL_WATER, transparentMesh, boundingBox);
-                }
-            }
-            else
-            {
-                if (true /*ctxt.AddBoundingGeometry*/)
-                {
-                    // No geometry, add fake geometry for displaying bounding boxes
-                    // do only displaying bounding boxes...
-                    // the place holder geometry should be as simple as possible:
-                    // - only bounding volume
-                    // - no mesh
-                    // - no physics
-                    // - no child, etc...
-                    SceneGraph.Bounding.BoundingBox boundingBox = node.obj.BoundingBox;
-                    node.obj.Drawable = new FakeDrawable(Scene.VECTOR, boundingBox);
                 }
             }
         }

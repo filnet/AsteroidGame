@@ -16,39 +16,68 @@ namespace GameLibrary.SceneGraph
 
     public sealed class RenderContext
     {
-        // camera
-        public Matrix ViewProjectionMatrix;
-        public Vector3 CameraPosition;
-
         #region Properties
 
         // frustrum culling
         [Category("Culling")]
-        public bool FrustrumCullingEnabled { get; set; }
+        public bool FrustrumCullingEnabled
+        {
+            get { return (frustrumCullingEnabled && (frustrumCullingOwner == 0)); }
+            set { frustrumCullingEnabled = value; RequestRedraw(); }
+        }
 
         [Category("Culling")]
-        public bool DistanceCullingEnabled { get; set; }
+        public bool DistanceCullingEnabled
+        {
+            get { return (distanceCullingEnabled && (distanceCullingOwner == 0)); }
+            set { distanceCullingEnabled = value; RequestRedraw(); }
+        }
+
         [Category("Culling")]
         public float CullDistance
         {
             get { return cullDistance; }
-            set { cullDistance = value; cullDistanceSquared = cullDistance * cullDistance; }
+            set { cullDistance = value; cullDistanceSquared = cullDistance * cullDistance; RequestRedraw(); }
         }
 
         [Category("Culling")]
-        public bool ScreenSizeCullingEnabled { get; set; }
+        public bool ScreenSizeCullingEnabled
+        {
+            get { return (screenSizeCullingEnabled && (screenSizeCullingOwner == 0)); }
+            set { screenSizeCullingEnabled = value; RequestRedraw(); }
+        }
 
         // flags
         [Category("Flags")]
         public bool Debug { get; set; }
+
         [Category("Flags")]
-        public bool AddBoundingGeometry { get; set; }
+        public bool AddBoundingGeometry
+        {
+            get { return addBoundingGeometry; }
+            set { addBoundingGeometry = value; RequestRedraw(); }
+        }
+
         [Category("Flags")]
-        public bool ShowBoundingVolumes { get; set; }
+        public bool ShowBoundingVolumes
+        {
+            get { return showBoundingVolumes; }
+            set { showBoundingVolumes = value; RequestRedraw(); }
+        }
+
         [Category("Flags")]
-        public bool ShowCulledBoundingVolumes { get; set; }
+        public bool ShowCulledBoundingVolumes
+        {
+            get { return showCulledBoundingVolumes; }
+            set { showCulledBoundingVolumes = value; RequestRedraw(); }
+        }
+
         [Category("Flags")]
-        public bool ShowCollisionVolumes { get; set; }
+        public bool ShowCollisionVolumes
+        {
+            get { return showCollisionVolumes; }
+            set { showCollisionVolumes = value; RequestRedraw(); }
+        }
 
         [Category("State")]
         [ReadOnly(true), Browsable(true)]
@@ -67,32 +96,51 @@ namespace GameLibrary.SceneGraph
 
         #endregion
 
+        private bool frustrumCullingEnabled;
+        internal ulong frustrumCullingOwner;
         public BoundingFrustum BoundingFrustum;
-        public ulong FrustrumCullingOwner;
 
+        private bool distanceCullingEnabled;
+        internal ulong distanceCullingOwner;
         public float cullDistance;
         public float cullDistanceSquared;
-        public ulong DistanceCullingOwner;
+
+        private bool screenSizeCullingEnabled;
+        internal ulong screenSizeCullingOwner;
+
+        // flags
+        private bool addBoundingGeometry;
+        private bool showBoundingVolumes;
+        private bool showCulledBoundingVolumes;
+        private bool showCollisionVolumes;
 
         //public bool dirty;
+        private bool drawRequested;
+
+        public GameTime GameTime;
 
         public readonly GraphicsDevice GraphicsDevice;
 
-        public readonly ICameraComponent CameraComponent;
+        public readonly ICameraComponent Camera;
+
+        // camera
+        public Matrix ViewProjectionMatrix;
+        public Vector3 CameraPosition;
 
         public readonly SortedDictionary<int, List<Drawable>> renderBins;
 
         public RenderContext(GraphicsDevice graphicsDevice, ICameraComponent cameraComponent)
         {
             GraphicsDevice = graphicsDevice;
-            CameraComponent = cameraComponent;
+            Camera = cameraComponent;
 
-            FrustrumCullingEnabled = true;
-            DistanceCullingEnabled = false;
-            ScreenSizeCullingEnabled = false;
+            frustrumCullingEnabled = true;
+            distanceCullingEnabled = false;
+            screenSizeCullingEnabled = false;
 
-            FrustrumCullingOwner = 0;
-            DistanceCullingOwner = 0;
+            frustrumCullingOwner = 0;
+            distanceCullingOwner = 0;
+            screenSizeCullingOwner = 0;
 
             // distance culling
             cullDistance = 4 * 512;
@@ -100,10 +148,10 @@ namespace GameLibrary.SceneGraph
 
             // flags
             Debug = false;
-            AddBoundingGeometry = false;
-            ShowBoundingVolumes = false;
-            ShowCulledBoundingVolumes = false;
-            ShowCollisionVolumes = false;
+            addBoundingGeometry = false;
+            showBoundingVolumes = false;
+            showCulledBoundingVolumes = false;
+            showCollisionVolumes = false;
 
             // stats
             DistanceCullCount = 0;
@@ -114,14 +162,29 @@ namespace GameLibrary.SceneGraph
             renderBins = new SortedDictionary<int, List<Drawable>>();
         }
 
+        public bool RedrawRequested()
+        {
+            return (drawRequested || renderBins.Count == 0);
+        }
+        
+        public void RequestRedraw()
+        {
+            drawRequested = true;
+        }
+
+        public void ClearRedrawRequested()
+        {
+            drawRequested = false;
+        }
+
         public void UpdateCamera()
         {
-            ViewProjectionMatrix = CameraComponent.ViewProjectionMatrix;
+            ViewProjectionMatrix = Camera.ViewProjectionMatrix;
 
             // TODO performance: don't do both Matrix inverse and transpose
 
             // compute visit order based on view direction
-            Matrix viewMatrix = CameraComponent.ViewMatrix;
+            Matrix viewMatrix = Camera.ViewMatrix;
 
             Matrix vt = Matrix.Transpose(viewMatrix);
             Vector3 dir = vt.Forward;
@@ -131,7 +194,7 @@ namespace GameLibrary.SceneGraph
             // frustrum culling
             if (FrustrumCullingEnabled)
             {
-                BoundingFrustum = CameraComponent.BoundingFrustum;
+                BoundingFrustum = Camera.BoundingFrustum;
             }
 
             if (DistanceCullingEnabled || ScreenSizeCullingEnabled)
@@ -142,6 +205,12 @@ namespace GameLibrary.SceneGraph
         }
 
         public Vector2 ProjectToScreen(ref Vector3 vector)
+        {
+            Vector3 p = GraphicsDevice.Viewport.Project(vector, Camera.ProjectionMatrix, Camera.ViewMatrix, Matrix.Identity);
+            return new Vector2(p.X, p.Y);
+        }
+
+        public Vector2 ProjectToScreen2(ref Vector3 vector)
         {
             // http://www.scratchapixel.com/lessons/3d-basic-rendering/perspective-and-orthographic-projection-matrix/projection-matrices-what-you-need-to-know-first
 
