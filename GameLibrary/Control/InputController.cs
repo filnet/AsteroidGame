@@ -17,6 +17,9 @@ namespace GameLibrary.Control
         private GamePadState currentGamePadState;
         private GamePadState previousGamePadState;
 
+        public event EventHandler<EventArgs> EnabledChanged;
+        public event EventHandler<EventArgs> UpdateOrderChanged;
+
         public KeyboardState KeyboardState
         {
             get { return currentKeyboardState; }
@@ -27,12 +30,23 @@ namespace GameLibrary.Control
             get { return currentGamePadState; }
         }
 
-        public InputController()
-            : base()
+        public bool Enabled => throw new NotImplementedException();
+
+        public int UpdateOrder => throw new NotImplementedException();
+
+        public InputController() : base()
         {
             // Setup the initial input states.
             currentKeyboardState = Keyboard.GetState();
             currentGamePadState = GamePad.GetState(PlayerIndex.One);
+
+            //KeyboardInput.CharPressed += CharacterTyped;
+            GameLibrary.System.KeyboardInput.KeyPressed += KeyPressed;
+        }
+
+        private void KeyPressed(object sender, GameLibrary.System.KeyboardInput.KeyEventArgs e, KeyboardState ks)
+        {
+            //Console.WriteLine(e.KeyCode.ToString());
         }
 
         public virtual void Update(GameTime gameTime)
@@ -44,7 +58,9 @@ namespace GameLibrary.Control
 
             previousGamePadState = currentGamePadState;
             currentGamePadState = GamePad.GetState(PlayerIndex.One);
-         }
+
+            GameLibrary.System.KeyboardInput.Update();
+        }
 
         public bool IsKeyDown(Keys key)
         {

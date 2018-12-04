@@ -20,6 +20,7 @@ using GameLibrary.Voxel;
 using System.Threading;
 using WpfLibrary;
 using static GameLibrary.VectorUtil;
+using GameLibrary.Component.Camera;
 
 namespace AsteroidGame
 {
@@ -38,8 +39,7 @@ namespace AsteroidGame
             return instance;
         }
 
-        public AsteroidGame()
-            : base()
+        public AsteroidGame() : base()
         {
             //IsFixedTimeStep = false;
             instance = this;
@@ -63,22 +63,10 @@ namespace AsteroidGame
             });
             t.SetApartmentState(ApartmentState.STA);
             t.Start();
-
-            /*
-                        while (wnd == null)
-                        {
-                        }
-                        while (!wnd.IsActive)
-            */
-            //wnd.setSelected(Scene.CameraComponent);
-
-            //From form = new Form();
-            //form.Show();
         }
 
         protected override void Dispose(bool disposing)
         {
-            //wnd.Close();
             t.Abort();
 
             base.Dispose(disposing);
@@ -113,16 +101,24 @@ namespace AsteroidGame
             Scene = new Scene();
             Scene.GraphicsDevice = GraphicsDevice;
 
-            Scene.CameraComponent = CameraComponent;
-            ArcBallCamera camera = Scene.CameraComponent as ArcBallCamera;
-            if (camera != null)
+            DefaultCamera cam = CameraComponent as DefaultCamera;
+            if (cam != null)
             {
-                // TODO call Reset() instead...
-                camera.Zoom = ArcBallCamera.DEFAULT_ZOOM;
-                camera.ZoomMin = ArcBallCamera.DEFAULT_ZOOM_MIN;
-                camera.ZoomMax = ArcBallCamera.DEFAULT_ZOOM_MAX;
-                camera.ZoomSpeed = ArcBallCamera.DEFAULT_ZOOM_SPEED;
+                cam.CurrentBehavior = Camera.Behavior.Orbit;
+                cam.OrbitOffsetDistance = 9.0f;
+                cam.LookAt(new Vector3(0, 0, 0), Vector3.Forward, Vector3.Up);
             }
+
+            /*
+            CameraComponent = new ArcBallCamera();
+            Scene.CameraComponent = CameraComponent;
+            // TODO call Reset() instead...
+            ArcBallCamera camera = Scene.CameraComponent as ArcBallCamera;
+            camera.Zoom = ArcBallCamera.DEFAULT_ZOOM;
+            camera.ZoomMin = ArcBallCamera.DEFAULT_ZOOM_MIN;
+            camera.ZoomMax = ArcBallCamera.DEFAULT_ZOOM_MAX;
+            camera.ZoomSpeed = ArcBallCamera.DEFAULT_ZOOM_SPEED;
+            */
 
             switch (mode)
             {
@@ -139,13 +135,14 @@ namespace AsteroidGame
                     Scene.RootNode = createBoundingBoxHullSceneTest();
                     break;
                 case 4:
-                    if (camera != null)
+                    //cam = CameraComponent as DefaultCamera;// new DefaultCamera(this);
+                    if (cam != null)
                     {
-                        camera.ZoomMin = 0.01f;
-                        camera.ZoomMax = 2000f;
-                        camera.ZoomSpeed = 64f / 60f;
-                        //camera.Zoom = 200f;
-                        camera.VerticalAngle = -MathHelper.PiOver4;
+                        cam.CurrentBehavior = Camera.Behavior.FirstPerson;
+                        Vector3 eye = new Vector3(0, 2, 0);
+                        cam.LookAt(eye, eye + Vector3.Forward, Vector3.Up);
+                        cam.Velocity = new Vector3(2.5f);
+                        //cam.ClickAndDragMouseRotation = true;
                     }
                     Scene.RootNode = createVoxelTestScene();
                     break;
@@ -153,7 +150,6 @@ namespace AsteroidGame
                     Scene.RootNode = createCollisionTestScene();
                     break;
             }
-            Scene.Initialize();
         }
 
         private Node createGridNode()
@@ -318,7 +314,7 @@ namespace AsteroidGame
 
         private Node createVoxelTestScene()
         {
-            Node voxelOctreeNode = createVoxelOctreeNode("OCTREE", 512, 32);
+            Node voxelOctreeNode = createVoxelOctreeNode("OCTREE", 128, 32);
 
             TransformNode node = new TransformNode("SCENE");
             node.Add(voxelOctreeNode);

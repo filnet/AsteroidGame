@@ -12,9 +12,10 @@
     <Compile Include="$(MSBuildThisFileDirectory)Component\2D\Circle2D.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Component\2D\Grid2D.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Component\2D\Line2D.cs" />
-    <Compile Include="$(MSBuildThisFileDirectory)Component\ArcBallCamera.cs" />
-    <Compile Include="$(MSBuildThisFileDirectory)Component\DefaultCamera.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)Component\Camera\Camera.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)Component\Camera\ICamera.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Component\ICameraComponent.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)Component\Camera\DefaultCamera.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Component\Sprite\Sprite.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Control\BaseNodeController.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Control\Controller.cs" />
@@ -31,6 +32,7 @@
     <Compile Include="$(MSBuildThisFileDirectory)SceneGraph\Common\Physical.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)SceneGraph\Common\Transform.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)SceneGraph\RenderContext.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)System\UI\KeyboardInput.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Util\Noise\FastNoise.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Util\Noise\NoiseGen.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Util\Noise\Perlin.cs" />

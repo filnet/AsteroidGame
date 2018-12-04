@@ -14,8 +14,7 @@ namespace AsteroidGame.Control
     {
         internal GeometryNode mainNode;
 
-        public WrapController(GroupNode node)
-            : base(node)
+        public WrapController(GroupNode node) : base(node)
         {
             //for(LinkedListNode<Node> it = Node.Nodes.First; it != null; it = it.Next)
 

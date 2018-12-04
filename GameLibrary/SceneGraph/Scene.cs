@@ -10,12 +10,42 @@ using GameLibrary.Geometry.Common;
 using GameLibrary.Geometry;
 using GameLibrary.Voxel;
 using System.ComponentModel;
+using GameLibrary.Component;
 
 namespace GameLibrary.SceneGraph
 {
     public class Scene
     {
-        private ICameraComponent cameraComponent;
+        public static int THREE_LIGHTS = 0;
+        public static int ONE_LIGHT = 1;
+        public static int NO_LIGHT = 2;
+        public static int WIRE_FRAME = 3;
+        public static int VECTOR = 4;
+        public static int CLIPPING = 5;
+
+        public static int PLAYER = 6;
+        public static int BULLET = 7;
+        public static int ASTEROID = 8;
+
+        public static int OCTREE = 10;
+        //public static int VOXEL_MAP = 11;
+        public static int VOXEL = 12;
+        public static int VOXEL_WATER = 13;
+
+        public static int FRUSTRUM = 20;
+
+        public static int BOUNDING_SPHERE = 30;
+        public static int BOUNDING_BOX = 31;
+
+        public static int CULLED_BOUNDING_SPHERE = 32;
+        public static int CULLED_BOUNDING_BOX = 33;
+
+        public static int COLLISION_SPHERE = 40;
+        public static int COLLISION_BOX = 41;
+
+        public static int HORTO = 45;
+
+        private CameraComponent cameraComponent;
 
         private Node rootNode;
 
@@ -62,7 +92,7 @@ namespace GameLibrary.SceneGraph
             set { rootNode = value; }
         }
 
-        public ICameraComponent CameraComponent
+        public CameraComponent CameraComponent
         {
             get { return cameraComponent; }
             set { cameraComponent = value; }
@@ -73,35 +103,6 @@ namespace GameLibrary.SceneGraph
             renderers = new Dictionary<int, Renderer>();
             collisionGroups = new Dictionary<int, List<Node>>();
         }
-
-        public static int THREE_LIGHTS = 0;
-        public static int ONE_LIGHT = 1;
-        public static int NO_LIGHT = 2;
-        public static int WIRE_FRAME = 3;
-        public static int VECTOR = 4;
-        public static int CLIPPING = 5;
-
-        public static int PLAYER = 6;
-        public static int BULLET = 7;
-        public static int ASTEROID = 8;
-
-        public static int OCTREE = 10;
-        //public static int VOXEL_MAP = 11;
-        public static int VOXEL = 12;
-        public static int VOXEL_WATER = 13;
-
-        public static int FRUSTRUM = 20;
-
-        public static int BOUNDING_SPHERE = 30;
-        public static int BOUNDING_BOX = 31;
-
-        public static int CULLED_BOUNDING_SPHERE = 32;
-        public static int CULLED_BOUNDING_BOX = 33;
-
-        public static int COLLISION_SPHERE = 40;
-        public static int COLLISION_BOX = 41;
-
-        public static int HORTO = 45;
 
         public void Initialize()
         {
@@ -158,7 +159,7 @@ namespace GameLibrary.SceneGraph
             rootNode.Initialize(GraphicsDevice);
             rootNode.Visit(COMMIT_VISITOR, this);
 
-            renderContext = new RenderContext(GraphicsDevice, CameraComponent);
+            renderContext = new RenderContext(GraphicsDevice, cameraComponent);
         }
 
         public void Dispose()
@@ -279,7 +280,7 @@ namespace GameLibrary.SceneGraph
                 CaptureFrustrum = false;
                 if (frustrumGeo == null)
                 {
-                    BoundingFrustum boundingFrustum = CameraComponent.BoundingFrustum;
+                    BoundingFrustum boundingFrustum = cameraComponent.BoundingFrustum;
                     frustrumGeo = GeometryUtil.CreateFrustrum("FRUSTRUM", boundingFrustum);
                     frustrumGeo.RenderGroupId = FRUSTRUM;
                     frustrumGeo.Initialize(GraphicsDevice);
@@ -353,8 +354,8 @@ namespace GameLibrary.SceneGraph
                     IEffectMatrices effectMatrices = effect as IEffectMatrices;
                     if (effectMatrices != null)
                     {
-                        effectMatrices.Projection = CameraComponent.ProjectionMatrix;
-                        effectMatrices.View = CameraComponent.ViewMatrix;
+                        effectMatrices.Projection = cameraComponent.ProjectionMatrix;
+                        effectMatrices.View = cameraComponent.ViewMatrix;
                     }
                     dc.effect = effect;
 
@@ -572,6 +573,7 @@ namespace GameLibrary.SceneGraph
             {
                 if (node.locCode == 0b1100)
                 {
+                    // TODO check that center.Z - halfSize.Z > NearPlane
                     AddBBoxHull(ctxt, ref node.obj.BoundingBox);
                     float a = VectorUtil.BBoxArea(ref ctxt.CameraPosition, ref node.obj.BoundingBox, ctxt.ProjectToScreen);
                     if (a != -1 && a < minA)

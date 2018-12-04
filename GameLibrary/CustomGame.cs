@@ -1,14 +1,14 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using Microsoft.Xna.Framework;
-using Microsoft.Xna.Framework.Input;
-using Microsoft.Xna.Framework.Graphics;
-using GameLibrary.SceneGraph;
+﻿
+using GameLibrary.Component;
+using GameLibrary.Component.Camera;
 using GameLibrary.Control;
-using System.Diagnostics;
+using GameLibrary.SceneGraph;
 using GameLibrary.System;
+using Microsoft.Xna.Framework;
+using Microsoft.Xna.Framework.Graphics;
+using Microsoft.Xna.Framework.Input;
+using System;
+using System.Collections.Generic;
 
 namespace GameLibrary
 {
@@ -24,16 +24,16 @@ namespace GameLibrary
         private const string FontAssetName = @"DemoFont12pt";
 
         // Set distance from the camera of the near and far clipping planes.
-        private static float nearClip = 1.0f;
-        private static float farClip = 2000.0f;
+        //private static float nearClip = 1.0f;
+        //private static float farClip = 2000.0f;
 
         // Set field of view of the camera in radians (pi/4 is 45 degrees).
-        static float viewAngle = MathHelper.PiOver4;
+        //static float viewAngle = MathHelper.PiOver4;
 
         private GraphicsDeviceManager graphics;
 
         private Controller controlComponent;
-        private ICameraComponent cameraComponent;
+        private CameraComponent cameraComponent;
         private FPSComponent fpsComponent;
 
         private int mode = 4;
@@ -50,27 +50,28 @@ namespace GameLibrary
             set { scene = value; }
         }
 
-        public ICameraComponent CameraComponent
+        public CameraComponent CameraComponent
         {
             get { return cameraComponent; }
+            set { cameraComponent = value; }
         }
 
-        public CustomGame()
-            : base()
+        public CustomGame() : base()
         {
-            graphics = createGraphicsDeviceManager();
-
             Content.RootDirectory = "Content";
 
-            //graphics.GraphicsProfile = GraphicsProfile.HiDef;
-
-            Exiting += new EventHandler<EventArgs>(Game_Exiting);
-
-            Window.AllowUserResizing = true;
-            Window.ClientSizeChanged += new EventHandler<EventArgs>(Window_ClientSizeChanged);
+            graphics = createGraphicsDeviceManager();
 
             IsFixedTimeStep = true;
-            IsMouseVisible = true;
+            IsMouseVisible = false;
+
+            Window.AllowUserResizing = true;
+            Window.ClientSizeChanged += new EventHandler<EventArgs>(WindowClientSizeChanged);
+
+            Exiting += new EventHandler<EventArgs>(GameExiting);
+
+            // Initialize the keyboard-event handler.
+            System.KeyboardInput.Initialize(this, 500f, 20);
         }
 
         protected virtual void createScene(int mode)
@@ -103,8 +104,22 @@ namespace GameLibrary
         private GraphicsDeviceManager createGraphicsDeviceManager()
         {
             GraphicsDeviceManager graphics = new GraphicsDeviceManager(this);
-            graphics.SynchronizeWithVerticalRetrace = true;
+
+            graphics.PreferredBackBufferWidth = 1280;
+            graphics.PreferredBackBufferHeight = 720;
+
+            //graphics.SynchronizeWithVerticalRetrace = true;
             graphics.GraphicsProfile = GraphicsProfile.HiDef;
+
+            // Setup the window to be a quarter the size of the desktop.
+            //int windowWidth = GraphicsDevice.DisplayMode.Width / 2;
+            //int windowHeight = GraphicsDevice.DisplayMode.Height / 2;
+            //graphics.PreferredBackBufferWidth = windowWidth;
+            //graphics.PreferredBackBufferHeight = windowHeight;
+
+            graphics.PreferMultiSampling = true;
+            graphics.SynchronizeWithVerticalRetrace = IsFixedTimeStep;
+
             graphics.ApplyChanges();
             return graphics;
         }
@@ -120,22 +135,19 @@ namespace GameLibrary
             controlComponent = new CustomControlComponent(this);
             //Components.Add(controlComponent);
 
-            cameraComponent = new ArcBallCamera();
+            cameraComponent = new DefaultCamera(this);
+            cameraComponent.Initialize();
             //Components.Add(cameraComponent);
 
             fpsComponent = new FPSComponent(this);
             //Components.Add(fpsComponent);
 
+            float aspectRatio = (float)graphics.PreferredBackBufferWidth / (float)graphics.PreferredBackBufferHeight;
+            CameraComponent.SetAspect(aspectRatio);
 
-            // Setup the window to be a quarter the size of the desktop.
-            int windowWidth = GraphicsDevice.DisplayMode.Width / 2;
-            int windowHeight = GraphicsDevice.DisplayMode.Height / 2;
-
-            graphics.PreferredBackBufferWidth = windowWidth;
-            graphics.PreferredBackBufferHeight = windowHeight;
-            graphics.PreferMultiSampling = true;
-            graphics.SynchronizeWithVerticalRetrace = IsFixedTimeStep;
-            graphics.ApplyChanges();
+            createScene(mode);
+            Scene.CameraComponent = CameraComponent;
+            Scene.Initialize();
 
             InitializeTransform();
 
@@ -148,7 +160,6 @@ namespace GameLibrary
             System.DebugSystem.Instance.TimeRuler.Visible = true;
             System.DebugSystem.Instance.TimeRuler.ShowLog = false;
 
-
             // Add "tr" command if DebugCommandHost is registered.
             IDebugCommandHost host = Services.GetService(typeof(IDebugCommandHost)) as IDebugCommandHost;
             if (host != null)
@@ -160,8 +171,6 @@ namespace GameLibrary
             }
 
             fpsComponent.Initialize();
-
-            createScene(mode);
 
             // initialize self. will initialize all added components
             base.Initialize();
@@ -203,6 +212,11 @@ namespace GameLibrary
             }
             mode = (mode + 1) % 5;
             createScene(mode);
+            Scene.CameraComponent = CameraComponent;
+            Scene.Initialize();
+
+            InitializeTransform();
+            InitCamera();
         }
 
         /// <summary>
@@ -218,15 +232,17 @@ namespace GameLibrary
             // begin measuring the Update method
             System.DebugSystem.Instance.TimeRuler.BeginMark("Update", Color.Yellow);
 
+            // start update stopwatch
             fpsComponent.UpdateStopwatch.Start();
 
-            UpdateScene(gameTime);
             base.Update(gameTime);
             controlComponent.Update(gameTime);
             cameraComponent.Update(gameTime);
+
+            UpdateScene(gameTime);
+
             fpsComponent.UpdateStopwatch.Stop();
             fpsComponent.Update(gameTime);
-            //fpsCounter.Update(gameTime);
 
             // end measuring the Update method
             System.DebugSystem.Instance.TimeRuler.EndMark("Update");
@@ -249,10 +265,10 @@ namespace GameLibrary
             fpsComponent.DrawStopwatch.Start();
 
             GraphicsDevice.Clear(Color.SteelBlue);
-            DrawScene(gameTime);
-            fpsComponent.DrawStopwatch.Stop();
-            //fpsComponent.Draw(gameTime);
+            scene.Draw(gameTime);
             base.Draw(gameTime);
+
+            fpsComponent.DrawStopwatch.Stop();
             fpsComponent.Draw(gameTime);
 
             // End measuring our Draw method
@@ -261,15 +277,14 @@ namespace GameLibrary
 
         protected void DrawScene(GameTime gameTime)
         {
-            scene.Draw(gameTime);
         }
 
-        void Game_Exiting(object sender, EventArgs e)
+        void GameExiting(object sender, EventArgs e)
         {
             Console.WriteLine("Exiting!");
         }
 
-        void Window_ClientSizeChanged(object sender, EventArgs e)
+        void WindowClientSizeChanged(object sender, EventArgs e)
         {
             Console.WriteLine("ClientSizeChanged!");
         }
@@ -284,10 +299,12 @@ namespace GameLibrary
 
         private void InitCamera()
         {
+            /*
             int windowWidth = GraphicsDevice.DisplayMode.Width;
             int windowHeight = GraphicsDevice.DisplayMode.Height;
             float aspectRatio = (float)windowWidth / (float)windowHeight;
             cameraComponent.Perspective(viewAngle, aspectRatio, nearClip, farClip);
+            */
 
             //GraphicsDevice device = graphics.GraphicsDevice;
             //float aspectRatio = (float)windowWidth / (float)windowHeight;
@@ -418,24 +435,15 @@ namespace GameLibrary
             Scene.Dump();
         }
     }
+
     class CustomControlComponent : InputController
     {
-
         private int windowWidth;
         private int windowHeight;
 
-
         private CustomGame game;
-        //public CustomGame CustomGame
-        //{
-        //    get
-        //    {
-        //        return (CustomGame) Game;
-        //    }
-        //}
 
-        public CustomControlComponent(CustomGame game)
-            : base()
+        public CustomControlComponent(CustomGame game) : base()
         {
             this.game = game;
         }
@@ -469,46 +477,12 @@ namespace GameLibrary
             }
 
 
-            //if (KeyJustPressed(Keys.V))
-            //{
-            //    Game.IsFixedTimeStep = !Game.IsFixedTimeStep;
-            //}
-
-            //if (KeyJustPressed(Keys.Back))
-            //{
-            //    switch (camera.CurrentBehavior)
-            //    {
-            //    case Camera.Behavior.Flight:
-            //        camera.UndoRoll();
-            //        break;
-
-            //    case Camera.Behavior.Orbit:
-            //        if (!camera.PreferTargetYAxisOrbiting)
-            //            camera.UndoRoll();
-            //        break;
-
-            //    default:
-            //        break;
-            //    }
-            //}
-
-            //if (KeyJustPressed(Keys.Space))
-            //{
-            //    if (camera.CurrentBehavior == Camera.Behavior.Orbit)
-            //        camera.PreferTargetYAxisOrbiting = !camera.PreferTargetYAxisOrbiting;
-            //}
-
-            //if (KeyJustPressed(Keys.D1))
-            //    ChangeCameraBehavior(Camera.Behavior.FirstPerson);
-
-            //if (KeyJustPressed(Keys.D2))
-            //    ChangeCameraBehavior(Camera.Behavior.Spectator);
-
-            //if (KeyJustPressed(Keys.D3))
-            //    ChangeCameraBehavior(Camera.Behavior.Flight);
-
-            //if (KeyJustPressed(Keys.D4))
-            //    ChangeCameraBehavior(Camera.Behavior.Orbit);
+            if ((IsKeyDown(Keys.LeftAlt) || IsKeyDown(Keys.RightAlt)) && KeyJustPressed(Keys.V))
+            {
+                game.IsFixedTimeStep = !game.IsFixedTimeStep;
+                game.Graphics.SynchronizeWithVerticalRetrace = game.IsFixedTimeStep;
+                game.Graphics.ApplyChanges();
+            }
 
             //if (KeyJustPressed(Keys.H))
             //    displayHelp = !displayHelp;
@@ -518,25 +492,6 @@ namespace GameLibrary
 
             //if (KeyJustPressed(Keys.T))
             //    disableColorMap = !disableColorMap;
-
-            //if (KeyJustPressed(Keys.C))
-            //    camera.ClickAndDragMouseRotation = !camera.ClickAndDragMouseRotation;
-
-            //if (KeyJustPressed(Keys.Add))
-            //{
-            //    camera.RotationSpeed += 0.01f;
-
-            //    if (camera.RotationSpeed > 1.0f)
-            //        camera.RotationSpeed = 1.0f;
-            //}
-
-            //if (KeyJustPressed(Keys.Subtract))
-            //{
-            //    camera.RotationSpeed -= 0.01f;
-
-            //    if (camera.RotationSpeed <= 0.0f)
-            //        camera.RotationSpeed = 0.01f;
-            //}
         }
 
         private void ToggleFullScreen()
@@ -573,8 +528,7 @@ namespace GameLibrary
             graphics.ApplyChanges();
 
             float aspectRatio = (float)newWidth / (float)newHeight;
-
-            //camera.Perspective(CAMERA_FOV, aspectRatio, CAMERA_ZNEAR, CAMERA_ZFAR);
+            game.CameraComponent.SetAspect(aspectRatio);
         }
 
     }

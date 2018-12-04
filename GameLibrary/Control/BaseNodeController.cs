@@ -12,10 +12,17 @@ namespace GameLibrary.Control
     {
         private T node;
 
+        public event EventHandler<EventArgs> EnabledChanged;
+        public event EventHandler<EventArgs> UpdateOrderChanged;
+
         public T Node
         {
             get { return node; }
         }
+
+        public bool Enabled => throw new NotImplementedException();
+
+        public int UpdateOrder => throw new NotImplementedException();
 
         protected BaseNodeController(T node)
             : base()
@@ -25,7 +32,12 @@ namespace GameLibrary.Control
 
         public virtual void Update(GameTime gameTime)
         {
+            throw new NotImplementedException();
         }
+
+        //        public virtual void Update(GameTime gameTime)
+        //        {
+        //        }
 
     }
 }

@@ -1,15 +1,12 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.Linq;
 using Microsoft.Xna.Framework;
 using Microsoft.Xna.Framework.Graphics;
-using GameLibrary.Control;
 using GameLibrary.SceneGraph.Common;
 using GameLibrary.SceneGraph.Bounding;
-using GameLibrary.Geometry.Common;
-using GameLibrary.Geometry;
-using GameLibrary.Voxel;
 using System.ComponentModel;
+using GameLibrary.Component;
+using GameLibrary.Component.Camera;
 
 namespace GameLibrary.SceneGraph
 {
@@ -121,7 +118,8 @@ namespace GameLibrary.SceneGraph
 
         public readonly GraphicsDevice GraphicsDevice;
 
-        public readonly ICameraComponent Camera;
+        public readonly ICamera Camera;
+        //public readonly CameraComponent Camera;
 
         // camera
         public Matrix ViewProjectionMatrix;
@@ -129,10 +127,10 @@ namespace GameLibrary.SceneGraph
 
         public readonly SortedDictionary<int, List<Drawable>> renderBins;
 
-        public RenderContext(GraphicsDevice graphicsDevice, ICameraComponent cameraComponent)
+        public RenderContext(GraphicsDevice graphicsDevice, ICamera camera)
         {
             GraphicsDevice = graphicsDevice;
-            Camera = cameraComponent;
+            Camera = camera;
 
             frustrumCullingEnabled = true;
             distanceCullingEnabled = false;
@@ -186,8 +184,11 @@ namespace GameLibrary.SceneGraph
             // compute visit order based on view direction
             Matrix viewMatrix = Camera.ViewMatrix;
 
+            /*
             Matrix vt = Matrix.Transpose(viewMatrix);
             Vector3 dir = vt.Forward;
+            */
+            Vector3 dir = Camera.ViewDirection;
             VisitOrder = VectorUtil.visitOrder(dir);
             //if (Debug) Console.WriteLine(dir + " : " + VisitOrder);
 
@@ -199,8 +200,11 @@ namespace GameLibrary.SceneGraph
 
             if (DistanceCullingEnabled || ScreenSizeCullingEnabled)
             {
+                /*
                 Matrix vi = Matrix.Invert(viewMatrix);
                 CameraPosition = vi.Translation;
+                */
+                CameraPosition = Camera.Position;
             }
         }
 
