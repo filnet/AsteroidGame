@@ -9,6 +9,8 @@
 
 DECLARE_TEXTURE_ARRAY(Texture, 0);
 
+DECLARE_TEXTURE(WireframeTexture, 1);
+
 BEGIN_CONSTANTS
 
     float4 DiffuseColor             _vs(c0)  _ps(c1)  _cb(c0);
@@ -72,6 +74,14 @@ float SampleAmbientOcclusionFactors(float4 factors, float2 texCoord)
     return a;
 }
 
+#define SetVoxelVSOutputParams \
+    vout.TexCoord = vin.TexCoord; \
+	vout.TextureIndex = vin.TextureIndex; \
+	vout.AmbientOcclusionFactors = ComputeAmbientOcclusionFactors(vin.TextureIndex[1]); \
+	vout.WF1TexCoord = float2(vin.TexCoord.x ? 1 : -1, 0); \
+	vout.WF2TexCoord = float2(vin.TexCoord.y ? 1 : -1, 0);
+
+
 // Vertex shader: basic.
 VSOutput VSBasic(VSInput vin)
 {
@@ -132,9 +142,7 @@ VSOutputTx VSBasicTx(VSInputTx vin)
     CommonVSOutput cout = ComputeCommonVSOutput(vin.Position);
     SetCommonVSOutputParams;
     
-    vout.TexCoord = vin.TexCoord;
-	vout.TextureIndex = vin.TextureIndex;
-	vout.AmbientOcclusionFactors = ComputeAmbientOcclusionFactors(vin.TextureIndex[1]);
+	SetVoxelVSOutputParams;
 
     return vout;
 }
@@ -148,9 +156,7 @@ VSOutputTxNoFog VSBasicTxNoFog(VSInputTx vin)
     CommonVSOutput cout = ComputeCommonVSOutput(vin.Position);
     SetCommonVSOutputParamsNoFog;
     
-    vout.TexCoord = vin.TexCoord;
-	vout.TextureIndex = vin.TextureIndex;
-	vout.AmbientOcclusionFactors = ComputeAmbientOcclusionFactors(vin.TextureIndex[1]);
+	SetVoxelVSOutputParams;
 
     return vout;
 }
@@ -164,11 +170,10 @@ VSOutputTx VSBasicTxVc(VSInputTxVc vin)
     CommonVSOutput cout = ComputeCommonVSOutput(vin.Position);
     SetCommonVSOutputParams;
     
-    vout.TexCoord = vin.TexCoord;    
 	vout.Diffuse *= vin.Color;
-	vout.TextureIndex = vin.TextureIndex;
-	vout.AmbientOcclusionFactors = ComputeAmbientOcclusionFactors(vin.TextureIndex[1]);
-    
+
+	SetVoxelVSOutputParams;
+
     return vout;
 }
 
@@ -181,11 +186,10 @@ VSOutputTxNoFog VSBasicTxVcNoFog(VSInputTxVc vin)
     CommonVSOutput cout = ComputeCommonVSOutput(vin.Position);
     SetCommonVSOutputParamsNoFog;
     
-    vout.TexCoord = vin.TexCoord;
     vout.Diffuse *= vin.Color;
-	vout.TextureIndex = vin.TextureIndex;
-	vout.AmbientOcclusionFactors = ComputeAmbientOcclusionFactors(vin.TextureIndex[1]);
-    
+
+	SetVoxelVSOutputParams;
+
     return vout;
 }
 
@@ -224,9 +228,7 @@ VSOutputTx VSBasicVertexLightingTx(VSInputNmTx vin)
     CommonVSOutput cout = ComputeCommonVSOutputWithLighting(vin.Position, vin.Normal, 3);
     SetCommonVSOutputParams;
     
-    vout.TexCoord = vin.TexCoord;
-	vout.TextureIndex = vin.TextureIndex;
-	vout.AmbientOcclusionFactors = ComputeAmbientOcclusionFactors(vin.TextureIndex[1]);
+	SetVoxelVSOutputParams;
 
     return vout;
 }
@@ -240,10 +242,8 @@ VSOutputTx VSBasicVertexLightingTxVc(VSInputNmTxVc vin)
     CommonVSOutput cout = ComputeCommonVSOutputWithLighting(vin.Position, vin.Normal, 3);
     SetCommonVSOutputParams;
     
-    vout.TexCoord = vin.TexCoord;
     vout.Diffuse *= vin.Color;
-	vout.TextureIndex = vin.TextureIndex;
-	vout.AmbientOcclusionFactors = ComputeAmbientOcclusionFactors(vin.TextureIndex[1]);
+	SetVoxelVSOutputParams;
 
     return vout;
 }
@@ -283,9 +283,7 @@ VSOutputTx VSBasicOneLightTx(VSInputNmTx vin)
     CommonVSOutput cout = ComputeCommonVSOutputWithLighting(vin.Position, vin.Normal, 1);
     SetCommonVSOutputParams;
     
-    vout.TexCoord = vin.TexCoord;
-	vout.TextureIndex = vin.TextureIndex;
-	vout.AmbientOcclusionFactors = ComputeAmbientOcclusionFactors(vin.TextureIndex[1]);
+	SetVoxelVSOutputParams;
 
     return vout;
 }
@@ -299,11 +297,10 @@ VSOutputTx VSBasicOneLightTxVc(VSInputNmTxVc vin)
     CommonVSOutput cout = ComputeCommonVSOutputWithLighting(vin.Position, vin.Normal, 1);
     SetCommonVSOutputParams;
     
-    vout.TexCoord = vin.TexCoord;
     vout.Diffuse *= vin.Color;
-	vout.TextureIndex = vin.TextureIndex;
-	vout.AmbientOcclusionFactors = ComputeAmbientOcclusionFactors(vin.TextureIndex[1]);
-    
+
+	SetVoxelVSOutputParams;
+
     return vout;
 }
 
@@ -367,10 +364,9 @@ VSOutputPixelLightingTx VSBasicPixelLightingTxVc(VSInputNmTxVc vin)
     vout.TexCoord = vin.TexCoord;
 	vout.TextureIndex = vin.TextureIndex;
 	vout.AmbientOcclusionFactors = ComputeAmbientOcclusionFactors(vin.TextureIndex[1]);
-    
+
     return vout;
 }
-
 
 // Pixel shader: basic.
 float4 PSBasic(VSOutput pin) : SV_Target0
@@ -435,7 +431,7 @@ float4 PSBasicVertexLightingNoFog(VSOutput pin) : SV_Target0
 float4 PSBasicVertexLightingTx(VSOutputTx pin) : SV_Target0
 {
     float4 color = SAMPLE_TEXTURE_ARRAY(Texture, float3(pin.TexCoord, pin.TextureIndex[0])) * pin.Diffuse;
-    
+
     AddSpecular(color, pin.Specular.rgb);
     ApplyFog(color, pin.Specular.w);
     
@@ -451,6 +447,10 @@ float4 PSBasicVertexLightingTxNoFog(VSOutputTx pin) : SV_Target0
     
 	color *= SampleAmbientOcclusionFactors(pin.AmbientOcclusionFactors, pin.TexCoord);
 
+	// quad wireframe
+	color *= SAMPLE_TEXTURE(WireframeTexture, pin.WF1TexCoord);
+	color *= SAMPLE_TEXTURE(WireframeTexture, pin.WF2TexCoord);
+	
     AddSpecular(color, pin.Specular.rgb);
     
     return color;

@@ -32,12 +32,8 @@ namespace GameLibrary.Control
 
         public virtual void Update(GameTime gameTime)
         {
-            throw new NotImplementedException();
+            //throw new NotImplementedException();
         }
-
-        //        public virtual void Update(GameTime gameTime)
-        //        {
-        //        }
 
     }
 }

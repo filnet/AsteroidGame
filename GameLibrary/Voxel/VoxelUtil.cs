@@ -20,18 +20,18 @@ namespace GameLibrary.Voxel
         public static Color AmbientOcclusionColor(int ao)
         {
             return Color.Multiply(Color.White, ambientOcclusionCurve[ao]);
-/*
-            switch (ao)
-            {
-                case 0:
-                    return Color.Red;
-                case 1:
-                    return Color.Green;
-                case 2:
-                    return Color.Blue;
-            }
-            return Color.White;
-*/
+            /*
+                        switch (ao)
+                        {
+                            case 0:
+                                return Color.Red;
+                            case 1:
+                                return Color.Green;
+                            case 2:
+                                return Color.Blue;
+                        }
+                        return Color.White;
+            */
         }
 
         public static int VertexAmbientOcclusion(bool side1, bool side2, bool corner)
@@ -80,6 +80,7 @@ namespace GameLibrary.Voxel
 
             effect.TextureEnabled = true;
             effect.Texture = createTileTextureArray(gd, getTiles());
+            effect.WireframeTexture = createWireframeTexture(gd);
             return effect;
         }
 
@@ -181,8 +182,8 @@ namespace GameLibrary.Voxel
                 int height = texture.Height;
                 for (var level = 0; level < texture.LevelCount; level++)
                 {
-                    var levelSize = width * height;
-                    var data = new Color[levelSize];
+                    var size = width * height;
+                    var data = new Color[size];
                     texture.GetData(level, 0, null, data, 0, data.Length);
 
                     textureArray.SetData(level, slice, null, data, 0, data.Length);
@@ -194,6 +195,26 @@ namespace GameLibrary.Voxel
             return textureArray;
         }
 
+        private static Texture2D createWireframeTexture(GraphicsDevice gd)
+        {
+            int width = 4096;
+            Texture2D texture = new Texture2D(gd, width, 1, true, SurfaceFormat.Color);
+            for (var level = 0; level < texture.LevelCount; level++)
+            {
+                var data = new Color[width];
+                // fill with White
+                for (int i = 0; i < width; i++)
+                {
+                    data[i] = Color.White;
+                }
+                data[width - 1] = Color.Black;
+                if (width > 2) data[width - 2] = Color.Gray;
+                //if (width > 3) data[width - 3] = Color.Gray;
+                texture.SetData(level, 0, null, data, 0, data.Length);
+                width /= 2;
+            }
+            return texture;
+        }
     }
 }
 

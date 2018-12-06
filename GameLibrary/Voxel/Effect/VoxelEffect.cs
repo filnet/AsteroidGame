@@ -24,6 +24,7 @@ namespace Voxel
         #region Effect Parameters
 
         EffectParameter textureParam;
+        EffectParameter wireframeTextureParam;
         EffectParameter diffuseColorParam;
         EffectParameter emissiveColorParam;
         EffectParameter specularColorParam;
@@ -70,7 +71,6 @@ namespace Voxel
         #endregion
 
         #region Public Properties
-
 
         /// <summary>
         /// Gets or sets the world matrix.
@@ -317,6 +317,12 @@ namespace Voxel
             set { textureParam.SetValue(value); }
         }
 
+        public Texture2D WireframeTexture
+        {
+            get { return wireframeTextureParam.GetValueTexture2D(); }
+            set { wireframeTextureParam.SetValue(value); }
+        }
+
 
         /// <summary>
         /// Gets or sets whether vertex color is enabled.
@@ -406,6 +412,7 @@ namespace Voxel
         void CacheEffectParameters(VoxelEffect cloneSource)
         {
             textureParam = Parameters["Texture"];
+            wireframeTextureParam = Parameters["WireframeTexture"];
             diffuseColorParam = Parameters["DiffuseColor"];
             emissiveColorParam = Parameters["EmissiveColor"];
             specularColorParam = Parameters["SpecularColor"];
@@ -495,7 +502,6 @@ namespace Voxel
                 CurrentTechnique = Techniques[shaderIndex];
             }
         }
-
 
         #endregion
     }

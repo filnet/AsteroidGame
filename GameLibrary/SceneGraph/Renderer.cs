@@ -11,14 +11,7 @@ using GameLibrary.Geometry;
 
 namespace GameLibrary.SceneGraph
 {
-/*
-    public class RenderContext
-    {
-        public GraphicsDevice GraphicsDevice;
-        public ICameraComponent Camera;
-        public GameTime GameTime;
-    }
-*/
+
     public abstract class Renderer
     {
         public BlendState BlendState;
@@ -107,6 +100,7 @@ namespace GameLibrary.SceneGraph
 
             foreach (EffectPass pass in effect.CurrentTechnique.Passes)
             {
+                pass.Apply();
                 foreach (Drawable drawable in drawableList)
                 {
                     if (!drawable.Enabled || !drawable.Visible)
@@ -116,8 +110,8 @@ namespace GameLibrary.SceneGraph
                     if ((effectMatrices != null) && (drawable is Transform transform))
                     {
                         effectMatrices.World = transform.WorldTransform;
+                        pass.Apply();
                     }
-                    pass.Apply();
                     drawable.PreDraw(rc.GraphicsDevice);
                     drawable.Draw(rc.GraphicsDevice);
                     drawable.PostDraw(rc.GraphicsDevice);
@@ -125,27 +119,6 @@ namespace GameLibrary.SceneGraph
             }
         }
 
-        private void renderOld(RenderContext rc, List<Drawable> drawableList)
-        {
-            foreach (Drawable drawable in drawableList)
-            {
-                if ((effectMatrices != null) && (drawable is Transform transform))
-                {
-                    effectMatrices.World = transform.WorldTransform;
-                }
-                drawable.PreDraw(rc.GraphicsDevice);
-                // TODO in case of multiple passes, it might be more efficient
-                // to loop over passes then over geometries and not the other
-                // way around as is currently done
-                //Console.Out.WriteLine(Effect.CurrentTechnique.Passes.Count);
-                foreach (EffectPass pass in effect.CurrentTechnique.Passes)
-                {
-                    pass.Apply();
-                    drawable.Draw(rc.GraphicsDevice);
-                }
-                drawable.PostDraw(rc.GraphicsDevice);
-            }
-        }
     }
 
     public class WireFrameRenderer : EffectRenderer
@@ -183,13 +156,14 @@ namespace GameLibrary.SceneGraph
             boundingGeometry.PreDraw(rc.GraphicsDevice);
             foreach (EffectPass pass in effect.CurrentTechnique.Passes)
             {
+                pass.Apply();
                 foreach (Drawable drawable in drawableList)
                 {
                     if (effectMatrices != null)
                     {
                         effectMatrices.World = drawable.WorldBoundingVolume.WorldMatrix;
+                        pass.Apply();
                     }
-                    pass.Apply();
                     boundingGeometry.Draw(rc.GraphicsDevice);
                 }
             }
@@ -230,6 +204,7 @@ namespace GameLibrary.SceneGraph
 
             foreach (EffectPass pass in effect.CurrentTechnique.Passes)
             {
+                pass.Apply();
                 foreach (Drawable drawable in drawableList)
                 {
                     if (!drawable.Enabled || !drawable.Visible)
@@ -239,8 +214,8 @@ namespace GameLibrary.SceneGraph
                     if ((effectMatrices != null) && (drawable is Transform transform))
                     {
                         effectMatrices.World = transform.WorldTransform;
+                        pass.Apply();
                     }
-                    pass.Apply();
                     drawable.PreDraw(rc.GraphicsDevice);
                     drawable.Draw(rc.GraphicsDevice);
                     drawable.PostDraw(rc.GraphicsDevice);
@@ -255,6 +230,9 @@ namespace GameLibrary.SceneGraph
 
         protected readonly IEffectMatrices effectMatrices;
 
+        private SamplerState wireframeSamplerState = new SamplerState();
+
+
         public VoxelRenderer(Effect effect)
         {
             this.effect = effect;
@@ -262,6 +240,9 @@ namespace GameLibrary.SceneGraph
 
             //RasterizerState = RasterizerState.CullNone;
             //RasterizerState = Renderer.WireFrameRasterizer;
+
+            //wireframeSamplerState.Filter = TextureFilter.PointMipLinear;
+            wireframeSamplerState.AddressU = TextureAddressMode.Mirror;
         }
 
         public override void Render(RenderContext rc, List<Drawable> drawableList)
@@ -270,6 +251,8 @@ namespace GameLibrary.SceneGraph
             rc.GraphicsDevice.DepthStencilState = DepthStencilState;
             rc.GraphicsDevice.RasterizerState = RasterizerState;
             rc.GraphicsDevice.SamplerStates[0] = SamplerState;
+            rc.GraphicsDevice.SamplerStates[1] = wireframeSamplerState;
+            rc.GraphicsDevice.SamplerStates[2] = wireframeSamplerState;
 
             if (effectMatrices != null)
             {
