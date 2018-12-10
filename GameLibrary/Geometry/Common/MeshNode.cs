@@ -21,21 +21,18 @@ namespace GameLibrary.Geometry.Common
             get { return mesh; }
         }
 
-        public MeshNode(String name, IMeshFactory meshFactory)
-            : base(name)
+        public MeshNode(String name, IMeshFactory meshFactory) : base(name)
         {
             this.meshFactory = meshFactory;
         }
 
-        public MeshNode(String name, Mesh mesh)
-            : base(name)
+        public MeshNode(String name, Mesh mesh) : base(name)
         {
             this.mesh = mesh;
             owned = true;
         }
 
-        public MeshNode(MeshNode node)
-            : base(node)
+        public MeshNode(MeshNode node) : base(node)
         {
             meshFactory = null;
             mesh = node.mesh;
@@ -70,6 +67,8 @@ namespace GameLibrary.Geometry.Common
                 mesh = null;
             }
         }
+
+        public override int VertexCount { get { return mesh.VertexCount; } }
 
         public override void PreDraw(GraphicsDevice gd)
         {

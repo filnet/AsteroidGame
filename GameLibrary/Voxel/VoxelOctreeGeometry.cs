@@ -48,6 +48,7 @@ namespace GameLibrary.Voxel
             base.Dispose();
         }
 
+        public override int VertexCount { get { throw new NotSupportedException(); } }
     }
 
 }

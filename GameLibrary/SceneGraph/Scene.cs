@@ -11,9 +11,83 @@ using GameLibrary.Geometry;
 using GameLibrary.Voxel;
 using System.ComponentModel;
 using GameLibrary.Component;
+using GameLibrary.Component.Camera;
 
 namespace GameLibrary.SceneGraph
 {
+
+    public class DirectionalLightCamera : AbstractCamera
+    {
+        public override Vector3 Position { get { return lightPosition; } set => throw new NotImplementedException(); }
+
+        public override Vector3 ViewDirection { get { return lightDirection; } }
+
+        public override Matrix ProjectionMatrix { get { return projectionMatrix; } }
+
+        public override Matrix ViewMatrix { get { return viewMatrix; } }
+
+        public override Matrix ViewProjectionMatrix { get { return viewProjectionMatrix; } }
+
+        public override BoundingFrustum BoundingFrustum { get { return boundingFrustum; } }
+
+        private Vector3 lightPosition;
+        private Vector3 lightDirection;
+
+        private Matrix viewMatrix;
+        private Matrix projectionMatrix;
+        private Matrix viewProjectionMatrix;
+
+        private BoundingFrustum boundingFrustum;
+
+        public DirectionalLightCamera() : base()
+        {
+        }
+
+        public void Update(Bounding.BoundingBox sceneBoundingBox)
+        {
+            // Think of light's orthographic frustum as a bounding box that encloses all objects visible by the camera,
+            // plus objects not visible but potentially casting shadows. For the simplicity let's disregard the latter.
+            // So to find this frustum:
+            // - find all objects that are inside the current camera frustum
+            // - find minimal aa bounding box that encloses them all
+            // - transform corners of that bounding box to the light's space (using light's view matrix)
+            // - find aa bounding box in light's space of the transformed (now obb) bounding box
+            // - this aa bounding box is your directional light's orthographic frustum.
+            //
+            // Note that actual translation component in light view matrix doesn't really matter as you'll
+            // only get different Z values for the frustum but the boundaries will be the same in world space.
+            // For the convenience, when building light view matrix, you can assume the light "position" is at
+            // the center of the bounding box enclosing all visible objects.
+
+            Vector3 lightPosition = sceneBoundingBox.Center;
+            Vector3 lightDirection = Vector3.Normalize(new Vector3(-1, -1, -1));
+
+            viewMatrix = Matrix.CreateLookAt(lightPosition, lightPosition + lightDirection, Vector3.Up);
+
+            // transform bounding box
+            ref Matrix m = ref viewMatrix;
+
+            //Vector3 newCenter;
+            //Vector3 v = sceneBoundingBox.Center;
+            //newCenter.X = (v.X * m.M11) + (v.Y * m.M21) + (v.Z * m.M31) + m.M41;
+            //newCenter.Y = (v.X * m.M12) + (v.Y * m.M22) + (v.Z * m.M32) + m.M42;
+            //newCenter.Z = (v.X * m.M13) + (v.Y * m.M23) + (v.Z * m.M33) + m.M43;
+
+            Vector3 newHalfSize;
+            Vector3 v = sceneBoundingBox.HalfSize;
+            newHalfSize.X = (v.X * Math.Abs(m.M11)) + (v.Y * Math.Abs(m.M21)) + (v.Z * Math.Abs(m.M31));
+            newHalfSize.Y = (v.X * Math.Abs(m.M12)) + (v.Y * Math.Abs(m.M22)) + (v.Z * Math.Abs(m.M32));
+            newHalfSize.Z = (v.X * Math.Abs(m.M13)) + (v.Y * Math.Abs(m.M23)) + (v.Z * Math.Abs(m.M33));
+
+            //Bounding.BoundingBox bb = new Bounding.BoundingBox(newCenter, newHalfSize);
+
+            projectionMatrix = Matrix.CreateOrthographic(newHalfSize.X * 2, newHalfSize.Y * 2, -newHalfSize.Z, newHalfSize.Z);
+
+            viewProjectionMatrix = viewMatrix * projectionMatrix;
+        }
+
+    }
+
     public class Scene
     {
         public static int THREE_LIGHTS = 0;
@@ -50,6 +124,7 @@ namespace GameLibrary.SceneGraph
         private Node rootNode;
 
         private readonly Dictionary<int, Renderer> renderers;
+        private readonly Dictionary<int, Renderer> renderers2;
 
         private Dictionary<int, List<Node>> collisionGroups;
 
@@ -58,6 +133,10 @@ namespace GameLibrary.SceneGraph
 
         // debug camera
         private MeshNode frustrumGeo;
+
+        private MeshNode sceneBoundingBoxGeo;
+        private MeshNode lightFrustrumGeo;
+
 
         private Matrix previousProjectionMatrix = Matrix.Identity;
         private Matrix previousViewMatrix = Matrix.Identity;
@@ -86,6 +165,10 @@ namespace GameLibrary.SceneGraph
 
         public RenderContext renderContext;
 
+        public DirectionalLightCamera lightCamera;
+
+        public RenderContext shadowRenderContext;
+
         public Node RootNode
         {
             get { return rootNode; }
@@ -101,6 +184,7 @@ namespace GameLibrary.SceneGraph
         public Scene()
         {
             renderers = new Dictionary<int, Renderer>();
+            renderers2 = new Dictionary<int, Renderer>();
             collisionGroups = new Dictionary<int, List<Node>>();
         }
 
@@ -109,16 +193,13 @@ namespace GameLibrary.SceneGraph
             //VectorUtil.CreateAABBAreaLookupTable();
 
             boundingSphereGeo = GeometryUtil.CreateGeodesicWF("BOUNDING_SPHERE", 1);
-            //boundingSphereGeo.Scene = this;
-            //boundingGeo.Scale = new Vector3(1.05f);
-            //boundingSphereGeo.RenderGroupId = VECTOR;
             boundingSphereGeo.Initialize(GraphicsDevice);
 
             boundingBoxGeo = GeometryUtil.CreateCubeWF("BOUNDING_BOX", 1);
-            //boundingBoxGeo.Scene = this;
-            //boundingBoxGeo.Scale = new Vector3(1.05f);
-            //boundingBoxGeo.RenderGroupId = VECTOR;
             boundingBoxGeo.Initialize(GraphicsDevice);
+
+            sceneBoundingBoxGeo = GeometryUtil.CreateCubeWF("SCENE_BOUNDING_BOX", 1);
+            sceneBoundingBoxGeo.Initialize(GraphicsDevice);
 
             renderers[THREE_LIGHTS] = new EffectRenderer(EffectFactory.CreateBasicEffect1(GraphicsDevice)); // 3 lights
             renderers[ONE_LIGHT] = new EffectRenderer(EffectFactory.CreateBasicEffect2(GraphicsDevice)); // 1 light
@@ -135,24 +216,26 @@ namespace GameLibrary.SceneGraph
             //renderers[VOXEL_MAP] = new VoxelMapRenderer(EffectFactory.CreateBasicEffect1(GraphicsDevice));
             //renderers[VOXEL_MAP] = new VoxelMapInstancedRenderer(EffectFactory.CreateInstancedEffect(GraphicsDevice));
 
-            renderers[VOXEL] = new ShowTimeRenderer(new VoxelRenderer(VoxelUtil.CreateVoxelEffect(GraphicsDevice)));
+            renderers[VOXEL] = new VoxelRenderer(VoxelUtil.CreateVoxelEffect(GraphicsDevice));
             renderers[VOXEL_WATER] = new VoxelRenderer(VoxelUtil.CreateVoxelWaterEffect(GraphicsDevice));
             renderers[VOXEL_WATER].RasterizerState = RasterizerState.CullNone;
             renderers[VOXEL_WATER].BlendState = BlendState.AlphaBlend;
 
+            renderers2[VOXEL] = new VoxelRenderer(VoxelUtil.CreateVoxelShadowEffect(GraphicsDevice));
+            renderers2[VOXEL_WATER] = new VoxelRenderer(VoxelUtil.CreateVoxelShadowEffect(GraphicsDevice));
 
             //renderers[OCTREE] = new OctreeRenderer(EffectFactory.CreateBasicEffect3(GraphicsDevice)); // no light
             //renderers[OCTREE] = new OctreeRenderer(EffectFactory.CreateBasicEffect1(GraphicsDevice)); // 3 lights
 
-            renderers[FRUSTRUM] = new EffectRenderer(EffectFactory.CreateBasicEffect3(GraphicsDevice)); // no light
+            renderers[FRUSTRUM] = new FrustrumRenderer(EffectFactory.CreateFrustrumEffect(GraphicsDevice));
 
-            bool clip = false;
-            renderers[BOUNDING_SPHERE] = new BoundRenderer(EffectFactory.CreateBoundEffect(GraphicsDevice, clip), boundingSphereGeo); // clipping
-            renderers[BOUNDING_BOX] = new BoundRenderer(EffectFactory.CreateBoundEffect(GraphicsDevice, clip), boundingBoxGeo); // clipping
-            renderers[CULLED_BOUNDING_SPHERE] = new BoundRenderer(EffectFactory.CreateCulledBoundEffect(GraphicsDevice, clip), boundingSphereGeo); // clipping
-            renderers[CULLED_BOUNDING_BOX] = new BoundRenderer(EffectFactory.CreateCulledBoundEffect(GraphicsDevice, clip), boundingBoxGeo); // clipping
-            renderers[COLLISION_SPHERE] = new BoundRenderer(EffectFactory.CreateCollisionEffect(GraphicsDevice, clip), boundingSphereGeo); // clipping
-            renderers[COLLISION_BOX] = new BoundRenderer(EffectFactory.CreateCollisionEffect(GraphicsDevice, clip), boundingBoxGeo); // clipping
+            bool clip = false; // clipping
+            renderers[BOUNDING_SPHERE] = new BoundRenderer(EffectFactory.CreateBoundEffect(GraphicsDevice, clip), boundingSphereGeo);
+            renderers[BOUNDING_BOX] = new BoundRenderer(EffectFactory.CreateBoundEffect(GraphicsDevice, clip), boundingBoxGeo);
+            renderers[CULLED_BOUNDING_SPHERE] = new BoundRenderer(EffectFactory.CreateCulledBoundEffect(GraphicsDevice, clip), boundingSphereGeo);
+            renderers[CULLED_BOUNDING_BOX] = new BoundRenderer(EffectFactory.CreateCulledBoundEffect(GraphicsDevice, clip), boundingBoxGeo);
+            renderers[COLLISION_SPHERE] = new BoundRenderer(EffectFactory.CreateCollisionEffect(GraphicsDevice, clip), boundingSphereGeo);
+            renderers[COLLISION_BOX] = new BoundRenderer(EffectFactory.CreateCollisionEffect(GraphicsDevice, clip), boundingBoxGeo);
 
             renderers[HORTO] = new HortographicRenderer(EffectFactory.CreateBasicEffect3(GraphicsDevice));
 
@@ -160,6 +243,16 @@ namespace GameLibrary.SceneGraph
             rootNode.Visit(COMMIT_VISITOR, this);
 
             renderContext = new RenderContext(GraphicsDevice, cameraComponent);
+
+            RenderTarget2D renderTarget = new RenderTarget2D(
+                GraphicsDevice,
+                GraphicsDevice.PresentationParameters.BackBufferWidth,
+                GraphicsDevice.PresentationParameters.BackBufferHeight,
+                false,
+                GraphicsDevice.PresentationParameters.BackBufferFormat,
+                DepthFormat.Depth16);
+            lightCamera = new DirectionalLightCamera();
+            shadowRenderContext = new RenderContext(GraphicsDevice, lightCamera, null/*renderTarget*/);
         }
 
         public void Dispose()
@@ -240,6 +333,7 @@ namespace GameLibrary.SceneGraph
             bool sceneDirty = false;
 
             renderContext.GameTime = gameTime;
+            renderContext.ResetStats();
 
             // do the RENDER_GROUP_VISITOR only if:
             // - camera is dirty
@@ -271,8 +365,65 @@ namespace GameLibrary.SceneGraph
                 // but RENDER_GROUP_VISITOR does the culling...
                 renderContext.ClearBins();
 
+                renderContext.sceneMax = new Vector3(float.MinValue);
+                renderContext.sceneMin = new Vector3(float.MaxValue);
+
                 rootNode.Visit(RENDER_VISITOR, renderContext);
-                if (Debug) Console.WriteLine(renderContext.FrustumCullCount + " / " + renderContext.RenderCount);
+                
+                Bounding.BoundingBox sceneBoundingBox = new Bounding.BoundingBox(
+                    (renderContext.sceneMax + renderContext.sceneMin) / 2.0f,
+                    (renderContext.sceneMax - renderContext.sceneMin) / 2.0f);
+                lightCamera.Update(sceneBoundingBox);
+
+                // DEBUG STUFF
+
+                // camera frustrum
+                if (ShowFrustrum && (frustrumGeo != null))
+                {
+                    renderContext.AddToBin(FRUSTRUM, frustrumGeo);
+                }
+
+                // visible scene bounding box
+                if (false)
+                {
+                    /*
+                    Bounding.BoundingBox sceneBoundingBox = new Bounding.BoundingBox(
+                        (renderContext.sceneMax + renderContext.sceneMin) / 2.0f,
+                        (renderContext.sceneMax - renderContext.sceneMin) / 2.0f);*/
+
+                    sceneBoundingBoxGeo.BoundingVolume = sceneBoundingBox;
+                    sceneBoundingBoxGeo.WorldBoundingVolume = sceneBoundingBox;
+                    renderContext.AddToBin(BOUNDING_BOX, sceneBoundingBoxGeo);
+                }
+
+                // light frustrum
+                if (false)
+                {
+                    //if (lightFrustrumGeo == null)
+                    //{
+                    /*Bounding.BoundingBox sceneBoundingBox = new Bounding.BoundingBox(
+                        (renderContext.sceneMax + renderContext.sceneMin) / 2.0f,
+                        (renderContext.sceneMax - renderContext.sceneMin) / 2.0f);*/
+
+                    Matrix lightView;
+                    Matrix lightProjection;
+                    renderContext.LightMatrices(sceneBoundingBox, out lightView, out lightProjection);
+
+                    BoundingFrustum boundingFrustum = new BoundingFrustum(lightView * lightProjection);
+
+                    Matrix m = lightView * lightProjection;
+                    m = Matrix.Invert(m);
+
+                    lightFrustrumGeo = GeometryUtil.CreateFrustrum("FRUSTRUM", boundingFrustum);
+                    lightFrustrumGeo.RenderGroupId = FRUSTRUM;
+                    lightFrustrumGeo.Initialize(GraphicsDevice);
+                    lightFrustrumGeo.Transform = m;
+                    lightFrustrumGeo.UpdateTransform();
+                    lightFrustrumGeo.UpdateWorldTransform(null);
+                    //}
+
+                    renderContext.AddToBin(FRUSTRUM, lightFrustrumGeo);
+                }
             }
 
             if (CaptureFrustrum)
@@ -286,46 +437,48 @@ namespace GameLibrary.SceneGraph
                     frustrumGeo.Initialize(GraphicsDevice);
                     frustrumGeo.UpdateTransform();
                     frustrumGeo.UpdateWorldTransform(null);
+
+                    // tweak camera zfar...
+                    // TODO restore zfar later...
+                    cameraComponent.SetZFar(2000);
                 }
                 else
                 {
+                    // TODO restore zfar!
                     frustrumGeo.Dispose();
                     frustrumGeo = null;
                 }
-            }
-
-            if (ShowFrustrum && (frustrumGeo != null))
-            {
-                renderContext.AddToBin(FRUSTRUM, frustrumGeo);
             }
         }
 
         public void Draw(GameTime gameTime)
         {
-            Render(gameTime, renderContext.renderBins, renderers);
+            Render(shadowRenderContext, renderContext.renderBins, renderers2);
+            //Render(renderContext, renderContext.renderBins, renderers);
+
+            renderContext.ShowStats();
         }
 
-        public void Render(GameTime gameTime, SortedDictionary<int, List<Drawable>> renderBins, Dictionary<int, Renderer> renderers)
+        public void Render(RenderContext renderContext, SortedDictionary<int, List<Drawable>> renderBins, Dictionary<int, Renderer> renderers)
         {
             BlendState oldBlendState = GraphicsDevice.BlendState;
             DepthStencilState oldDepthStencilState = GraphicsDevice.DepthStencilState;
             RasterizerState oldRasterizerState = GraphicsDevice.RasterizerState;
             SamplerState oldSamplerState = GraphicsDevice.SamplerStates[0];
 
+            // Set the render target
+            GraphicsDevice.SetRenderTarget(renderContext.RenderTarget);
+
             // FIXME should iterate over ordered by key...
-            Renderer renderer;
             foreach (KeyValuePair<int, List<Drawable>> renderBinKVP in renderBins)
             {
                 int renderBinId = renderBinKVP.Key;
                 List<Drawable> nodeList = renderBinKVP.Value;
-                if (nodeList.Count() == 0)
-                {
-                    // early exit !!!
-                    break;
-                }
+                if (nodeList.Count() == 0) continue;
 
                 if (Debug) Console.WriteLine(renderBinId + " " + nodeList.Count);
 
+                Renderer renderer;
                 renderers.TryGetValue(renderBinId, out renderer);
                 if (renderer != null)
                 {
@@ -333,9 +486,12 @@ namespace GameLibrary.SceneGraph
                 }
                 else
                 {
-                    if (Debug) Console.WriteLine("No renderer found for render group " + renderBinId);
+                    Console.WriteLine("No renderer found for render group " + renderBinId);
                 }
             }
+
+            // Drop the render target
+            GraphicsDevice.SetRenderTarget(null);
 
             GraphicsDevice.BlendState = oldBlendState;
             GraphicsDevice.DepthStencilState = oldDepthStencilState;
@@ -483,7 +639,6 @@ namespace GameLibrary.SceneGraph
                     if (!cull)
                     {
                         ctxt.AddToBin(drawable);
-                        ctxt.RenderCount++;
                     }
                     if (drawable.BoundingVolumeVisible)
                     {
@@ -507,6 +662,12 @@ namespace GameLibrary.SceneGraph
                 // TODO start from node that fully encompass the frustrum (no need to recurse from root)
                 // when recursing down some collision tests are not needed (possible to extend that from frame to frame)
                 // see TODO.txt for links that show how to do that
+
+                // http://www.cse.chalmers.se/~uffe/vfc.pdf
+                // https://cesium.com/blog/2017/02/02/tighter-frustum-culling-and-why-you-may-want-to-disregard-it/
+                // https://github.com/labnation/MonoGame/blob/master/MonoGame.Framework/BoundingFrustum.cs
+                // https://github.com/labnation/MonoGame/blob/master/MonoGame.Framework/BoundingBox.cs
+
                 BoundingFrustum boundingFrustum = ctxt.BoundingFrustum;
                 ContainmentType containmentType = node.obj.BoundingBox.IsContained(boundingFrustum);
                 if (containmentType == ContainmentType.Disjoint)
@@ -527,26 +688,29 @@ namespace GameLibrary.SceneGraph
             // distance culling
             if (!culled && ctxt.DistanceCullingEnabled)
             {
+                Vector3 center = node.obj.BoundingBox.Center;
+                Vector3 halfSize = node.obj.BoundingBox.HalfSize;
                 // TODO move to BoundingBox
                 // compute min and max distance (squared) of a point to an AABB
                 // see http://mcmains.me.berkeley.edu/pubs/TVCG2010finalKrishnamurthyMcMains.pdf
                 // the above reference also shows how to compute min and max distance (squared) between two AABBs
                 Vector3 centerDist;
-                centerDist.X = Math.Abs(node.obj.BoundingBox.Center.X - ctxt.CameraPosition.X);
-                centerDist.Y = Math.Abs(node.obj.BoundingBox.Center.Y - ctxt.CameraPosition.Y);
-                centerDist.Z = Math.Abs(node.obj.BoundingBox.Center.Z - ctxt.CameraPosition.Z);
+                centerDist.X = Math.Abs(center.X - ctxt.CameraPosition.X);
+                centerDist.Y = Math.Abs(center.Y - ctxt.CameraPosition.Y);
+                centerDist.Z = Math.Abs(center.Z - ctxt.CameraPosition.Z);
+
+                Vector3 dist;
 
                 // max distance
-                Vector3 dist;
-                dist.X = centerDist.X + node.obj.BoundingBox.HalfSize.X;
-                dist.Y = centerDist.Y + node.obj.BoundingBox.HalfSize.Y;
-                dist.Z = centerDist.Z + node.obj.BoundingBox.HalfSize.Z;
+                dist.X = centerDist.X + halfSize.X;
+                dist.Y = centerDist.Y + halfSize.Y;
+                dist.Z = centerDist.Z + halfSize.Z;
                 float maxDistanceSquared = (dist.X * dist.X) + (dist.Y * dist.Y) + (dist.Z * dist.Z);
 
                 // min distance
-                dist.X = Math.Max(centerDist.X - node.obj.BoundingBox.HalfSize.X, 0);
-                dist.Y = Math.Max(centerDist.Y - node.obj.BoundingBox.HalfSize.Y, 0);
-                dist.Z = Math.Max(centerDist.Z - node.obj.BoundingBox.HalfSize.Z, 0);
+                dist.X = Math.Max(centerDist.X - halfSize.X, 0);
+                dist.Y = Math.Max(centerDist.Y - halfSize.Y, 0);
+                dist.Z = Math.Max(centerDist.Z - halfSize.Z, 0);
                 float minDistanceSquared = (dist.X * dist.X) + (dist.Y * dist.Y) + (dist.Z * dist.Z);
 
                 if (minDistanceSquared > ctxt.cullDistanceSquared && maxDistanceSquared > ctxt.cullDistanceSquared)
@@ -571,17 +735,41 @@ namespace GameLibrary.SceneGraph
 
             if (!culled && ctxt.ScreenSizeCullingEnabled)
             {
-                if (node.locCode == 0b1100)
+                // https://gdbooks.gitbooks.io/3dcollisions/content/Chapter2/static_aabb_plane.html
+
+                Vector3 center = node.obj.BoundingBox.Center;
+                Vector3 halfSize = node.obj.BoundingBox.HalfSize;
+
+                // plane normal
+                Vector3 n = ctxt.Camera.ViewDirection;
+
+                // Compute the projection interval radius of b onto L(t) = b.c + t * p.n
+                float r = halfSize.X * Math.Abs(n.X) + halfSize.Y * Math.Abs(n.Y) + halfSize.Z * Math.Abs(n.Z);
+
+                // FIXME performance no need to compute d each time...
+                Vector3 p = ctxt.Camera.Position;
+                float d = n.X * p.X + n.Y * p.Y + n.Z * p.Z; ;
+
+                // Compute distance of box center from plane
+                float s = Vector3.Dot(n, center) - d;
+
+                // Intersection occurs when distance s falls within [-r,+r] interval
+                if (Math.Abs(s) > r)
                 {
-                    // TODO check that center.Z - halfSize.Z > NearPlane
-                    AddBBoxHull(ctxt, ref node.obj.BoundingBox);
+                    if (node.locCode == 0b1000)
+                    {
+                        // TODO use dynamic vertex buffer
+                        // then use dynamic vertex buffer to plot graph of mouse dx / dy (using line strip)
+                        // and for camera frustrums...
+                        AddBBoxHull(ctxt, ref node.obj.BoundingBox);
+                    }
                     float a = VectorUtil.BBoxArea(ref ctxt.CameraPosition, ref node.obj.BoundingBox, ctxt.ProjectToScreen);
                     if (a != -1 && a < minA)
                     {
                         minA = a;
                         Console.WriteLine("* " + minA);
                     }
-                    Console.WriteLine(a);
+                    //ctxt.ScreenSizeCullCount++;
                 }
             }
 
@@ -612,7 +800,13 @@ namespace GameLibrary.SceneGraph
                 if (drawable.Visible && !culled)
                 {
                     ctxt.AddToBin(drawable);
-                    ctxt.RenderCount++;
+
+                    ctxt.sceneMax.X = Math.Max(ctxt.sceneMax.X, node.obj.BoundingBox.Center.X + node.obj.BoundingBox.HalfSize.X);
+                    ctxt.sceneMax.Y = Math.Max(ctxt.sceneMax.Y, node.obj.BoundingBox.Center.Y + node.obj.BoundingBox.HalfSize.Y);
+                    ctxt.sceneMax.Z = Math.Max(ctxt.sceneMax.Z, node.obj.BoundingBox.Center.Z + node.obj.BoundingBox.HalfSize.Z);
+                    ctxt.sceneMin.X = Math.Min(ctxt.sceneMin.X, node.obj.BoundingBox.Center.X - node.obj.BoundingBox.HalfSize.X);
+                    ctxt.sceneMin.Y = Math.Min(ctxt.sceneMin.Y, node.obj.BoundingBox.Center.Y - node.obj.BoundingBox.HalfSize.Y);
+                    ctxt.sceneMin.Z = Math.Min(ctxt.sceneMin.Z, node.obj.BoundingBox.Center.Z - node.obj.BoundingBox.HalfSize.Z);
                 }
                 if (drawable.BoundingVolumeVisible)
                 {
@@ -625,7 +819,6 @@ namespace GameLibrary.SceneGraph
                 if (transparentDrawable.Visible && !culled)
                 {
                     ctxt.AddToBin(transparentDrawable);
-                    ctxt.RenderCount++;
                 }
             }
             return !culled;
@@ -684,16 +877,16 @@ namespace GameLibrary.SceneGraph
         {
             bool addHull = false;
             bool addProjectedHull = !addHull;
-            bool addBorder = true;
+            bool addBorder = false;
 
             if (addBorder)
             {
                 Vector3[] borderVertices = new Vector3[4]
                 {
-                new Vector3(10, 10, 0),
-                new Vector3(950, 10, 0),
-                new Vector3(950, 530, 0),
-                new Vector3(10, 530, 0),
+                    new Vector3(10, 10, 0),
+                    new Vector3(950, 10, 0),
+                    new Vector3(950, 530, 0),
+                    new Vector3(10, 530, 0),
                 };
 
                 GeometryNode borderNode = new MeshNode("HORTO_CORDER", new LineMeshFactory(borderVertices, true));

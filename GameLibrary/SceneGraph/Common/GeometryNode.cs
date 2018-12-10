@@ -48,7 +48,7 @@ namespace GameLibrary.SceneGraph.Common
 
     }
 
-    public class GeometryNode : TransformNode, Physical, Drawable
+    public abstract class GeometryNode : TransformNode, Physical, Drawable
     {
         private BoundingVolume boundingVolume;
         private BoundingVolume worldBoundingVolume;
@@ -64,7 +64,7 @@ namespace GameLibrary.SceneGraph.Common
         /// <summary>
         /// Gets or sets the geometry bounding volume, which contains the entire geometry in model (local) space.
         /// </summary>
-        public virtual BoundingVolume BoundingVolume
+        public BoundingVolume BoundingVolume
         {
             get { return boundingVolume; }
             internal set { boundingVolume = value; }
@@ -73,7 +73,7 @@ namespace GameLibrary.SceneGraph.Common
         /// <summary>
         /// Gets or sets the geometry bounding volume, which contains the entire geometry in model (local) space.
         /// </summary>
-        public virtual BoundingVolume WorldBoundingVolume
+        public BoundingVolume WorldBoundingVolume
         {
             get { return worldBoundingVolume; }
             internal set { worldBoundingVolume = value; }
@@ -102,10 +102,10 @@ namespace GameLibrary.SceneGraph.Common
             physics = null;
         }
 
-        public override Node Clone()
+        /*public override Node Clone()
         {
             return new GeometryNode(this);
-        }
+        }*/
 
         internal override bool UpdateWorldTransform(TransformNode parentTransformNode)
         {
@@ -120,6 +120,8 @@ namespace GameLibrary.SceneGraph.Common
             }
             return false;
         }
+
+        public abstract int VertexCount { get; }
 
         public virtual void PreDraw(GraphicsDevice gd)
         {

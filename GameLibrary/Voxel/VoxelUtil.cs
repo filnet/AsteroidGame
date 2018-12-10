@@ -13,41 +13,6 @@ namespace GameLibrary.Voxel
 {
     class VoxelUtil
     {
-        private static readonly float[] ambientOcclusionCurve = new float[] { 00.0f, 0.0f, 0.5f, 1.0f };
-        //private static readonly float[] ambientOcclusionCurve = new float[] { 0.0f, 0.33f, 0.66f, 1.0f };
-        //private static readonly float[] ambientOcclusionCurve = new float[] { 0.0f, 0.6f, 0.8f, 1.0f };
-
-        public static Color AmbientOcclusionColor(int ao)
-        {
-            return Color.Multiply(Color.White, ambientOcclusionCurve[ao]);
-            /*
-                        switch (ao)
-                        {
-                            case 0:
-                                return Color.Red;
-                            case 1:
-                                return Color.Green;
-                            case 2:
-                                return Color.Blue;
-                        }
-                        return Color.White;
-            */
-        }
-
-        public static int VertexAmbientOcclusion(bool side1, bool side2, bool corner)
-        {
-            if (side1 && side2)
-            {
-                return 0;
-            }
-            return 3 - (Convert.ToInt32(side1) + Convert.ToInt32(side2) + Convert.ToInt32(corner));
-        }
-
-        public static int CombineVertexAmbientOcclusion(int a00, int a01, int a10, int a11)
-        {
-            return (a00 | (a01 << 2) | (a10 << 4) | (a11 << 6));
-        }
-
         public static Effect CreateVoxelEffect(GraphicsDevice gd)
         {
             VoxelEffect effect = new VoxelEffect(gd);
@@ -80,7 +45,7 @@ namespace GameLibrary.Voxel
 
             effect.TextureEnabled = true;
             effect.Texture = createTileTextureArray(gd, getTiles());
-            effect.WireframeTexture = createWireframeTexture(gd);
+            //effect.WireframeTexture = createWireframeTexture(gd, 1.0f);
             return effect;
         }
 
@@ -116,6 +81,13 @@ namespace GameLibrary.Voxel
 
             effect.TextureEnabled = true;
             effect.Texture = createTileTextureArray(gd, getTiles());
+            return effect;
+        }
+
+        public static Effect CreateVoxelShadowEffect(GraphicsDevice gd)
+        {
+            VoxelShadowEffect effect = new VoxelShadowEffect(gd);
+
             return effect;
         }
 
@@ -230,6 +202,41 @@ namespace GameLibrary.Voxel
                 width /= 2;
             }
             return texture;
+        }
+
+        private static readonly float[] ambientOcclusionCurve = new float[] { 00.0f, 0.0f, 0.5f, 1.0f };
+        //private static readonly float[] ambientOcclusionCurve = new float[] { 0.0f, 0.33f, 0.66f, 1.0f };
+        //private static readonly float[] ambientOcclusionCurve = new float[] { 0.0f, 0.6f, 0.8f, 1.0f };
+
+        public static Color AmbientOcclusionColor(int ao)
+        {
+            return Color.Multiply(Color.White, ambientOcclusionCurve[ao]);
+            /*
+                        switch (ao)
+                        {
+                            case 0:
+                                return Color.Red;
+                            case 1:
+                                return Color.Green;
+                            case 2:
+                                return Color.Blue;
+                        }
+                        return Color.White;
+            */
+        }
+
+        public static int VertexAmbientOcclusion(bool side1, bool side2, bool corner)
+        {
+            if (side1 && side2)
+            {
+                return 0;
+            }
+            return 3 - (Convert.ToInt32(side1) + Convert.ToInt32(side2) + Convert.ToInt32(corner));
+        }
+
+        public static int CombineVertexAmbientOcclusion(int a00, int a01, int a10, int a11)
+        {
+            return (a00 | (a01 << 2) | (a10 << 4) | (a11 << 6));
         }
     }
 }

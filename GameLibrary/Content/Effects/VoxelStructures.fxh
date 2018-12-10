@@ -113,8 +113,8 @@ struct VSOutputTx
     float2 TexCoord   : TEXCOORD0;
 	uint4 TextureIndex : BLENDINDICES0;
 	float4 AmbientOcclusionFactors : BLENDWEIGHT0;
-    float2 WF1TexCoord   : TEXCOORD1;
-    float2 WF2TexCoord   : TEXCOORD2;
+    float WF1TexCoord   : TEXCOORD1;
+    float WF2TexCoord   : TEXCOORD2;
 };
 
 struct VSOutputTxNoFog
@@ -124,8 +124,8 @@ struct VSOutputTxNoFog
     float2 TexCoord   : TEXCOORD0;
     uint4 TextureIndex : BLENDINDICES0;
     float4 AmbientOcclusionFactors : BLENDWEIGHT0;
-    float2 WF1TexCoord   : TEXCOORD1;
-    float2 WF2TexCoord   : TEXCOORD2;
+    float WF1TexCoord   : TEXCOORD1;
+    float WF2TexCoord   : TEXCOORD2;
 };
 
 struct VSOutputPixelLighting

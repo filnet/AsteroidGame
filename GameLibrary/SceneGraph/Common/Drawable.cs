@@ -28,6 +28,8 @@ namespace GameLibrary.SceneGraph.Common
         /// </summary>
         BoundingVolume WorldBoundingVolume { get; }
 
+        int VertexCount { get; }
+
         void PreDraw(GraphicsDevice gd);
         void Draw(GraphicsDevice gd);
         void PostDraw(GraphicsDevice gd);

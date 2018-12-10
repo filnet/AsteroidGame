@@ -78,8 +78,8 @@ float SampleAmbientOcclusionFactors(float4 factors, float2 texCoord)
     vout.TexCoord = vin.TexCoord; \
 	vout.TextureIndex = vin.TextureIndex; \
 	vout.AmbientOcclusionFactors = ComputeAmbientOcclusionFactors(vin.TextureIndex[1]); \
-	vout.WF1TexCoord = float2(vin.TexCoord.x ? 1 : -1, 0); \
-	vout.WF2TexCoord = float2(vin.TexCoord.y ? 1 : -1, 0);
+	vout.WF1TexCoord = vin.TexCoord.x ? 1 : -1; \
+	vout.WF2TexCoord = vin.TexCoord.y ? 1 : -1;
 
 
 // Vertex shader: basic.
@@ -438,6 +438,25 @@ float4 PSBasicVertexLightingTx(VSOutputTx pin) : SV_Target0
     return color;
 }
 
+// see https://en.wikipedia.org/wiki/Alpha_compositing;
+float4 blend(float4 src, float4 dst)
+{
+	float4 o;
+	o.a = src.a + dst.a * (1 - src.a);
+	o.rgb = (src.rgb * src.a + dst.rgb * dst.a * (1 - src.a)) / o.a;
+	return o;
+}
+
+float4 blendWF(float4 src, float4 dst)
+{
+	float4 o;
+	//o = src * dst;
+	//o = lerp(dst, src, src.a);
+	o = blend(src, dst);
+	//o = dst * float4(1 - src.a, 1 - src.a, 1 - src.a, 1 - src.a);
+	//o = src.a > 0 ? src : dst;
+	return o;
+}
 
 // Pixel shader: vertex lighting + texture, no fog.
 float4 PSBasicVertexLightingTxNoFog(VSOutputTx pin) : SV_Target0
@@ -448,9 +467,11 @@ float4 PSBasicVertexLightingTxNoFog(VSOutputTx pin) : SV_Target0
 	color *= SampleAmbientOcclusionFactors(pin.AmbientOcclusionFactors, pin.TexCoord);
 
 	// quad wireframe
-	color *= SAMPLE_TEXTURE(WireframeTexture, pin.WF1TexCoord);
-	color *= SAMPLE_TEXTURE(WireframeTexture, pin.WF2TexCoord);
-	
+	float4 c1 = SAMPLE_TEXTURE(WireframeTexture, pin.WF1TexCoord);
+	//color = blendWF(c1, color);
+	float4 c2 = SAMPLE_TEXTURE(WireframeTexture, pin.WF2TexCoord);
+	//color = blendWF(c2, color);
+
     AddSpecular(color, pin.Specular.rgb);
     
     return color;

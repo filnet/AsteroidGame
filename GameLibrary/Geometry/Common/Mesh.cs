@@ -12,29 +12,19 @@ namespace GameLibrary.Geometry.Common
     {
         #region Member Fields
         
-        protected VertexDeclaration vertexDeclaration;
-
         protected VertexBuffer vertexBuffer;
 
         protected IndexBuffer indexBuffer;
-        
-        protected PrimitiveType primitiveType;
-        
-        protected int vertexCount;
-        
-        protected int primitiveCount;
+
+        protected readonly PrimitiveType primitiveType;
+
+        protected readonly int primitiveCount;
 
         protected BoundingVolume boundingVolume;
 
         #endregion
 
         #region Properties
-
-        public VertexDeclaration VertexDeclaration
-        {
-            get { return vertexDeclaration; }
-            internal set { vertexDeclaration = value; }
-        }
 
         public VertexBuffer VertexBuffer
         {
@@ -55,19 +45,16 @@ namespace GameLibrary.Geometry.Common
         public PrimitiveType PrimitiveType
         {
             get { return primitiveType; }
-            //internal set { primitiveType = value; }
         }
 
         public int VertexCount
         {
-            get { return vertexCount; }
-            internal set { vertexCount = value; }
+            get { return vertexBuffer.VertexCount; }
         }
 
         public int PrimitiveCount
         {
             get { return primitiveCount; }
-            //set { primitiveCount = value; }
         }
 
         public BoundingVolume BoundingVolume
@@ -84,7 +71,6 @@ namespace GameLibrary.Geometry.Common
         {
             this.primitiveType = primitiveType;
             this.primitiveCount = primitiveCount;
-            vertexCount = -1;
         }
 
         #endregion

@@ -49,6 +49,12 @@
 /processorParam:DebugMode=Auto
 /build:Effects/VoxelEffect.fx
 
+#begin Effects/VoxelShadowEffect.fx
+/importer:EffectImporter
+/processor:EffectProcessor
+/processorParam:DebugMode=Auto
+/build:Effects/VoxelShadowEffect.fx
+
 #begin Fonts/Arial-12pt.spritefont
 /importer:FontDescriptionImporter
 /processor:FontDescriptionProcessor

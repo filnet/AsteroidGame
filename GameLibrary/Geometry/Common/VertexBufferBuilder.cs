@@ -85,14 +85,13 @@ namespace GameLibrary.Geometry.Common
         {
             if (vertices != null && vIndex > 0)
             {
-                mesh.VertexDeclaration = getVertexDeclaration();
-                mesh.VertexBuffer = new VertexBuffer(gd, typeof(T), vIndex, BufferUsage.None);
+                //mesh.VertexDeclaration = getVertexDeclaration();
+                mesh.VertexBuffer = new VertexBuffer(gd, typeof(T), vIndex, BufferUsage.WriteOnly);
                 mesh.VertexBuffer.SetData(vertices, 0, vIndex);
-                mesh.VertexCount = vIndex;
             }
             if (indices != null && iIndex > 0)
             {
-                mesh.IndexBuffer = new IndexBuffer(gd, typeof(int), iIndex, BufferUsage.None);
+                mesh.IndexBuffer = new IndexBuffer(gd, typeof(int), iIndex, BufferUsage.WriteOnly);
                 mesh.IndexBuffer.SetData(indices);
             }
         }

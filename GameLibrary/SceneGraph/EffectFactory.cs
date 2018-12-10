@@ -31,9 +31,15 @@ namespace GameLibrary.SceneGraph
             return effect;
         }
 
+        public static Effect CreateFrustrumEffect(GraphicsDevice gd)
+        {
+            Color c = new Color(Color.White, 255);
+            return CreateBasicEffect3(gd, c);
+        }
+
         public static Effect CreateBoundEffect(GraphicsDevice gd, bool clipping)
         {
-            Color c = new Color(Color.Green, 128);
+            Color c = new Color(Color.Green, 255);
 
             if (!clipping)
             {
@@ -44,7 +50,7 @@ namespace GameLibrary.SceneGraph
 
         public static Effect CreateCulledBoundEffect(GraphicsDevice gd, bool clipping)
         {
-            Color c = new Color(Color.Blue, 128);
+            Color c = new Color(Color.Blue, 255);
 
             if (!clipping)
             {

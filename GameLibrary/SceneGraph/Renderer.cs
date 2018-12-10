@@ -116,6 +116,9 @@ namespace GameLibrary.SceneGraph
                     drawable.PreDraw(rc.GraphicsDevice);
                     drawable.Draw(rc.GraphicsDevice);
                     drawable.PostDraw(rc.GraphicsDevice);
+
+                    rc.DrawCount++;
+                    rc.VertexCount += drawable.VertexCount;
                 }
             }
         }
@@ -130,6 +133,16 @@ namespace GameLibrary.SceneGraph
         }
     }
 
+    public class FrustrumRenderer : EffectRenderer
+    {
+        public FrustrumRenderer(Effect effect) : base(effect)
+        {
+            //DepthStencilState = new DepthStencilState();
+            //DepthStencilState.DepthBufferEnable = false;
+            BlendState = BlendState.AlphaBlend;
+        }
+    }
+
     public class BoundRenderer : EffectRenderer
     {
         private readonly GeometryNode boundingGeometry;
@@ -138,6 +151,8 @@ namespace GameLibrary.SceneGraph
         {
             this.boundingGeometry = boundingGeometry;
 
+            DepthStencilState = new DepthStencilState();
+            DepthStencilState.DepthBufferEnable = false;
             BlendState = BlendState.AlphaBlend;
         }
 
@@ -166,6 +181,9 @@ namespace GameLibrary.SceneGraph
                         pass.Apply();
                     }
                     boundingGeometry.Draw(rc.GraphicsDevice);
+
+                    rc.DrawCount++;
+                    rc.VertexCount += boundingGeometry.VertexCount;
                 }
             }
             boundingGeometry.PostDraw(rc.GraphicsDevice);
@@ -220,6 +238,9 @@ namespace GameLibrary.SceneGraph
                     drawable.PreDraw(rc.GraphicsDevice);
                     drawable.Draw(rc.GraphicsDevice);
                     drawable.PostDraw(rc.GraphicsDevice);
+
+                    rc.DrawCount++;
+                    rc.VertexCount += drawable.VertexCount;
                 }
             }
         }
@@ -242,7 +263,8 @@ namespace GameLibrary.SceneGraph
             //RasterizerState = RasterizerState.CullNone;
             //RasterizerState = Renderer.WireFrameRasterizer;
 
-            //wireframeSamplerState.Filter = TextureFilter.PointMipLinear;
+            //wireframeSamplerState.Filter = TextureFilter.MinLinearMagPointMipLinear;
+            //wireframeSamplerState.Filter = TextureFilter.LinearMipPoint;
             wireframeSamplerState.AddressU = TextureAddressMode.Mirror;
         }
 
@@ -274,6 +296,9 @@ namespace GameLibrary.SceneGraph
                     drawable.PreDraw(rc.GraphicsDevice);
                     drawable.Draw(rc.GraphicsDevice);
                     drawable.PostDraw(rc.GraphicsDevice);
+
+                    rc.DrawCount++;
+                    rc.VertexCount += drawable.VertexCount;
                 }
             }
         }

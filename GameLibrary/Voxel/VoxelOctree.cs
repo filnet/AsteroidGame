@@ -335,8 +335,10 @@ namespace GameLibrary.Voxel
             }
         }
 
-        class MeshDrawable : Drawable/*, Transform*/
+        class MeshDrawable : Drawable
         {
+            private readonly Mesh mesh;
+
             public bool Enabled { get; set; }
 
             // Fake is always invisible (but not its bounds...)
@@ -354,12 +356,10 @@ namespace GameLibrary.Voxel
             /// <summary>
             /// Gets or sets the geometry bounding volume, which contains the entire geometry in model (local) space.
             /// </summary>
-            public BoundingVolume WorldBoundingVolume { get; }
+            public BoundingVolume WorldBoundingVolume { get { return BoundingVolume; } }
 
-            /*
-            public Matrix Transform { get; }
-            public Matrix WorldTransform { get; }
-            */
+            public int VertexCount { get { return mesh.VertexCount; } }
+
             public void PreDraw(GraphicsDevice gd)
             {
                 if (mesh.IndexBuffer != null)
@@ -389,21 +389,14 @@ namespace GameLibrary.Voxel
             {
             }
 
-            private readonly Mesh mesh;
-
             public MeshDrawable(int renderGroupId, Mesh mesh, SceneGraph.Bounding.BoundingBox boundingBox)
             {
                 this.mesh = mesh;
-                RenderGroupId = renderGroupId;
-                // TODO keep only one bv
-                BoundingVolume = boundingBox;
-                WorldBoundingVolume = BoundingVolume;
                 Enabled = true;
                 Visible = true;
+                RenderGroupId = renderGroupId;
+                BoundingVolume = boundingBox;
                 BoundingVolumeVisible = true;
-                // TODO keep only one transform
-                //Transform = Matrix.CreateTranslation(boundingBox.Center);
-                //WorldTransform = Transform;
             }
         }
 
@@ -426,26 +419,20 @@ namespace GameLibrary.Voxel
             /// <summary>
             /// Gets or sets the geometry bounding volume, which contains the entire geometry in model (local) space.
             /// </summary>
-            public BoundingVolume WorldBoundingVolume { get; }
+            public BoundingVolume WorldBoundingVolume { get { return BoundingVolume; } }
 
-            public void PreDraw(GraphicsDevice gd)
-            { }
-            public void Draw(GraphicsDevice gd)
-            { }
-            public void PostDraw(GraphicsDevice gd)
-            { }
+            public int VertexCount { get { throw new NotSupportedException(); } }
 
-            public FakeDrawable(int renderGroupId, BoundingVolume boundingVolume) : this(renderGroupId, boundingVolume, boundingVolume)
+            public void PreDraw(GraphicsDevice gd) { throw new NotSupportedException(); }
+            public void Draw(GraphicsDevice gd) { throw new NotSupportedException(); }
+            public void PostDraw(GraphicsDevice gd) { throw new NotSupportedException(); }
+
+            public FakeDrawable(int renderGroupId, BoundingVolume boundingVolume)
             {
-            }
-            public FakeDrawable(int renderGroupId, BoundingVolume boundingVolume, BoundingVolume worldBoundingVolume)
-            {
-                RenderGroupId = renderGroupId;
-                // TODO keep only one bv
-                BoundingVolume = boundingVolume;
-                WorldBoundingVolume = worldBoundingVolume;
                 Enabled = true;
                 Visible = false;
+                RenderGroupId = renderGroupId;
+                BoundingVolume = boundingVolume;
                 BoundingVolumeVisible = true;
             }
         }

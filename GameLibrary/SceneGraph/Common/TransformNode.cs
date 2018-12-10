@@ -67,7 +67,7 @@ namespace GameLibrary.SceneGraph.Common
         public Matrix Transform
         {
             get { return transform; }
-            private set { transform = value; setWorldTransformDirty(); }
+            set { transform = value; setWorldTransformDirty(); }
         }
 
         public Matrix WorldTransform
@@ -76,15 +76,13 @@ namespace GameLibrary.SceneGraph.Common
             private set { worldTransform = value; }
         }
 
-        public TransformNode(String name)
-            : base(name)
+        public TransformNode(String name) : base(name)
         {
             // TODO accept only transformable nodes?
             setTransformDirty();
         }
 
-        public TransformNode(TransformNode node)
-            : base(node)
+        public TransformNode(TransformNode node) : base(node)
         {
             Scale = node.Scale;
             Rotation = node.Rotation;

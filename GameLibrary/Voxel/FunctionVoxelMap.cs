@@ -122,7 +122,8 @@ namespace GameLibrary.Voxel
     {
         //private static SimplexNoiseGenerator g = new SimplexNoiseGenerator();
         private static readonly NoiseGen g = new NoiseGen();
-        private static readonly FastNoise fn = new FastNoise(37);
+        //private static readonly FastNoise fn = new FastNoise(37);
+        private static readonly FastNoise fn = new FastNoise();
 
         private static float max = float.MinValue;
         private static float min = float.MaxValue;
@@ -138,15 +139,18 @@ namespace GameLibrary.Voxel
 
         protected override ushort F(int x, int y, int z)
         {
-            if ((x0 != -32) || (y0 != -64) || (z0 != -32))
+            /*if ((x0 != -32) || (y0 != -64) || (z0 != -32))
             {
-                //return 0;
-            }
+                return 0;
+            }*/
 
+            /*
             if (x == 0 || z == 0)
             {
-                //return 0;
+                return 0;
             }
+            */
+
             //float n = SimplexNoise.Generate(x, y, z, 0.5f, 1);
             //float n = SimplexNoise.CalcPixel3D(x, y, z,  1 / 10f);
             float scale = 0.50f;
@@ -168,6 +172,16 @@ namespace GameLibrary.Voxel
             if (y >= 0)
             {
                 //if (n < 0.001f) return 3;
+                if (y < 5)
+                {
+                    int lx = (x >= 0) ? x % size : size + (x % size) - 1;
+                    int lz = (z >= 0) ? z % size : size + (z % size) - 1;
+
+                    if ((lx == 2 || lx == 3) && (lz == 2 || lz == 3))
+                    { 
+                        return (ushort)VoxelType.Rock;
+                    }
+                }
                 return 0;
             }
             if (n < 0.05f)

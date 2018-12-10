@@ -12,10 +12,11 @@
     <Compile Include="$(MSBuildThisFileDirectory)Component\2D\Circle2D.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Component\2D\Grid2D.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Component\2D\Line2D.cs" />
-    <Compile Include="$(MSBuildThisFileDirectory)Component\Camera\Camera.cs" />
-    <Compile Include="$(MSBuildThisFileDirectory)Component\Camera\ICamera.cs" />
-    <Compile Include="$(MSBuildThisFileDirectory)Component\ICameraComponent.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)Component\Camera\AbstractCamera.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Component\Camera\DefaultCamera.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)Component\Camera\Camera.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)Component\CameraComponent.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)Component\DefaultCameraComponent.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Component\Sprite\Sprite.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Control\BaseNodeController.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Control\Controller.cs" />
@@ -29,6 +30,7 @@
     <Compile Include="$(MSBuildThisFileDirectory)Geometry\Common\VertexPositionColorNormalTextureArray.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Geometry\Common\VertexPositionNormalTextureArray.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)SceneGraph\Common\Drawable.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)SceneGraph\Common\BillboardNode.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)SceneGraph\Common\Physical.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)SceneGraph\Common\Transform.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)SceneGraph\RenderContext.cs" />
@@ -38,6 +40,7 @@
     <Compile Include="$(MSBuildThisFileDirectory)Util\Noise\Perlin.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Util\Noise\SimplexNoiseGenerator.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Util\Noise\SimplexNoise.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)Voxel\Effect\VoxelShadowEffect.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Voxel\Effect\VoxelEffect1.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Voxel\Effect\VoxelEffect.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)System\DebugManager.cs" />
@@ -109,6 +112,16 @@
     <Content Include="$(MSBuildThisFileDirectory)Doc\Clipping Shader.txt" />
     <Content Include="$(MSBuildThisFileDirectory)Doc\Resources.txt" />
     <Content Include="$(MSBuildThisFileDirectory)Doc\Architecture.txt" />
+    <Content Include="$(MSBuildThisFileDirectory)Doc\Screenshots\256x32.png" />
+    <Content Include="$(MSBuildThisFileDirectory)Doc\Screenshots\ao_bug.png" />
+    <Content Include="$(MSBuildThisFileDirectory)Doc\Screenshots\ao_bug2.png" />
+    <Content Include="$(MSBuildThisFileDirectory)Doc\Screenshots\debug_camera.png" />
+    <Content Include="$(MSBuildThisFileDirectory)Doc\octree_locational_code.png" />
+    <Content Include="$(MSBuildThisFileDirectory)Doc\Screenshots\perlin1.png" />
+    <Content Include="$(MSBuildThisFileDirectory)Doc\Screenshots\simplex.png" />
+    <Content Include="$(MSBuildThisFileDirectory)Doc\Screenshots\simplex2.png" />
+    <Content Include="$(MSBuildThisFileDirectory)Doc\Screenshots\wireframe.png" />
+    <Content Include="$(MSBuildThisFileDirectory)Doc\wireframe_texture_coordinates.png" />
     <Content Include="$(MSBuildThisFileDirectory)Doc\TODO.txt" />
     <Content Include="$(MSBuildThisFileDirectory)StockEffects\HLSL\AlphaTestEffect.fx" />
     <Content Include="$(MSBuildThisFileDirectory)StockEffects\HLSL\BasicEffect.fx" />
@@ -121,6 +134,7 @@
     <None Include="$(MSBuildThisFileDirectory)Content\Effects\Common.fxh" />
     <None Include="$(MSBuildThisFileDirectory)Content\Effects\Lighting.fxh" />
     <None Include="$(MSBuildThisFileDirectory)Content\Effects\Structures.fxh" />
+    <None Include="$(MSBuildThisFileDirectory)Content\Effects\VoxelShadowEffect.fx" />
     <None Include="$(MSBuildThisFileDirectory)Content\Effects\VoxelEffect1.fx" />
     <None Include="$(MSBuildThisFileDirectory)Content\Effects\VoxelEffect.fx" />
     <None Include="$(MSBuildThisFileDirectory)Content\Effects\BasicEffect.fx" />
