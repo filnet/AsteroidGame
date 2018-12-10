@@ -195,21 +195,37 @@ namespace GameLibrary.Voxel
             return textureArray;
         }
 
-        private static Texture2D createWireframeTexture(GraphicsDevice gd)
+        private static Texture2D createWireframeTexture(GraphicsDevice gd, float thickness)
         {
+            Color c = Color.Black;
             int width = 4096;
             Texture2D texture = new Texture2D(gd, width, 1, true, SurfaceFormat.Color);
-            for (var level = 0; level < texture.LevelCount; level++)
+            int levelCount = texture.LevelCount;
+            for (var level = 0; level < levelCount; level++)
             {
-                var data = new Color[width];
-                // fill with White
-                for (int i = 0; i < width; i++)
+                // we draw only half the line...
+                float t = thickness / 2f;
+                // desaturate
+                if (true)
+                // t -> t/3 in levelCount steps
                 {
-                    data[i] = Color.White;
+                    t = MathUtil.Lerp(t, t / 3.0f, (float)level / (float)(levelCount - 1));
                 }
-                data[width - 1] = Color.Black;
-                if (width > 2) data[width - 2] = Color.Gray;
-                //if (width > 3) data[width - 3] = Color.Gray;
+                else
+                {
+                    // experimental... not great...
+                    if (level > levelCount / 2)
+                    {
+                        t /= 3;
+                    }
+                }
+                var data = new Color[width];
+                for (int i = width - 1; i >= 0; i--)
+                {
+                    float alpha = t >= 1.0f ? 1.0f : t;
+                    t = Math.Max(t - 1.0f, 0);
+                    data[i] = new Color(c, alpha);
+                }
                 texture.SetData(level, 0, null, data, 0, data.Length);
                 width /= 2;
             }
