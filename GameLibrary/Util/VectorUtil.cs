@@ -192,18 +192,16 @@ namespace GameLibrary
             Vector3 s2 = boundingBox.HalfSize;
 
             // transform eye to BB coordinates
-            eye.X -= c.X;
-            eye.Y -= c.Y;
-            eye.Z -= c.Z;
+            Vector3 e = new Vector3(eye.X - c.X, eye.Y - c.Y, eye.Z - c.Z);
 
             // compute 6-bit code to classify eye with respect to the 6 defining planes
             int pos = 0;
-            pos += ((eye.X < -s2.X ? 1 : 0) << 0); //  1 = left
-            pos += ((eye.X > +s2.X ? 1 : 0) << 1); //  2 = right
-            pos += ((eye.Y < -s2.Y ? 1 : 0) << 2); //  4 = bottom
-            pos += ((eye.Y > +s2.Y ? 1 : 0) << 3); //  8 = top
-            pos += ((eye.Z < -s2.Z ? 1 : 0) << 5); // 32 = back !!!
-            pos += ((eye.Z > +s2.Z ? 1 : 0) << 4); // 16 = front !!!  
+            pos += ((e.X < -s2.X ? 1 : 0) << 0); //  1 = left
+            pos += ((e.X > +s2.X ? 1 : 0) << 1); //  2 = right
+            pos += ((e.Y < -s2.Y ? 1 : 0) << 2); //  4 = bottom
+            pos += ((e.Y > +s2.Y ? 1 : 0) << 3); //  8 = top
+            pos += ((e.Z < -s2.Z ? 1 : 0) << 5); // 32 = back !!!
+            pos += ((e.Z > +s2.Z ? 1 : 0) << 4); // 16 = front !!!
 
             // look up number of vertices
             pos *= 7;
@@ -232,19 +230,17 @@ namespace GameLibrary
             Vector3 s2 = boundingBox.HalfSize;
 
             // transform eye to BB coordinates
-            eye.X -= c.X;
-            eye.Y -= c.Y;
-            eye.Z -= c.Z;
+            Vector3 e = new Vector3(eye.X - c.X, eye.Y - c.Y, eye.Z - c.Z);
 
             // compute 6-bit code to classify eye with respect to the 6 defining planes
             int pos = 0;
-            pos += ((eye.X < -s2.X ? 1 : 0) << 0); //  1 = left
-            pos += ((eye.X > +s2.X ? 1 : 0) << 1); //  2 = right
-            pos += ((eye.Y < -s2.Y ? 1 : 0) << 2); //  4 = bottom
-            pos += ((eye.Y > +s2.Y ? 1 : 0) << 3); //  8 = top
-            pos += ((eye.Z < -s2.Z ? 1 : 0) << 5); // 32 = back !!!
-            pos += ((eye.Z > +s2.Z ? 1 : 0) << 4); // 16 = front !!!
-       
+            pos += ((e.X < -s2.X ? 1 : 0) << 0); //  1 = left
+            pos += ((e.X > +s2.X ? 1 : 0) << 1); //  2 = right
+            pos += ((e.Y < -s2.Y ? 1 : 0) << 2); //  4 = bottom
+            pos += ((e.Y > +s2.Y ? 1 : 0) << 3); //  8 = top
+            pos += ((e.Z < -s2.Z ? 1 : 0) << 5); // 32 = back !!!
+            pos += ((e.Z > +s2.Z ? 1 : 0) << 4); // 16 = front !!!
+
             // look up number of vertices
             pos *= 7;
             int num = HULL_LOOKUP_TABLE[pos];
