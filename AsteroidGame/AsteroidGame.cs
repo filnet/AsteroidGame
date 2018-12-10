@@ -101,10 +101,10 @@ namespace AsteroidGame
             Scene = new Scene();
             Scene.GraphicsDevice = GraphicsDevice;
 
-            DefaultCamera cam = CameraComponent as DefaultCamera;
+            DefaultCameraCamera cam = CameraComponent as DefaultCameraCamera;
             if (cam != null)
             {
-                cam.CurrentBehavior = Camera.Behavior.Orbit;
+                cam.CurrentBehavior = DefaultCamera.Behavior.Orbit;
                 cam.OrbitOffsetDistance = 9.0f;
                 cam.LookAt(new Vector3(0, 0, 0), Vector3.Forward, Vector3.Up);
             }
@@ -138,7 +138,7 @@ namespace AsteroidGame
                     //cam = CameraComponent as DefaultCamera;// new DefaultCamera(this);
                     if (cam != null)
                     {
-                        cam.CurrentBehavior = Camera.Behavior.FirstPerson;
+                        cam.CurrentBehavior = DefaultCamera.Behavior.FirstPerson;
                         Vector3 eye = new Vector3(0, 2, 0);
                         cam.LookAt(eye, eye + Vector3.Forward, Vector3.Up);
                         cam.Velocity = new Vector3(2.5f);
@@ -314,7 +314,7 @@ namespace AsteroidGame
 
         private Node createVoxelTestScene()
         {
-            Node voxelOctreeNode = createVoxelOctreeNode("OCTREE", 128, 32);
+            Node voxelOctreeNode = createVoxelOctreeNode("OCTREE", 64, 32);
 
             TransformNode node = new TransformNode("SCENE");
             node.Add(voxelOctreeNode);
@@ -365,7 +365,7 @@ namespace AsteroidGame
                         {
                             vertices[i] = VectorUtil.HULL_VERTICES[VectorUtil.HULL_LOOKUP_TABLE[++p]];
                         }
-                        Console.WriteLine(verticeCount + " " + vertices);
+                        //Console.WriteLine(verticeCount + " " + vertices);
 
                         GeometryNode geo = new MeshNode("X", new LineMeshFactory(vertices));
                         geo.RenderGroupId = Scene.VECTOR;

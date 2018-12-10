@@ -135,7 +135,7 @@ namespace GameLibrary
             controlComponent = new CustomControlComponent(this);
             //Components.Add(controlComponent);
 
-            cameraComponent = new DefaultCamera(this);
+            cameraComponent = new DefaultCameraCamera(this);
             cameraComponent.Initialize();
             //Components.Add(cameraComponent);
 
