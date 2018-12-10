@@ -58,6 +58,7 @@ namespace GameLibrary.SceneGraph
             if (!Enabled)
             {
                 renderer.Render(rc, drawableList);
+                return;
             }
             double currentTime = rc.GameTime.TotalGameTime.TotalMilliseconds;
             if (lastTime == -1 || currentTime - lastTime >= 100)
