@@ -73,6 +73,13 @@ Texture Atlas & Mip mapping
 
 https://0fps.net/2013/07/09/texture-atlases-wrapping-and-mip-mapping/
 
+WireFrame well done
+
+http://sibgrapi.sid.inpe.br/col/sid.inpe.br/sibgrapi/2010/09.15.18.18/doc/texture-based_wireframe_rendering.pdf
+https://technodocbox.com/3D_Graphics/67242061-White-paper-solid-wireframe-february-2007-wp-_v01.html
+
+http://developer.download.nvidia.com/SDK/10/direct3d/Source/SolidWireframe/Doc/SolidWireframe.pdf
+
 Particules
 
 http://create.msdn.com/en-US/education/catalog/sample/particle
@@ -146,3 +153,20 @@ Bit Manipulation
 
 https://graphics.stanford.edu/~seander/bithacks.html
 https://odetocode.com/blogs/scott/archive/2015/02/19/roslyn-code-gems-counting-bits.aspx
+
+Path finding
+
+https://www.redblobgames.com/pathfinding/a-star/introduction.html
+
+Shadow mapping
+
+very good : https://docs.microsoft.com/en-us/windows/desktop/dxtecharts/cascaded-shadow-maps
+https://docs.microsoft.com/en-us/windows/desktop/dxtecharts/common-techniques-to-improve-shadow-depth-maps
+
+http://www.opengl-tutorial.org/fr/intermediate-tutorials/tutorial-16-shadow-mapping/
+
+http://community.monogame.net/t/shadow-mapping-on-monogame/8212/2
+
+http://www.riemers.net/eng/Tutorials/XNA/Csharp/Series3/Shadow_map.php
+
+https://blogs.msdn.microsoft.com/shawnhar/2010/09/10/yellow-light-and-blue-shadows/
