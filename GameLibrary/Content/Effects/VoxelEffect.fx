@@ -11,6 +11,8 @@ DECLARE_TEXTURE_ARRAY(Texture, 0);
 
 DECLARE_TEXTURE(WireframeTexture, 1);
 
+DECLARE_TEXTURE(ShadowMapTexture, 2);
+
 BEGIN_CONSTANTS
 
     float4 DiffuseColor             _vs(c0)  _ps(c1)  _cb(c0);
@@ -38,12 +40,13 @@ BEGIN_CONSTANTS
     float4x4 World                  _vs(c19)          _cb(c15);
     float3x3 WorldInverseTranspose  _vs(c23)          _cb(c19);
 
+	float4x4 LightWorldViewProj     _vs(c25) _ps(c15) _cb(c20);
+
 MATRIX_CONSTANTS
 
     float4x4 WorldViewProj          _vs(c15)          _cb(c0);
 
 END_CONSTANTS
-
 
 #include "VoxelStructures.fxh"
 #include "Common.fxh"
@@ -79,8 +82,10 @@ float SampleAmbientOcclusionFactors(float4 factors, float2 texCoord)
 	vout.TextureIndex = vin.TextureIndex; \
 	vout.AmbientOcclusionFactors = ComputeAmbientOcclusionFactors(vin.TextureIndex[1]); \
 	vout.WF1TexCoord = vin.TexCoord.x ? 1 : -1; \
-	vout.WF2TexCoord = vin.TexCoord.y ? 1 : -1;
+	vout.WF2TexCoord = vin.TexCoord.y ? 1 : -1; \
+	vout.ShadowPosition = mul(vin.Position, LightWorldViewProj);
 
+	//float4x4 biasedLightWorldViewProj = LightWorldViewProj; \
 
 // Vertex shader: basic.
 VSOutput VSBasic(VSInput vin)
@@ -467,12 +472,23 @@ float4 PSBasicVertexLightingTxNoFog(VSOutputTx pin) : SV_Target0
 	color *= SampleAmbientOcclusionFactors(pin.AmbientOcclusionFactors, pin.TexCoord);
 
 	// quad wireframe
-	float4 c1 = SAMPLE_TEXTURE(WireframeTexture, pin.WF1TexCoord);
-	//color = blendWF(c1, color);
-	float4 c2 = SAMPLE_TEXTURE(WireframeTexture, pin.WF2TexCoord);
-	//color = blendWF(c2, color);
+	float4 wfColor1 = SAMPLE_TEXTURE(WireframeTexture, pin.WF1TexCoord);
+	//color = blendWF(wfColor1, color);
+	float4 wfColor2 = SAMPLE_TEXTURE(WireframeTexture, pin.WF2TexCoord);
+	//color = blendWF(wfColor2, color);
 
-    AddSpecular(color, pin.Specular.rgb);
+	float visibility = 1.0;
+
+	float2 ShadowTexCoord = mad(0.5f , pin.ShadowPosition.xy / pin.ShadowPosition.w , float2(0.5f, 0.5f));
+    ShadowTexCoord.y = 1.0f - ShadowTexCoord.y;
+	
+	float d = SAMPLE_TEXTURE(ShadowMapTexture, ShadowTexCoord).w;
+	if (d  <  pin.ShadowPosition.z) {
+		visibility = 0.5;
+	}
+	color = color * visibility;
+
+    //AddSpecular(color, pin.Specular.rgb);
     
     return color;
 }

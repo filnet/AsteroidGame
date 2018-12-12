@@ -8,6 +8,7 @@ using GameLibrary.SceneGraph.Common;
 using GameLibrary.SceneGraph.Bounding;
 using GameLibrary.Geometry.Common;
 using GameLibrary.Geometry;
+using Voxel;
 
 namespace GameLibrary.SceneGraph
 {
@@ -15,7 +16,7 @@ namespace GameLibrary.SceneGraph
     public abstract class Renderer
     {
         public BlendState BlendState;
-        protected DepthStencilState DepthStencilState;
+        public DepthStencilState DepthStencilState;
         public RasterizerState RasterizerState;
         public SamplerState SamplerState;
 
@@ -74,13 +75,13 @@ namespace GameLibrary.SceneGraph
         }
     }
 
-    public class EffectRenderer : Renderer
+    public class EffectRenderer<E> : Renderer where E : Effect
     {
-        protected readonly Effect effect;
+        public readonly E effect;
 
         protected readonly IEffectMatrices effectMatrices;
 
-        public EffectRenderer(Effect effect)
+        public EffectRenderer(E effect)
         {
             this.effect = effect;
             effectMatrices = effect as IEffectMatrices;
@@ -112,7 +113,7 @@ namespace GameLibrary.SceneGraph
                     {
                         effectMatrices.World = transform.WorldTransform;
                         pass.Apply();
-                    }
+                    }                   
                     drawable.PreDraw(rc.GraphicsDevice);
                     drawable.Draw(rc.GraphicsDevice);
                     drawable.PostDraw(rc.GraphicsDevice);
@@ -125,7 +126,14 @@ namespace GameLibrary.SceneGraph
 
     }
 
-    public class WireFrameRenderer : EffectRenderer
+    public class BasicRenderer : EffectRenderer<Effect>
+    {
+        public BasicRenderer(Effect effect) : base(effect)
+        {
+        }
+    }
+
+    public class WireFrameRenderer : BasicRenderer
     {
         public WireFrameRenderer(Effect effect) : base(effect)
         {
@@ -133,7 +141,7 @@ namespace GameLibrary.SceneGraph
         }
     }
 
-    public class FrustrumRenderer : EffectRenderer
+    public class FrustrumRenderer : BasicRenderer
     {
         public FrustrumRenderer(Effect effect) : base(effect)
         {
@@ -143,7 +151,7 @@ namespace GameLibrary.SceneGraph
         }
     }
 
-    public class BoundRenderer : EffectRenderer
+    public class BoundRenderer : BasicRenderer
     {
         private readonly GeometryNode boundingGeometry;
 
@@ -152,7 +160,7 @@ namespace GameLibrary.SceneGraph
             this.boundingGeometry = boundingGeometry;
 
             DepthStencilState = new DepthStencilState();
-            DepthStencilState.DepthBufferEnable = false;
+            //DepthStencilState.DepthBufferEnable = false;
             BlendState = BlendState.AlphaBlend;
         }
 
@@ -190,13 +198,14 @@ namespace GameLibrary.SceneGraph
         }
     }
 
-    public class HortographicRenderer : EffectRenderer
+    public class HortographicRenderer : BasicRenderer
     {
         //private Matrix projectionMatrix;
         //private Matrix viewMatrix;
 
         public HortographicRenderer(Effect effect) : base(effect)
         {
+            RasterizerState = RasterizerState.CullNone;
             //BlendState = BlendState.AlphaBlend;        
         }
 
@@ -235,6 +244,15 @@ namespace GameLibrary.SceneGraph
                         effectMatrices.World = transform.WorldTransform;
                         pass.Apply();
                     }
+                    // HACK
+                    // HACK
+                    // HACK
+                    if (drawable is BillboardNode billboard)
+                    {
+                        // HACK
+                        ((BasicEffect)effect).Texture = billboard.Texture;
+                        //pass.Apply();
+                    }
                     drawable.PreDraw(rc.GraphicsDevice);
                     drawable.Draw(rc.GraphicsDevice);
                     drawable.PostDraw(rc.GraphicsDevice);
@@ -246,26 +264,15 @@ namespace GameLibrary.SceneGraph
         }
     }
 
-    public class VoxelRenderer : Renderer
+    public class BillboardRenderer : BasicRenderer
     {
-        protected readonly Effect effect;
+        //private Matrix projectionMatrix;
+        //private Matrix viewMatrix;
 
-        protected readonly IEffectMatrices effectMatrices;
-
-        private SamplerState wireframeSamplerState = new SamplerState();
-
-
-        public VoxelRenderer(Effect effect)
+        public BillboardRenderer(Effect effect) : base(effect)
         {
-            this.effect = effect;
-            effectMatrices = effect as IEffectMatrices;
-
-            //RasterizerState = RasterizerState.CullNone;
-            //RasterizerState = Renderer.WireFrameRasterizer;
-
-            //wireframeSamplerState.Filter = TextureFilter.MinLinearMagPointMipLinear;
-            //wireframeSamplerState.Filter = TextureFilter.LinearMipPoint;
-            wireframeSamplerState.AddressU = TextureAddressMode.Mirror;
+            RasterizerState = RasterizerState.CullNone;
+            //BlendState = BlendState.AlphaBlend;        
         }
 
         public override void Render(RenderContext rc, List<Drawable> drawableList)
@@ -274,8 +281,138 @@ namespace GameLibrary.SceneGraph
             rc.GraphicsDevice.DepthStencilState = DepthStencilState;
             rc.GraphicsDevice.RasterizerState = RasterizerState;
             rc.GraphicsDevice.SamplerStates[0] = SamplerState;
+
+            int width = rc.GraphicsDevice.Viewport.Width;
+            int height = rc.GraphicsDevice.Viewport.Height;
+            if (effectMatrices != null)
+            {
+                Vector2 eye;
+                eye.X = 0;// width / 2;
+                eye.Y = 0;// height / 2;
+
+                Matrix view = Matrix.CreateLookAt(new Vector3(eye.X, eye.Y, 0), new Vector3(eye.X, eye.Y, -1), new Vector3(0, 1, 0));
+                //Matrix projection = Matrix.CreateOrthographic(width, height, -0.5f, 1);
+                //Matrix projection = Matrix.CreateOrthographicOffCenter(-10, width, -10, height, -0.5f, 1);
+                Matrix projection = Matrix.CreateOrthographicOffCenter(0, width, 0, height, -0.5f, 1);
+
+                // FIXME...
+                effectMatrices.Projection = projection;
+                effectMatrices.View = view;
+            }
+
+            foreach (EffectPass pass in effect.CurrentTechnique.Passes)
+            {
+                pass.Apply();
+                foreach (Drawable drawable in drawableList)
+                {
+                    if (!drawable.Enabled || !drawable.Visible)
+                    {
+                        break;
+                    }
+                    // HACK
+                    // HACK
+                    // HACK
+                    if (drawable is BillboardNode billboard)
+                    {
+                        // HACK
+                        ((BasicEffect)effect).Texture = billboard.Texture;
+                        //pass.Apply();
+                        /*
+                        if ((effectMatrices != null) && (drawable is Transform transform))
+                        {
+                            effectMatrices.World = transform.WorldTransform;
+                            //effectMatrices.World = Matrix.CreateTranslation(new Vector3(0, height - billboard.Texture.Height, 0));
+                            pass.Apply();
+                        }
+                        */
+                    }
+                    drawable.PreDraw(rc.GraphicsDevice);
+                    drawable.Draw(rc.GraphicsDevice);
+                    drawable.PostDraw(rc.GraphicsDevice);
+
+                    rc.DrawCount++;
+                    rc.VertexCount += drawable.VertexCount;
+                }
+            }
+        }
+    }
+
+    public class VoxelRenderer : EffectRenderer<VoxelEffect>
+    {
+        private readonly SamplerState wireframeSamplerState = new SamplerState();
+
+        private readonly SamplerState shadowSamplerState = new SamplerState();
+
+        public VoxelRenderer(VoxelEffect effect) : base(effect)
+        {
+            //RasterizerState = RasterizerState.CullNone;
+            //RasterizerState = WireFrameRasterizer;
+
+            // wireframe texture sampler
+            //wireframeSamplerState.Filter = TextureFilter.MinLinearMagPointMipLinear;
+            //wireframeSamplerState.Filter = TextureFilter.LinearMipPoint;
+            wireframeSamplerState.AddressU = TextureAddressMode.Mirror;
+
+            // shadow texture sampler
+            shadowSamplerState.Filter = TextureFilter.Linear;
+            shadowSamplerState.AddressU = TextureAddressMode.Clamp;
+            shadowSamplerState.AddressV = TextureAddressMode.Clamp;
+        }
+
+        public override void Render(RenderContext rc, List<Drawable> drawableList)
+        {
+            rc.GraphicsDevice.BlendState = BlendState;
+            rc.GraphicsDevice.DepthStencilState = DepthStencilState;
+            rc.GraphicsDevice.RasterizerState = RasterizerState;
+
+            // main texture
+            rc.GraphicsDevice.SamplerStates[0] = SamplerState;
+
+            // wireframe textures
             rc.GraphicsDevice.SamplerStates[1] = wireframeSamplerState;
             rc.GraphicsDevice.SamplerStates[2] = wireframeSamplerState;
+
+            // shadow map textures
+            rc.GraphicsDevice.SamplerStates[3] = shadowSamplerState;
+
+            if (effectMatrices != null)
+            {
+                effectMatrices.Projection = rc.Camera.ProjectionMatrix;
+                effectMatrices.View = rc.Camera.ViewMatrix;
+                effectMatrices.World = Matrix.Identity;
+            }
+
+            foreach (EffectPass pass in effect.CurrentTechnique.Passes)
+            {
+                pass.Apply();
+                foreach (Drawable drawable in drawableList)
+                {
+                    if (!drawable.Enabled || !drawable.Visible)
+                    {
+                        break;
+                    }
+                    drawable.PreDraw(rc.GraphicsDevice);
+                    drawable.Draw(rc.GraphicsDevice);
+                    drawable.PostDraw(rc.GraphicsDevice);
+
+                    rc.DrawCount++;
+                    rc.VertexCount += drawable.VertexCount;
+                }
+            }
+        }
+
+    }
+    public class VoxelShadowRenderer : EffectRenderer<VoxelShadowEffect>
+    {
+        public VoxelShadowRenderer(VoxelShadowEffect effect) : base(effect)
+        {
+        }
+
+        public override void Render(RenderContext rc, List<Drawable> drawableList)
+        {
+            rc.GraphicsDevice.BlendState = BlendState;
+            rc.GraphicsDevice.DepthStencilState = DepthStencilState;
+            rc.GraphicsDevice.RasterizerState = RasterizerState;
 
             if (effectMatrices != null)
             {

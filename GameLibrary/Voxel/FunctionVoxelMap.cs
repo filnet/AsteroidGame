@@ -179,7 +179,7 @@ namespace GameLibrary.Voxel
 
                     if ((lx == 2 || lx == 3) && (lz == 2 || lz == 3))
                     { 
-                        return (ushort)VoxelType.Rock;
+                        return ((y % 3) == 2) ? (ushort)VoxelType.Rock : (ushort)VoxelType.Rock;
                     }
                 }
                 return 0;

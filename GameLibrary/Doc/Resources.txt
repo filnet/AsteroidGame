@@ -160,6 +160,8 @@ https://www.redblobgames.com/pathfinding/a-star/introduction.html
 
 Shadow mapping
 
+http://www.opengl-tutorial.org/intermediate-tutorials/tutorial-16-shadow-mapping/
+
 very good : https://docs.microsoft.com/en-us/windows/desktop/dxtecharts/cascaded-shadow-maps
 https://docs.microsoft.com/en-us/windows/desktop/dxtecharts/common-techniques-to-improve-shadow-depth-maps
 

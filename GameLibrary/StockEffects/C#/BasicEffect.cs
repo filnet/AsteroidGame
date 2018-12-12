@@ -67,7 +67,7 @@ namespace StockEffects
         EffectDirtyFlags dirtyFlags = EffectDirtyFlags.All;
 
         #endregion
-        
+
         #region Public Properties
 
 
@@ -77,7 +77,7 @@ namespace StockEffects
         public Matrix World
         {
             get { return world; }
-            
+
             set
             {
                 world = value;
@@ -92,7 +92,7 @@ namespace StockEffects
         public Matrix View
         {
             get { return view; }
-            
+
             set
             {
                 view = value;
@@ -107,7 +107,7 @@ namespace StockEffects
         public Matrix Projection
         {
             get { return projection; }
-            
+
             set
             {
                 projection = value;
@@ -122,7 +122,7 @@ namespace StockEffects
         public Vector3 DiffuseColor
         {
             get { return diffuseColor; }
-            
+
             set
             {
                 diffuseColor = value;
@@ -137,7 +137,7 @@ namespace StockEffects
         public Vector3 EmissiveColor
         {
             get { return emissiveColor; }
-            
+
             set
             {
                 emissiveColor = value;
@@ -172,7 +172,7 @@ namespace StockEffects
         public float Alpha
         {
             get { return alpha; }
-            
+
             set
             {
                 alpha = value;
@@ -184,7 +184,7 @@ namespace StockEffects
         public bool LightingEnabled
         {
             get { return lightingEnabled; }
-            
+
             set
             {
                 if (lightingEnabled != value)
@@ -202,7 +202,7 @@ namespace StockEffects
         public bool PreferPerPixelLighting
         {
             get { return preferPerPixelLighting; }
-            
+
             set
             {
                 if (preferPerPixelLighting != value)
@@ -218,7 +218,7 @@ namespace StockEffects
         public Vector3 AmbientLightColor
         {
             get { return ambientLightColor; }
-            
+
             set
             {
                 ambientLightColor = value;
@@ -243,7 +243,7 @@ namespace StockEffects
         public bool FogEnabled
         {
             get { return fogEnabled; }
-            
+
             set
             {
                 if (fogEnabled != value)
@@ -259,7 +259,7 @@ namespace StockEffects
         public float FogStart
         {
             get { return fogStart; }
-            
+
             set
             {
                 fogStart = value;
@@ -272,7 +272,7 @@ namespace StockEffects
         public float FogEnd
         {
             get { return fogEnd; }
-            
+
             set
             {
                 fogEnd = value;
@@ -295,7 +295,7 @@ namespace StockEffects
         public bool TextureEnabled
         {
             get { return textureEnabled; }
-            
+
             set
             {
                 if (textureEnabled != value)
@@ -323,7 +323,7 @@ namespace StockEffects
         public bool VertexColorEnabled
         {
             get { return vertexColorEnabled; }
-            
+
             set
             {
                 if (vertexColorEnabled != value)
@@ -362,7 +362,7 @@ namespace StockEffects
 
             lightingEnabled = cloneSource.lightingEnabled;
             preferPerPixelLighting = cloneSource.preferPerPixelLighting;
-            fogEnabled = cloneSource.fogEnabled;            
+            fogEnabled = cloneSource.fogEnabled;
             textureEnabled = cloneSource.textureEnabled;
             vertexColorEnabled = cloneSource.vertexColorEnabled;
 
@@ -404,17 +404,17 @@ namespace StockEffects
         /// </summary>
         void CacheEffectParameters(BasicEffect cloneSource)
         {
-            textureParam                = Parameters["Texture"];
-            diffuseColorParam           = Parameters["DiffuseColor"];
-            emissiveColorParam          = Parameters["EmissiveColor"];
-            specularColorParam          = Parameters["SpecularColor"];
-            specularPowerParam          = Parameters["SpecularPower"];
-            eyePositionParam            = Parameters["EyePosition"];
-            fogColorParam               = Parameters["FogColor"];
-            fogVectorParam              = Parameters["FogVector"];
-            worldParam                  = Parameters["World"];
-            worldInverseTransposeParam  = Parameters["WorldInverseTranspose"];
-            worldViewProjParam          = Parameters["WorldViewProj"];
+            textureParam = Parameters["Texture"];
+            diffuseColorParam = Parameters["DiffuseColor"];
+            emissiveColorParam = Parameters["EmissiveColor"];
+            specularColorParam = Parameters["SpecularColor"];
+            specularPowerParam = Parameters["SpecularPower"];
+            eyePositionParam = Parameters["EyePosition"];
+            fogColorParam = Parameters["FogColor"];
+            fogVectorParam = Parameters["FogVector"];
+            worldParam = Parameters["World"];
+            worldInverseTransposeParam = Parameters["WorldInverseTranspose"];
+            worldViewProjParam = Parameters["WorldViewProj"];
 
             light0 = new DirectionalLight(Parameters["DirLight0Direction"],
                                           Parameters["DirLight0DiffuseColor"],
@@ -439,8 +439,9 @@ namespace StockEffects
         protected override void OnApply()
         {
             // Recompute the world+view+projection matrix or fog vector?
-            dirtyFlags = EffectHelpers.SetWorldViewProjAndFog(dirtyFlags, ref world, ref view, ref projection, ref worldView, fogEnabled, fogStart, fogEnd, worldViewProjParam, fogVectorParam);
-            
+            dirtyFlags = EffectHelpers.SetWorldViewProj(dirtyFlags, ref world, ref view, ref projection, ref worldView, worldViewProjParam);
+            dirtyFlags |= EffectHelpers.SetFog(dirtyFlags, ref worldView, fogEnabled, fogStart, fogEnd, fogVectorParam);
+
             // Recompute the diffuse/emissive/alpha material color parameters?
             if ((dirtyFlags & EffectDirtyFlags.MaterialColor) != 0)
             {
@@ -454,10 +455,10 @@ namespace StockEffects
                 // Recompute the world inverse transpose and eye position?
                 dirtyFlags = EffectHelpers.SetLightingMatrices(dirtyFlags, ref world, ref view, worldParam, worldInverseTransposeParam, eyePositionParam);
 
-                
+
                 // Check if we can use the only-bother-with-the-first-light shader optimization.
                 bool newOneLight = !light1.Enabled && !light2.Enabled;
-                
+
                 if (oneLight != newOneLight)
                 {
                     oneLight = newOneLight;
@@ -469,13 +470,13 @@ namespace StockEffects
             if ((dirtyFlags & EffectDirtyFlags.ShaderIndex) != 0)
             {
                 int shaderIndex = 0;
-                
+
                 if (!fogEnabled)
                     shaderIndex += 1;
-                
+
                 if (vertexColorEnabled)
                     shaderIndex += 2;
-                
+
                 if (textureEnabled)
                     shaderIndex += 4;
 

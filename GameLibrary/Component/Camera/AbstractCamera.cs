@@ -19,6 +19,8 @@ namespace GameLibrary.Component.Camera
 
         public virtual Matrix ViewProjectionMatrix => throw new NotImplementedException();
 
+        public virtual Matrix InverseViewProjectionMatrix => throw new NotImplementedException();
+
         public Vector3 XAxis => throw new NotImplementedException();
 
         public Vector3 YAxis => throw new NotImplementedException();

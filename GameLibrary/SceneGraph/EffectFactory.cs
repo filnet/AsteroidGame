@@ -70,6 +70,24 @@ namespace GameLibrary.SceneGraph
             return CreateClippingEffect(gd, c);
         }
 
+        public static Effect CreateBillboardEffect(GraphicsDevice gd)
+        {
+            BasicEffect effect = new BasicEffect(gd);
+
+            // primitive color
+            //effect.VertexColorEnabled = true;
+            effect.AmbientLightColor = new Vector3(1f, 1f, 1f);
+            effect.DiffuseColor = new Vector3(1.0f, 1.0f, 1.0f);
+            //effect.SpecularColor = new Vector3(0.25f, 0.25f, 0.25f);
+            //effect.SpecularPower = 5.0f;
+            //effect.Alpha = 1.0f;
+
+            effect.TextureEnabled = true;
+            //effect.Texture = createTileTextureArray(gd, getTiles());
+
+            return effect;
+        }
+
         // 3 lights (x red, y green, z blue)
         public static Effect CreateBasicEffect1(GraphicsDevice gd)
         {

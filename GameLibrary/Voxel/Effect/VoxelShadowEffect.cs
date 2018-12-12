@@ -131,8 +131,7 @@ namespace Voxel
         protected override void OnApply()
         {
             // Recompute the world+view+projection matrix or fog vector?
-            dirtyFlags -= EffectDirtyFlags.World;
-            dirtyFlags = EffectHelpers.SetWorldViewProj(dirtyFlags, ref world, ref view, ref projection, ref worldView, worldViewProjParam, null);
+            dirtyFlags = EffectHelpers.SetWorldViewProj(dirtyFlags, ref world, ref view, ref projection, ref worldView, worldViewProjParam);
 
             //CurrentTechnique = Techniques[shaderIndex];
         }

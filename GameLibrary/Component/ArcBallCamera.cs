@@ -2,7 +2,7 @@
 using Microsoft.Xna.Framework;
 using Microsoft.Xna.Framework.Input;
 
-namespace GameLibrary.Component.Camera
+namespace GameLibrary.Component
 {
     public class ArcBallCamera : InputController, ICameraComponent
     {

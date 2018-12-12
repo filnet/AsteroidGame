@@ -104,7 +104,7 @@ namespace GameLibrary.Geometry.Common
             }
             if (vIndex == vertices.Count())
             {
-                //Console.WriteLine("Resizing vertex array... {0}", vertices.Count());
+                Console.WriteLine("Resizing vertex array... {0}", vertices.Count());
                 Array.Resize(ref vertices, 2 * vertices.Count());
             }
         }
@@ -122,7 +122,7 @@ namespace GameLibrary.Geometry.Common
             }
             if (iIndex == indices.Count())
             {
-                //Console.WriteLine("Resizing index array... {0}", vertices.Count());
+                Console.WriteLine("Resizing index array... {0}", vertices.Count());
                 Array.Resize(ref indices, 2 * indices.Count());
             }
         }
@@ -180,6 +180,32 @@ namespace GameLibrary.Geometry.Common
             {
                 return new VertexPositionNormalTextureArray(position, normal, new Vector3(textureCoordinate, textureIndex));
             }
+        }
+
+        // VertexPositionColorNormalTexture
+
+        public static VertexBufferBuilder<VertexPositionColorNormalTexture> createVertexPositionColorNormalTextureBufferBuilder(GraphicsDevice gd, int vertexCount, int indexCount)
+        {
+            return new VertexPositionColorNormalTextureBufferBuilder(gd, vertexCount, indexCount);
+        }
+
+        private class VertexPositionColorNormalTextureBufferBuilder : VertexBufferBuilder<VertexPositionColorNormalTexture>
+        {
+            public VertexPositionColorNormalTextureBufferBuilder(GraphicsDevice gd, int vertexCount, int indexCount)
+                : base(gd, vertexCount, indexCount)
+            {
+            }
+
+            protected override VertexDeclaration getVertexDeclaration()
+            {
+                return VertexPositionColorNormalTexture.VertexDeclaration;
+            }
+
+            protected override VertexPositionColorNormalTexture createVertex(Vector3 position, Vector3 normal, Color color, Vector2 textureCoordinate, int textureIndex, int lightTextureIndex)
+            {
+                return new VertexPositionColorNormalTexture(position, color, normal, textureCoordinate);
+            }
+
         }
 
         // VertexPositionColorNormalTextureArray

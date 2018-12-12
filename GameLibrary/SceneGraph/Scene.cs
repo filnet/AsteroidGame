@@ -12,82 +12,10 @@ using GameLibrary.Voxel;
 using System.ComponentModel;
 using GameLibrary.Component;
 using GameLibrary.Component.Camera;
+using Voxel;
 
 namespace GameLibrary.SceneGraph
 {
-
-    public class DirectionalLightCamera : AbstractCamera
-    {
-        public override Vector3 Position { get { return lightPosition; } set => throw new NotImplementedException(); }
-
-        public override Vector3 ViewDirection { get { return lightDirection; } }
-
-        public override Matrix ProjectionMatrix { get { return projectionMatrix; } }
-
-        public override Matrix ViewMatrix { get { return viewMatrix; } }
-
-        public override Matrix ViewProjectionMatrix { get { return viewProjectionMatrix; } }
-
-        public override BoundingFrustum BoundingFrustum { get { return boundingFrustum; } }
-
-        private Vector3 lightPosition;
-        private Vector3 lightDirection;
-
-        private Matrix viewMatrix;
-        private Matrix projectionMatrix;
-        private Matrix viewProjectionMatrix;
-
-        private BoundingFrustum boundingFrustum;
-
-        public DirectionalLightCamera() : base()
-        {
-        }
-
-        public void Update(Bounding.BoundingBox sceneBoundingBox)
-        {
-            // Think of light's orthographic frustum as a bounding box that encloses all objects visible by the camera,
-            // plus objects not visible but potentially casting shadows. For the simplicity let's disregard the latter.
-            // So to find this frustum:
-            // - find all objects that are inside the current camera frustum
-            // - find minimal aa bounding box that encloses them all
-            // - transform corners of that bounding box to the light's space (using light's view matrix)
-            // - find aa bounding box in light's space of the transformed (now obb) bounding box
-            // - this aa bounding box is your directional light's orthographic frustum.
-            //
-            // Note that actual translation component in light view matrix doesn't really matter as you'll
-            // only get different Z values for the frustum but the boundaries will be the same in world space.
-            // For the convenience, when building light view matrix, you can assume the light "position" is at
-            // the center of the bounding box enclosing all visible objects.
-
-            Vector3 lightPosition = sceneBoundingBox.Center;
-            Vector3 lightDirection = Vector3.Normalize(new Vector3(-1, -1, -1));
-
-            viewMatrix = Matrix.CreateLookAt(lightPosition, lightPosition + lightDirection, Vector3.Up);
-
-            // transform bounding box
-            ref Matrix m = ref viewMatrix;
-
-            //Vector3 newCenter;
-            //Vector3 v = sceneBoundingBox.Center;
-            //newCenter.X = (v.X * m.M11) + (v.Y * m.M21) + (v.Z * m.M31) + m.M41;
-            //newCenter.Y = (v.X * m.M12) + (v.Y * m.M22) + (v.Z * m.M32) + m.M42;
-            //newCenter.Z = (v.X * m.M13) + (v.Y * m.M23) + (v.Z * m.M33) + m.M43;
-
-            Vector3 newHalfSize;
-            Vector3 v = sceneBoundingBox.HalfSize;
-            newHalfSize.X = (v.X * Math.Abs(m.M11)) + (v.Y * Math.Abs(m.M21)) + (v.Z * Math.Abs(m.M31));
-            newHalfSize.Y = (v.X * Math.Abs(m.M12)) + (v.Y * Math.Abs(m.M22)) + (v.Z * Math.Abs(m.M32));
-            newHalfSize.Z = (v.X * Math.Abs(m.M13)) + (v.Y * Math.Abs(m.M23)) + (v.Z * Math.Abs(m.M33));
-
-            //Bounding.BoundingBox bb = new Bounding.BoundingBox(newCenter, newHalfSize);
-
-            projectionMatrix = Matrix.CreateOrthographic(newHalfSize.X * 2, newHalfSize.Y * 2, -newHalfSize.Z, newHalfSize.Z);
-
-            viewProjectionMatrix = viewMatrix * projectionMatrix;
-        }
-
-    }
-
     public class Scene
     {
         public static int THREE_LIGHTS = 0;
@@ -117,7 +45,8 @@ namespace GameLibrary.SceneGraph
         public static int COLLISION_SPHERE = 40;
         public static int COLLISION_BOX = 41;
 
-        public static int HORTO = 45;
+        public static int HUD = 45;
+        public static int HORTO = 46;
 
         private CameraComponent cameraComponent;
 
@@ -137,6 +66,7 @@ namespace GameLibrary.SceneGraph
         private MeshNode sceneBoundingBoxGeo;
         private MeshNode lightFrustrumGeo;
 
+        private BillboardNode billboardNode;
 
         private Matrix previousProjectionMatrix = Matrix.Identity;
         private Matrix previousViewMatrix = Matrix.Identity;
@@ -165,7 +95,7 @@ namespace GameLibrary.SceneGraph
 
         public RenderContext renderContext;
 
-        public DirectionalLightCamera lightCamera;
+        public LightCamera lightCamera;
 
         public RenderContext shadowRenderContext;
 
@@ -201,28 +131,38 @@ namespace GameLibrary.SceneGraph
             sceneBoundingBoxGeo = GeometryUtil.CreateCubeWF("SCENE_BOUNDING_BOX", 1);
             sceneBoundingBoxGeo.Initialize(GraphicsDevice);
 
-            renderers[THREE_LIGHTS] = new EffectRenderer(EffectFactory.CreateBasicEffect1(GraphicsDevice)); // 3 lights
-            renderers[ONE_LIGHT] = new EffectRenderer(EffectFactory.CreateBasicEffect2(GraphicsDevice)); // 1 light
-            renderers[NO_LIGHT] = new EffectRenderer(EffectFactory.CreateBasicEffect3(GraphicsDevice)); // no light
+            billboardNode = new BillboardNode("SHADOW_MAP");
+            billboardNode.Initialize(GraphicsDevice);
+            //billboardNode.Translation = new Vector3(10, 40, 0);
+            //billboardNode.UpdateTransform();
+            //billboardNode.UpdateWorldTransform();
+
+            renderers[THREE_LIGHTS] = new BasicRenderer(EffectFactory.CreateBasicEffect1(GraphicsDevice)); // 3 lights
+            renderers[ONE_LIGHT] = new BasicRenderer(EffectFactory.CreateBasicEffect2(GraphicsDevice)); // 1 light
+            renderers[NO_LIGHT] = new BasicRenderer(EffectFactory.CreateBasicEffect3(GraphicsDevice)); // no light
 
             renderers[WIRE_FRAME] = new WireFrameRenderer(EffectFactory.CreateBasicEffect3(GraphicsDevice)); // no light + wire frame
-            renderers[VECTOR] = new EffectRenderer(EffectFactory.CreateBasicEffect3(GraphicsDevice)); // no light
-            renderers[CLIPPING] = new EffectRenderer(EffectFactory.CreateClippingEffect(GraphicsDevice));
+            renderers[VECTOR] = new BasicRenderer(EffectFactory.CreateBasicEffect3(GraphicsDevice)); // no light
+            renderers[CLIPPING] = new BasicRenderer(EffectFactory.CreateClippingEffect(GraphicsDevice));
 
-            renderers[PLAYER] = new EffectRenderer(EffectFactory.CreateClippingEffect(GraphicsDevice));
-            renderers[BULLET] = new EffectRenderer(EffectFactory.CreateBulletEffect(GraphicsDevice));
-            renderers[ASTEROID] = new EffectRenderer(EffectFactory.CreateClippingEffect(GraphicsDevice));
+            renderers[PLAYER] = new BasicRenderer(EffectFactory.CreateClippingEffect(GraphicsDevice));
+            renderers[BULLET] = new BasicRenderer(EffectFactory.CreateBulletEffect(GraphicsDevice));
+            renderers[ASTEROID] = new BasicRenderer(EffectFactory.CreateClippingEffect(GraphicsDevice));
 
             //renderers[VOXEL_MAP] = new VoxelMapRenderer(EffectFactory.CreateBasicEffect1(GraphicsDevice));
             //renderers[VOXEL_MAP] = new VoxelMapInstancedRenderer(EffectFactory.CreateInstancedEffect(GraphicsDevice));
 
             renderers[VOXEL] = new VoxelRenderer(VoxelUtil.CreateVoxelEffect(GraphicsDevice));
             renderers[VOXEL_WATER] = new VoxelRenderer(VoxelUtil.CreateVoxelWaterEffect(GraphicsDevice));
+            DepthStencilState depthState = new DepthStencilState();
+            depthState.DepthBufferEnable = true;
+            depthState.DepthBufferWriteEnable = false;
+            renderers[VOXEL_WATER].DepthStencilState = depthState;
             renderers[VOXEL_WATER].RasterizerState = RasterizerState.CullNone;
             renderers[VOXEL_WATER].BlendState = BlendState.AlphaBlend;
 
-            renderers2[VOXEL] = new VoxelRenderer(VoxelUtil.CreateVoxelShadowEffect(GraphicsDevice));
-            renderers2[VOXEL_WATER] = new VoxelRenderer(VoxelUtil.CreateVoxelShadowEffect(GraphicsDevice));
+            renderers2[VOXEL] = new VoxelShadowRenderer(VoxelUtil.CreateVoxelShadowEffect(GraphicsDevice));
+            //renderers2[VOXEL_WATER] = new VoxelRenderer(VoxelUtil.CreateVoxelShadowEffect(GraphicsDevice));
 
             //renderers[OCTREE] = new OctreeRenderer(EffectFactory.CreateBasicEffect3(GraphicsDevice)); // no light
             //renderers[OCTREE] = new OctreeRenderer(EffectFactory.CreateBasicEffect1(GraphicsDevice)); // 3 lights
@@ -237,6 +177,8 @@ namespace GameLibrary.SceneGraph
             renderers[COLLISION_SPHERE] = new BoundRenderer(EffectFactory.CreateCollisionEffect(GraphicsDevice, clip), boundingSphereGeo);
             renderers[COLLISION_BOX] = new BoundRenderer(EffectFactory.CreateCollisionEffect(GraphicsDevice, clip), boundingBoxGeo);
 
+            //renderers[HUD] = new HortographicRenderer(EffectFactory.CreateBillboardEffect(GraphicsDevice));
+            renderers[HUD] = new BillboardRenderer(EffectFactory.CreateBillboardEffect(GraphicsDevice));
             renderers[HORTO] = new HortographicRenderer(EffectFactory.CreateBasicEffect3(GraphicsDevice));
 
             rootNode.Initialize(GraphicsDevice);
@@ -251,8 +193,8 @@ namespace GameLibrary.SceneGraph
                 false,
                 GraphicsDevice.PresentationParameters.BackBufferFormat,
                 DepthFormat.Depth16);
-            lightCamera = new DirectionalLightCamera();
-            shadowRenderContext = new RenderContext(GraphicsDevice, lightCamera, null/*renderTarget*/);
+            lightCamera = new LightCamera();
+            shadowRenderContext = new RenderContext(GraphicsDevice, lightCamera, renderTarget);
         }
 
         public void Dispose()
@@ -369,7 +311,7 @@ namespace GameLibrary.SceneGraph
                 renderContext.sceneMin = new Vector3(float.MaxValue);
 
                 rootNode.Visit(RENDER_VISITOR, renderContext);
-                
+
                 Bounding.BoundingBox sceneBoundingBox = new Bounding.BoundingBox(
                     (renderContext.sceneMax + renderContext.sceneMin) / 2.0f,
                     (renderContext.sceneMax - renderContext.sceneMin) / 2.0f);
@@ -405,6 +347,7 @@ namespace GameLibrary.SceneGraph
                         (renderContext.sceneMax + renderContext.sceneMin) / 2.0f,
                         (renderContext.sceneMax - renderContext.sceneMin) / 2.0f);*/
 
+                    /*
                     Matrix lightView;
                     Matrix lightProjection;
                     renderContext.LightMatrices(sceneBoundingBox, out lightView, out lightProjection);
@@ -413,6 +356,9 @@ namespace GameLibrary.SceneGraph
 
                     Matrix m = lightView * lightProjection;
                     m = Matrix.Invert(m);
+                    */
+                    BoundingFrustum boundingFrustum = lightCamera.BoundingFrustum;
+                    Matrix m = lightCamera.InverseViewProjectionMatrix;
 
                     lightFrustrumGeo = GeometryUtil.CreateFrustrum("FRUSTRUM", boundingFrustum);
                     lightFrustrumGeo.RenderGroupId = FRUSTRUM;
@@ -453,8 +399,21 @@ namespace GameLibrary.SceneGraph
 
         public void Draw(GameTime gameTime)
         {
-            Render(shadowRenderContext, renderContext.renderBins, renderers2);
-            //Render(renderContext, renderContext.renderBins, renderers);
+            if (true)
+            {
+                Render(shadowRenderContext, renderContext.renderBins, renderers2);
+                billboardNode.Texture = shadowRenderContext.RenderTarget;
+                renderContext.AddToBin(HUD, billboardNode);
+                GraphicsDevice.Clear(Color.CornflowerBlue);
+
+                // HACK
+                VoxelEffect voxelEffect = ((VoxelRenderer)renderers[VOXEL]).effect;
+                voxelEffect.LightWorldViewProj = shadowRenderContext.Camera.ViewProjectionMatrix;
+                voxelEffect.ShadowMapTexture = shadowRenderContext.RenderTarget;
+            }
+
+            //renderContext.ClearBins();
+            Render(renderContext, renderContext.renderBins, renderers);
 
             renderContext.ShowStats();
         }

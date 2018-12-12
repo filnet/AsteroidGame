@@ -150,6 +150,15 @@ namespace GameLibrary.Component.Camera
         }
 
         /// <summary>
+        /// Property to get the camera's concatenated view-projection matrix inverse.
+        /// </summary>
+        Matrix InverseViewProjectionMatrix
+        {
+            get;
+        }
+
+
+        /// <summary>
         /// Property to get the camera's local x axis.
         /// </summary>
         Vector3 XAxis

@@ -26,13 +26,16 @@
     <Compile Include="$(MSBuildThisFileDirectory)Control\PhysicsController.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)CustomGame.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)CustomGraphicsDeviceManager.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)Geometry\Common\VertexPositionColorNormalTexture.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Geometry\Common\VoxelVertex.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Geometry\Common\VertexPositionColorNormalTextureArray.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Geometry\Common\VertexPositionNormalTextureArray.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)Geometry\QuadMeshFactory.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)SceneGraph\Common\Drawable.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)SceneGraph\Common\BillboardNode.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)SceneGraph\Common\Physical.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)SceneGraph\Common\Transform.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)SceneGraph\LightCamera.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)SceneGraph\RenderContext.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)System\UI\KeyboardInput.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Util\Noise\FastNoise.cs" />
@@ -53,7 +56,7 @@
     <Compile Include="$(MSBuildThisFileDirectory)Geometry\CircleMeshFactory.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Geometry\Common\IMeshFactory.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Geometry\Common\Mesh.cs" />
-    <Compile Include="$(MSBuildThisFileDirectory)Geometry\Common\MeshNode.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)SceneGraph\Common\MeshNode.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Geometry\Common\VertexBufferBuilder.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Geometry\CubeWFMeshFactory.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Geometry\CubeMeshFactory.cs" />

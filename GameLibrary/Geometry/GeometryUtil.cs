@@ -1,8 +1,5 @@
 ﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using GameLibrary.Geometry.Common;
+using GameLibrary.SceneGraph.Common;
 using Microsoft.Xna.Framework;
 
 namespace GameLibrary.Geometry

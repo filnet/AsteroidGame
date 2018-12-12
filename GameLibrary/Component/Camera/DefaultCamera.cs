@@ -64,6 +64,7 @@ namespace GameLibrary.Component.Camera
         private Matrix viewMatrix;
         private Matrix projectionMatrix;
         private Matrix viewProjectionMatrix;
+        private Matrix invViewProjectionMatrix;
 
         private BoundingFrustum boundingFrustum;
 
@@ -872,8 +873,26 @@ namespace GameLibrary.Component.Camera
                 {
                     viewProjectionDirty = false;
                     viewProjectionMatrix = viewMatrix * projectionMatrix;
+                    invViewProjectionMatrix = Matrix.Invert(viewProjectionMatrix);
                 }
                 return viewProjectionMatrix;
+            }
+        }
+
+        /// <summary>
+        /// Property to get the concatenated view-projection matrix.
+        /// </summary>
+        public Matrix InverseViewProjectionMatrix
+        {
+            get
+            {
+                if (viewProjectionDirty)
+                {
+                    viewProjectionDirty = false;
+                    viewProjectionMatrix = viewMatrix * projectionMatrix;
+                    invViewProjectionMatrix = Matrix.Invert(viewProjectionMatrix);
+                }
+                return invViewProjectionMatrix;
             }
         }
 

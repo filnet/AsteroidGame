@@ -107,6 +107,11 @@ namespace GameLibrary.SceneGraph.Common
             return new GeometryNode(this);
         }*/
 
+        internal bool UpdateWorldTransform()
+        {
+            return UpdateWorldTransform(null);
+        }
+
         internal override bool UpdateWorldTransform(TransformNode parentTransformNode)
         {
             if (base.UpdateWorldTransform(parentTransformNode))

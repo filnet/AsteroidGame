@@ -24,7 +24,6 @@ namespace Voxel
         #region Effect Parameters
 
         EffectParameter textureParam;
-        EffectParameter wireframeTextureParam;
         EffectParameter diffuseColorParam;
         EffectParameter emissiveColorParam;
         EffectParameter specularColorParam;
@@ -35,6 +34,11 @@ namespace Voxel
         EffectParameter worldParam;
         EffectParameter worldInverseTransposeParam;
         EffectParameter worldViewProjParam;
+
+        EffectParameter wireframeTextureParam;
+
+        EffectParameter lightWorldViewProjParam;
+        EffectParameter shadowMapTextureParam;
 
         #endregion
 
@@ -52,6 +56,8 @@ namespace Voxel
         Matrix projection = Matrix.Identity;
 
         Matrix worldView;
+
+        Matrix lightWorldViewProj;
 
         Vector3 diffuseColor = Vector3.One;
         Vector3 emissiveColor = Vector3.Zero;
@@ -317,13 +323,6 @@ namespace Voxel
             set { textureParam.SetValue(value); }
         }
 
-        public Texture2D WireframeTexture
-        {
-            get { return wireframeTextureParam.GetValueTexture2D(); }
-            set { wireframeTextureParam.SetValue(value); }
-        }
-
-
         /// <summary>
         /// Gets or sets whether vertex color is enabled.
         /// </summary>
@@ -340,6 +339,33 @@ namespace Voxel
                 }
             }
         }
+
+        public Texture2D WireframeTexture
+        {
+            get { return wireframeTextureParam.GetValueTexture2D(); }
+            set { wireframeTextureParam.SetValue(value); }
+        }
+
+        /// <summary>
+        /// Gets or sets the projection matrix.
+        /// </summary>
+        public Matrix LightWorldViewProj
+        {
+            get { return lightWorldViewProj; }
+
+            set
+            {
+                lightWorldViewProj = value;
+                dirtyFlags |= EffectDirtyFlags.LightWorldViewProj;
+            }
+        }
+
+        public Texture2D ShadowMapTexture
+        {
+            get { return shadowMapTextureParam.GetValueTexture2D(); }
+            set { shadowMapTextureParam.SetValue(value); }
+        }
+
 
 
         #endregion
@@ -385,6 +411,8 @@ namespace Voxel
 
             fogStart = cloneSource.fogStart;
             fogEnd = cloneSource.fogEnd;
+
+            lightWorldViewProjParam = cloneSource.lightWorldViewProjParam;
         }
 
 
@@ -395,7 +423,6 @@ namespace Voxel
         {
             return new VoxelEffect(this);
         }
-
 
         /// <inheritdoc/>
         public void EnableDefaultLighting()
@@ -411,8 +438,6 @@ namespace Voxel
         /// </summary>
         void CacheEffectParameters(VoxelEffect cloneSource)
         {
-            textureParam = Parameters["Texture"];
-            wireframeTextureParam = Parameters["WireframeTexture"];
             diffuseColorParam = Parameters["DiffuseColor"];
             emissiveColorParam = Parameters["EmissiveColor"];
             specularColorParam = Parameters["SpecularColor"];
@@ -423,6 +448,8 @@ namespace Voxel
             worldParam = Parameters["World"];
             worldInverseTransposeParam = Parameters["WorldInverseTranspose"];
             worldViewProjParam = Parameters["WorldViewProj"];
+
+            textureParam = Parameters["Texture"];
 
             light0 = new DirectionalLight(Parameters["DirLight0Direction"],
                                           Parameters["DirLight0DiffuseColor"],
@@ -438,6 +465,11 @@ namespace Voxel
                                           Parameters["DirLight2DiffuseColor"],
                                           Parameters["DirLight2SpecularColor"],
                                           (cloneSource != null) ? cloneSource.light2 : null);
+
+            wireframeTextureParam = Parameters["WireframeTexture"];
+
+            lightWorldViewProjParam = Parameters["LightWorldViewProj"];
+            shadowMapTextureParam = Parameters["ShadowMapTexture"];
         }
 
 
@@ -447,7 +479,8 @@ namespace Voxel
         protected override void OnApply()
         {
             // Recompute the world+view+projection matrix or fog vector?
-            dirtyFlags = EffectHelpers.SetWorldViewProjAndFog(dirtyFlags, ref world, ref view, ref projection, ref worldView, fogEnabled, fogStart, fogEnd, worldViewProjParam, fogVectorParam);
+            dirtyFlags = EffectHelpers.SetWorldViewProj(dirtyFlags, ref world, ref view, ref projection, ref worldView, worldViewProjParam);
+            dirtyFlags |= EffectHelpers.SetFog(dirtyFlags, ref worldView, fogEnabled, fogStart, fogEnd, fogVectorParam);
 
             // Recompute the diffuse/emissive/alpha material color parameters?
             if ((dirtyFlags & EffectDirtyFlags.MaterialColor) != 0)
@@ -462,6 +495,12 @@ namespace Voxel
                 // Recompute the world inverse transpose and eye position?
                 dirtyFlags = EffectHelpers.SetLightingMatrices(dirtyFlags, ref world, ref view, worldParam, worldInverseTransposeParam, eyePositionParam);
 
+                // 
+                if ((dirtyFlags & EffectDirtyFlags.LightWorldViewProj) != 0)
+                {
+                    lightWorldViewProjParam.SetValue(lightWorldViewProj);
+                    dirtyFlags &= ~EffectDirtyFlags.LightWorldViewProj;
+                }
 
                 // Check if we can use the only-bother-with-the-first-light shader optimization.
                 bool newOneLight = !light1.Enabled && !light2.Enabled;

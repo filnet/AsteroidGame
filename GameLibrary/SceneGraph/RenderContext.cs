@@ -220,7 +220,7 @@ namespace GameLibrary.SceneGraph
                 CameraPosition = Camera.Position;
             }
         }
-
+/*
         public void LightMatrices(Bounding.BoundingBox sceneBoundingBox, out Matrix view, out Matrix projection)
         {
             // Think of light's orthographic frustum as a bounding box that encloses all objects visible by the camera,
@@ -264,7 +264,7 @@ namespace GameLibrary.SceneGraph
             view = lightView;
             projection = lightProjection;
         }
-
+*/
         public void ResetStats()
         {
             // culli

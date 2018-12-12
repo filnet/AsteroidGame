@@ -115,6 +115,7 @@ struct VSOutputTx
 	float4 AmbientOcclusionFactors : BLENDWEIGHT0;
     float WF1TexCoord   : TEXCOORD1;
     float WF2TexCoord   : TEXCOORD2;
+	float4 ShadowPosition : TEXCOOR3;
 };
 
 struct VSOutputTxNoFog
@@ -126,6 +127,7 @@ struct VSOutputTxNoFog
     float4 AmbientOcclusionFactors : BLENDWEIGHT0;
     float WF1TexCoord   : TEXCOORD1;
     float WF2TexCoord   : TEXCOORD2;
+	float4 ShadowPosition : TEXCOOR3;
 };
 
 struct VSOutputPixelLighting

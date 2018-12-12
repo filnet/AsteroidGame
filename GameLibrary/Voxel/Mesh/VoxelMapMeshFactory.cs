@@ -91,27 +91,28 @@ namespace GameLibrary.Voxel
             private bool scale = false;
             private Vector3 s = new Vector3(0.75f, 0.75f, 0.75f);
 
-            // top face vertices
-            Vector3 topLeftFront;
-            Vector3 topLeftBack;
-            Vector3 topRightFront;
-            Vector3 topRightBack;
-
-            Vector3 _topLeftFront;
-            Vector3 _topLeftBack;
-            Vector3 _topRightFront;
-            Vector3 _topRightBack;
-
-            // bottom face vertices
+            // front face vertices
             Vector3 bottomLeftFront;
-            Vector3 bottomLeftBack;
+            Vector3 topLeftFront;
             Vector3 bottomRightFront;
-            Vector3 bottomRightBack;
+            Vector3 topRightFront;
 
             Vector3 _bottomLeftFront;
-            Vector3 _bottomLeftBack;
+            Vector3 _topLeftFront;
             Vector3 _bottomRightFront;
+            Vector3 _topRightFront;
+
+
+            // back face vertices
+            Vector3 bottomRightBack;
+            Vector3 topRightBack;
+            Vector3 bottomLeftBack;
+            Vector3 topLeftBack;
+
             Vector3 _bottomRightBack;
+            Vector3 _topRightBack;
+            Vector3 _bottomLeftBack;
+            Vector3 _topLeftBack;
 
             Vector3 scaleXY;
             Vector3 scaleXZ;
@@ -146,17 +147,17 @@ namespace GameLibrary.Voxel
             {
                 this.factory = factory;
 
-                // top face vertices
-                topLeftFront = new Vector3(-d, d, d);
-                topLeftBack = new Vector3(-d, d, -d);
-                topRightFront = new Vector3(d, d, d);
-                topRightBack = new Vector3(d, d, -d);
-
-                // bottom face vertices
+                // front face vertices
                 bottomLeftFront = new Vector3(-d, -d, d);
-                bottomLeftBack = new Vector3(-d, -d, -d);
+                topLeftFront = new Vector3(-d, d, d);
                 bottomRightFront = new Vector3(d, -d, d);
+                topRightFront = new Vector3(d, d, d);
+
+                // back face vertices
                 bottomRightBack = new Vector3(d, -d, -d);
+                topRightBack = new Vector3(d, d, -d);
+                bottomLeftBack = new Vector3(-d, -d, -d);
+                topLeftBack = new Vector3(-d, d, -d);
 
                 scaleXY = new Vector3(s.X, s.Y, 1);
                 scaleXZ = new Vector3(s.X, 1, s.Z);
@@ -196,7 +197,10 @@ namespace GameLibrary.Voxel
                     builder = transparentBuilder;
 
                     // FIXME hack
-                    t.Y -= 0.33f;
+                    if (tileInfo.Type == VoxelType.Water)
+                    {
+                        t.Y -= 0.33f;
+                    }
                 }
 
                 if (!scale)

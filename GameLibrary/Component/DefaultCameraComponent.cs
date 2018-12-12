@@ -70,9 +70,9 @@ namespace GameLibrary.Component.Camera
         private const float DEFAULT_SPEED_ORBIT_ROLL = 100.0f;
         // rotation speed in radians/s
         private const float DEFAULT_SPEED_ROTATION = MathHelper.Pi / 4;
-        private const float DEFAULT_VELOCITY_X = 1.0f;
-        private const float DEFAULT_VELOCITY_Y = 1.0f;
-        private const float DEFAULT_VELOCITY_Z = 1.0f;
+        private const float DEFAULT_VELOCITY_X = 2.0f;
+        private const float DEFAULT_VELOCITY_Y = 2.0f;
+        private const float DEFAULT_VELOCITY_Z = 2.0f;
 
         public const int MOUSE_SMOOTHING_CACHE_SIZE = 10;
 
@@ -94,6 +94,7 @@ namespace GameLibrary.Component.Camera
         private Vector3 acceleration;
         private Vector3 currentVelocity;
         private Vector3 velocity;
+        private Vector3 savedVelocity;
 
         private GamePadState currentGamePadState;
 
@@ -131,6 +132,7 @@ namespace GameLibrary.Component.Camera
             filter.mouseSmoothingSensitivity = DEFAULT_MOUSE_SMOOTHING_SENSITIVITY;
             acceleration = new Vector3(DEFAULT_ACCELERATION_X, DEFAULT_ACCELERATION_Y, DEFAULT_ACCELERATION_Z);
             velocity = new Vector3(DEFAULT_VELOCITY_X, DEFAULT_VELOCITY_Y, DEFAULT_VELOCITY_Z);
+            savedVelocity = velocity;
 
             Rectangle clientBounds = game.Window.ClientBounds;
             float aspect = (float)clientBounds.Width / (float)clientBounds.Height;
@@ -172,7 +174,7 @@ namespace GameLibrary.Component.Camera
 
             //EnabledChanged += OnEnabledChanged;
         }
-        
+
         /*
         private void OnEnabledChanged()
         {
@@ -373,7 +375,6 @@ namespace GameLibrary.Component.Camera
                     movingAlongNegZ = true;
                     currentVelocity.Z = 0.0f;
                 }
-
                 direction.Z += 1.0f;
             }
             else
@@ -389,7 +390,6 @@ namespace GameLibrary.Component.Camera
                     movingAlongPosZ = true;
                     currentVelocity.Z = 0.0f;
                 }
-
                 direction.Z -= 1.0f;
             }
             else
@@ -405,7 +405,6 @@ namespace GameLibrary.Component.Camera
                     movingAlongPosY = true;
                     currentVelocity.Y = 0.0f;
                 }
-
                 direction.Y += 1.0f;
             }
             else
@@ -421,7 +420,6 @@ namespace GameLibrary.Component.Camera
                     movingAlongNegY = true;
                     currentVelocity.Y = 0.0f;
                 }
-
                 direction.Y -= 1.0f;
             }
             else
@@ -441,7 +439,6 @@ namespace GameLibrary.Component.Camera
                             movingAlongPosX = true;
                             currentVelocity.X = 0.0f;
                         }
-
                         direction.X += 1.0f;
                     }
                     else
@@ -457,7 +454,6 @@ namespace GameLibrary.Component.Camera
                             movingAlongNegX = true;
                             currentVelocity.X = 0.0f;
                         }
-
                         direction.X -= 1.0f;
                     }
                     else
@@ -476,7 +472,6 @@ namespace GameLibrary.Component.Camera
                             movingAlongPosX = true;
                             currentVelocity.X = 0.0f;
                         }
-
                         direction.X += 1.0f;
                     }
                     else
@@ -492,7 +487,6 @@ namespace GameLibrary.Component.Camera
                             movingAlongNegX = true;
                             currentVelocity.X = 0.0f;
                         }
-
                         direction.X -= 1.0f;
                     }
                     else
@@ -510,7 +504,6 @@ namespace GameLibrary.Component.Camera
                             movingAlongPosX = true;
                             currentVelocity.X = 0.0f;
                         }
-
                         direction.X += 1.0f;
                     }
                     else
@@ -526,7 +519,6 @@ namespace GameLibrary.Component.Camera
                             movingAlongNegX = true;
                             currentVelocity.X = 0.0f;
                         }
-
                         direction.X -= 1.0f;
                     }
                     else
@@ -656,6 +648,13 @@ namespace GameLibrary.Component.Camera
         /// <param name="elapsedTimeSec">Elapsed game time.</param>
         private void UpdateVelocity(ref Vector3 direction, float elapsedTimeSec)
         {
+            velocity = savedVelocity;
+            if (currentKeyboardState.IsKeyDown(Keys.LeftShift) || currentKeyboardState.IsKeyDown(Keys.RightShift))
+            {
+                savedVelocity = velocity;
+                velocity *= 3.0f;                  
+            }
+
             if (direction.X != 0.0f)
             {
                 // Camera is moving along the x axis.
@@ -937,7 +936,7 @@ namespace GameLibrary.Component.Camera
                 default:
                     break;
             }
-            // must call update position each because of "inertia"
+            // must call update position each because of camera "inertia"
             // camera position and inertia should be handled by avatar and physics...
             // so things like camera inertia should be optional
             UpdatePosition(ref direction, elapsed);
@@ -1148,6 +1147,14 @@ namespace GameLibrary.Component.Camera
         public Matrix ViewProjectionMatrix
         {
             get { return camera.ViewProjectionMatrix; }
+        }
+
+        /// <summary>
+        /// Property to get the concatenated view-projection matrix.
+        /// </summary>
+        public Matrix InverseViewProjectionMatrix
+        {
+            get { return camera.InverseViewProjectionMatrix; }
         }
 
         public BoundingFrustum BoundingFrustum

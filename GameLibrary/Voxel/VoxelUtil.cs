@@ -8,12 +8,13 @@ using GameLibrary.Component.Util;
 using GameLibrary.Util;
 using GameLibrary.Voxel;
 using Voxel;
+using System.Collections;
 
 namespace GameLibrary.Voxel
 {
     class VoxelUtil
     {
-        public static Effect CreateVoxelEffect(GraphicsDevice gd)
+        public static VoxelEffect CreateVoxelEffect(GraphicsDevice gd)
         {
             VoxelEffect effect = new VoxelEffect(gd);
 
@@ -49,7 +50,7 @@ namespace GameLibrary.Voxel
             return effect;
         }
 
-        public static Effect CreateVoxelWaterEffect(GraphicsDevice gd)
+        public static VoxelEffect CreateVoxelWaterEffect(GraphicsDevice gd)
         {
             VoxelEffect effect = new VoxelEffect(gd);
 
@@ -84,7 +85,7 @@ namespace GameLibrary.Voxel
             return effect;
         }
 
-        public static Effect CreateVoxelShadowEffect(GraphicsDevice gd)
+        public static VoxelShadowEffect CreateVoxelShadowEffect(GraphicsDevice gd)
         {
             VoxelShadowEffect effect = new VoxelShadowEffect(gd);
 
@@ -126,7 +127,7 @@ namespace GameLibrary.Voxel
             return effect;
         }
 
-        private static String[] getTiles()
+        private static List<string> getTiles()
         {
             // grass 
             // earth + grass top
@@ -134,22 +135,36 @@ namespace GameLibrary.Voxel
             // rock
             // rock + snow top
             // snow
+
+            FaceType[] types = (FaceType[])Enum.GetValues(typeof(FaceType));
+            List<string> tiles = new List<string>(types.Length);
+            foreach (FaceType faceType in types)
+            {
+                if (faceType != FaceType.None)
+                {
+                    tiles.Add(faceType.ToString().ToLower());
+                }
+            }
+
+
+            /*
             String[] tiles = new String[]
             {
-                "earth", "grass", "rock", "snow", "water", "test", "test_left", "test_right", "test_bottom", "test_top", "test_back", "test_front"
+                "earth", "grass", "rock", "snow", "water", "glass", "test", "test_left", "test_right", "test_bottom", "test_top", "test_back", "test_front"
             };
-
+            */
             return tiles;
         }
 
         // https://blogs.msdn.microsoft.com/shawnhar/2009/09/14/texture-filtering-mipmaps/
         // NOTE mimpap generation is set in pipeline tool
-        private static Texture2D createTileTextureArray(GraphicsDevice gd, String[] tiles)
+        private static Texture2D createTileTextureArray(GraphicsDevice gd, List<string> tiles)
         {
-            Texture2D textureArray = new Texture2D(gd, 32, 32, true, SurfaceFormat.Color, tiles.Length);
-            for (int slice = 0; slice < tiles.Length; slice++)
+            Texture2D textureArray = new Texture2D(gd, 32, 32, true, SurfaceFormat.Color, tiles.Count);
+            for (int slice = 0; slice < tiles.Count; slice++)
             {
-                Texture2D texture = AsteroidGame.AsteroidGame.Instance().Content.Load<Texture2D>(tiles[slice]);
+                String name = tiles[slice];
+                Texture2D texture = AsteroidGame.AsteroidGame.Instance().Content.Load<Texture2D>(name);
                 int width = texture.Width;
                 int height = texture.Height;
                 for (var level = 0; level < texture.LevelCount; level++)

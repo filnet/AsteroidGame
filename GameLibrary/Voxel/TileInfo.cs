@@ -4,9 +4,9 @@ using System.Text;
 
 namespace GameLibrary.Voxel
 {
-    public enum VoxelType { Air, Dirt, Grass, GrassyDirt, Rock, SnowyRock, Snow, Water, Test }
+    public enum VoxelType { Air, Dirt, Grass, GrassyDirt, Rock, SnowyRock, Snow, Water, Glass, Test }
 
-    public enum FaceType { Earth, Grass, Rock, Snow, Water, Test, TestLeft, TestRight, TestBottom, TestTop, TestBack, TestFront, None }
+    public enum FaceType { Earth, Grass, Rock, Snow, Water, Glass, Test, Test_Left, Test_Right, Test_Bottom, Test_Top, Test_Back, Test_Front, None }
 
     //    [Flags]
     //    public enum Face { Left, Right, Bottom, Top, Back, Front }
@@ -22,10 +22,10 @@ namespace GameLibrary.Voxel
             new TileInfo(VoxelType.SnowyRock, FaceType.Snow, FaceType.Rock),
             new TileInfo(VoxelType.Snow, FaceType.Snow, FaceType.Snow),
             new TileInfo(VoxelType.Water, FaceType.None, FaceType.None, FaceType.None, FaceType.Water, FaceType.None, FaceType.None, true, true),
-            new TileInfo(VoxelType.Test, FaceType.TestLeft, FaceType.TestRight, FaceType.TestBottom, FaceType.TestTop, FaceType.TestBack, FaceType.TestFront)
+            new TileInfo(VoxelType.Glass, FaceType.Glass, FaceType.Glass, FaceType.Glass, FaceType.Glass, FaceType.Glass, FaceType.Glass, true, true),
+            new TileInfo(VoxelType.Test, FaceType.Test_Left, FaceType.Test_Right, FaceType.Test_Bottom, FaceType.Test_Top, FaceType.Test_Back, FaceType.Test_Front)
         };
 
-        //public readonly String Name;
         public readonly VoxelType Type;
         public readonly bool IsSolid;
         public readonly bool IsTransparent;
