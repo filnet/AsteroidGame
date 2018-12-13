@@ -131,6 +131,8 @@ namespace GameLibrary.SceneGraph
 
         public readonly SortedDictionary<int, List<Drawable>> renderBins;
 
+        public Color ClearColor;
+
         public readonly RenderTarget2D RenderTarget;
 
         // stats
@@ -169,6 +171,8 @@ namespace GameLibrary.SceneGraph
 
             // state
             renderBins = new SortedDictionary<int, List<Drawable>>();
+
+            ClearColor = Color.CornflowerBlue;
 
             renderTarget = null;
         }

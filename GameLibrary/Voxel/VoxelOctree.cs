@@ -107,7 +107,7 @@ namespace GameLibrary.Voxel
         {
             DisposeLoadQueue();
         }
-
+        /*
         private void fill()
         {
             int x0 = -2;
@@ -129,7 +129,7 @@ namespace GameLibrary.Voxel
                 }
             }
         }
-
+        */
         // TODO this should be done asynchronously
         private VoxelChunk createObject(Octree<VoxelChunk> octree, OctreeNode<VoxelChunk> node)
         {
@@ -156,6 +156,7 @@ namespace GameLibrary.Voxel
                     Vector3 center;
                     Vector3 halfSize;
                     GetNodeBoundingBox(node, out center, out halfSize);
+                    // TODO compute a tighter bounding box based on chunk content
                     voxelChunk.BoundingBox = new SceneGraph.Bounding.BoundingBox(center, halfSize);
 
                     if (true /*ctxt.AddBoundingGeometry*/)

@@ -11,7 +11,7 @@ namespace GameLibrary.Geometry
         private float width;
         private float height;
 
-        public QuadMeshFactory() : this(336.0f, 210.0f)
+        public QuadMeshFactory() : this(1.0f, 1.0f)
         {
         }
 

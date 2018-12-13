@@ -298,6 +298,8 @@ namespace GameLibrary.SceneGraph
                 // FIXME...
                 effectMatrices.Projection = projection;
                 effectMatrices.View = view;
+
+                effectMatrices.World = Matrix.CreateScale(256, 256, 0);
             }
 
             foreach (EffectPass pass in effect.CurrentTechnique.Passes)
@@ -354,9 +356,10 @@ namespace GameLibrary.SceneGraph
             wireframeSamplerState.AddressU = TextureAddressMode.Mirror;
 
             // shadow texture sampler
-            shadowSamplerState.Filter = TextureFilter.Point;
+            shadowSamplerState.Filter = TextureFilter.Linear;
             shadowSamplerState.AddressU = TextureAddressMode.Border;
             shadowSamplerState.AddressV = TextureAddressMode.Border;
+            shadowSamplerState.BorderColor = new Color(1f, 1f, 1f, 1f);
         }
 
         public override void Render(RenderContext rc, List<Drawable> drawableList)
@@ -406,7 +409,8 @@ namespace GameLibrary.SceneGraph
     {
         public VoxelShadowRenderer(VoxelShadowEffect effect) : base(effect)
         {
-            RasterizerState = RasterizerState.CullNone;
+            //RasterizerState = RasterizerState.CullNone;
+            RasterizerState = RasterizerState.CullCounterClockwise;
         }
 
         public override void Render(RenderContext rc, List<Drawable> drawableList)

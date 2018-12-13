@@ -154,10 +154,11 @@ namespace GameLibrary.SceneGraph
 
             renderers[VOXEL] = new VoxelRenderer(VoxelUtil.CreateVoxelEffect(GraphicsDevice));
             renderers[VOXEL_WATER] = new VoxelRenderer(VoxelUtil.CreateVoxelWaterEffect(GraphicsDevice));
-            DepthStencilState depthState = new DepthStencilState();
-            depthState.DepthBufferEnable = true;
-            depthState.DepthBufferWriteEnable = false;
-            renderers[VOXEL_WATER].DepthStencilState = depthState;
+            // TODO there is no need to disable depth write if the transparent is Z sorted
+            //DepthStencilState depthState = new DepthStencilState();
+            //depthState.DepthBufferEnable = true;
+            //depthState.DepthBufferWriteEnable = false;
+            //renderers[VOXEL_WATER].DepthStencilState = depthState;
             renderers[VOXEL_WATER].RasterizerState = RasterizerState.CullNone;
             renderers[VOXEL_WATER].BlendState = BlendState.AlphaBlend;
 
@@ -186,15 +187,19 @@ namespace GameLibrary.SceneGraph
 
             renderContext = new RenderContext(GraphicsDevice, cameraComponent);
 
+            lightCamera = new LightCamera();
+
+            int renderTargetSize = 512;
             RenderTarget2D renderTarget = new RenderTarget2D(
                 GraphicsDevice,
-                GraphicsDevice.PresentationParameters.BackBufferWidth,
-                GraphicsDevice.PresentationParameters.BackBufferHeight,
+                renderTargetSize, //GraphicsDevice.PresentationParameters.BackBufferWidth,
+                renderTargetSize, //GraphicsDevice.PresentationParameters.BackBufferHeight,
                 false,
-                GraphicsDevice.PresentationParameters.BackBufferFormat,
-                DepthFormat.Depth16);
-            lightCamera = new LightCamera();
+                SurfaceFormat.Single, //GraphicsDevice.PresentationParameters.BackBufferFormat,
+                DepthFormat.Depth24);
+
             shadowRenderContext = new RenderContext(GraphicsDevice, lightCamera, renderTarget);
+            shadowRenderContext.ClearColor = Color.White;
         }
 
         public void Dispose()
@@ -327,7 +332,7 @@ namespace GameLibrary.SceneGraph
                 }
 
                 // visible scene bounding box
-                if (false)
+                if (true)
                 {
                     /*
                     Bounding.BoundingBox sceneBoundingBox = new Bounding.BoundingBox(
@@ -340,7 +345,7 @@ namespace GameLibrary.SceneGraph
                 }
 
                 // light frustrum
-                if (false)
+                if (true)
                 {
                     //if (lightFrustrumGeo == null)
                     //{
@@ -404,13 +409,14 @@ namespace GameLibrary.SceneGraph
             {
                 Render(shadowRenderContext, renderContext.renderBins, renderers2);
                 billboardNode.Texture = shadowRenderContext.RenderTarget;
-                renderContext.AddToBin(HUD, billboardNode);
-                GraphicsDevice.Clear(Color.CornflowerBlue);
-
+                
                 // HACK
                 VoxelEffect voxelEffect = ((VoxelRenderer)renderers[VOXEL]).effect;
                 voxelEffect.LightWorldViewProj = shadowRenderContext.Camera.ViewProjectionMatrix;
                 voxelEffect.ShadowMapTexture = shadowRenderContext.RenderTarget;
+
+                // TODO add it to the scene (but don't render in shadow map...)
+                renderContext.AddToBin(HUD, billboardNode);
             }
 
             //renderContext.ClearBins();
@@ -429,6 +435,8 @@ namespace GameLibrary.SceneGraph
 
             // Set the render target
             GraphicsDevice.SetRenderTarget(renderContext.RenderTarget);
+
+            GraphicsDevice.Clear(ClearOptions.Target, renderContext.ClearColor, 0, 0);
 
             // FIXME should iterate over ordered by key...
             foreach (KeyValuePair<int, List<Drawable>> renderBinKVP in renderBins)

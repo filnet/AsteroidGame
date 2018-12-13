@@ -505,17 +505,19 @@ float4 PSBasicVertexLightingTxNoFog(VSOutputTx pin) : SV_Target0
 
 	float visibility = 1.0;
 
-	float2 ShadowTexCoord = mad(0.5f , pin.ShadowPosition.xy / pin.ShadowPosition.w , float2(0.5f, 0.5f));
-    ShadowTexCoord.y = 1.0f - ShadowTexCoord.y;
+	// FIXME this can be done upfront in the light projection
+	float2 shadowTexCoord = mad(0.5f , pin.ShadowPosition.xy / pin.ShadowPosition.w , float2(0.5f, 0.5f));
+    shadowTexCoord.y = 1.0f - shadowTexCoord.y;
 	
-	float d = SAMPLE_TEXTURE(ShadowMapTexture, ShadowTexCoord).w;
-	if (d < pin.ShadowPosition.z - 0.004) {
-		visibility = 0.5;
+	float lightDepth = SAMPLE_TEXTURE(ShadowMapTexture, shadowTexCoord).x;
+	float lightDistance = pin.ShadowPosition.z / pin.ShadowPosition.w;
+	if ((lightDistance - 0.00001) > lightDepth) {
+		visibility = 0.5f;
 	}
-	color = color * visibility;
 
-    //AddSpecular(color, pin.Specular.rgb);
-    
+	color = color * visibility;
+    AddSpecular(color, pin.Specular.rgb);
+
     return color;
 }
 

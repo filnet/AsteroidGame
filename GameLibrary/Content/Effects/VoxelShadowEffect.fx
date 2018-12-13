@@ -37,10 +37,10 @@ VSShadowOutput VSShadow(VSInput vin)
     return vout;
 }
 
-float4 PSShadow(VSShadowOutput pin) : SV_Target0
+float PSShadow(VSShadowOutput pin) : SV_Target0
 { 
 	float depth = pin.Position2D.z / pin.Position2D.w;
-    return float4(depth, depth, depth, depth);
+    return depth;//float4(depth, depth, depth, depth);
 }
 
 TECHNIQUE(ShadowEffect, VSShadow, PSShadow );
