@@ -46,7 +46,7 @@ namespace GameLibrary.Voxel
 
             effect.TextureEnabled = true;
             effect.Texture = createTileTextureArray(gd, getTiles());
-            //effect.WireframeTexture = createWireframeTexture(gd, 1.0f);
+            effect.WireframeTexture = createWireframeTexture(gd, 1.0f);
             return effect;
         }
 

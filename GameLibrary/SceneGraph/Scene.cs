@@ -276,6 +276,7 @@ namespace GameLibrary.SceneGraph
 
             renderContext.GameTime = gameTime;
             renderContext.ResetStats();
+            shadowRenderContext.ResetStats();
 
             // do the RENDER_GROUP_VISITOR only if:
             // - camera is dirty
@@ -416,6 +417,7 @@ namespace GameLibrary.SceneGraph
             Render(renderContext, renderContext.renderBins, renderers);
 
             renderContext.ShowStats();
+            shadowRenderContext.ShowStats();
         }
 
         public void Render(RenderContext renderContext, SortedDictionary<int, List<Drawable>> renderBins, Dictionary<int, Renderer> renderers)

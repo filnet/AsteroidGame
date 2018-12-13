@@ -463,6 +463,32 @@ float4 blendWF(float4 src, float4 dst)
 	return o;
 }
 
+// Calculates the shadow term using PCF
+/*
+    float CalcShadowTermPCF(float light_space_depth, float ndotl, float2 shadow_coord)
+    {
+        float shadow_term = 0;
+
+       //float2 v_lerps = frac(ShadowMapSize * shadow_coord);
+
+        float variableBias = clamp(0.001 * tan(acos(ndotl)), 0, DepthBias);
+
+    	//safe to assume it's a square
+        float size = 1 / ShadowMapSize.x;
+    	
+        float samples[4];
+        samples[0] = (light_space_depth - variableBias < ShadowMap.Sample(ShadowMapSampler, shadow_coord).r);
+        samples[1] = (light_space_depth - variableBias < ShadowMap.Sample(ShadowMapSampler, shadow_coord + float2(size, 0)).r);
+        samples[2] = (light_space_depth - variableBias < ShadowMap.Sample(ShadowMapSampler, shadow_coord + float2(0, size)).r);
+        samples[3] = (light_space_depth - variableBias < ShadowMap.Sample(ShadowMapSampler, shadow_coord + float2(size, size)).r);
+
+        shadow_term = (samples[0] + samples[1] + samples[2] + samples[3]) / 4.0;
+    	//shadow_term = lerp(lerp(samples[0],samples[1],v_lerps.x),lerp(samples[2],samples[3],v_lerps.x),v_lerps.y);
+
+        return shadow_term;
+    }
+*/
+
 // Pixel shader: vertex lighting + texture, no fog.
 float4 PSBasicVertexLightingTxNoFog(VSOutputTx pin) : SV_Target0
 {
@@ -473,9 +499,9 @@ float4 PSBasicVertexLightingTxNoFog(VSOutputTx pin) : SV_Target0
 
 	// quad wireframe
 	float4 wfColor1 = SAMPLE_TEXTURE(WireframeTexture, pin.WF1TexCoord);
-	//color = blendWF(wfColor1, color);
+	color = blendWF(wfColor1, color);
 	float4 wfColor2 = SAMPLE_TEXTURE(WireframeTexture, pin.WF2TexCoord);
-	//color = blendWF(wfColor2, color);
+	color = blendWF(wfColor2, color);
 
 	float visibility = 1.0;
 
@@ -483,7 +509,7 @@ float4 PSBasicVertexLightingTxNoFog(VSOutputTx pin) : SV_Target0
     ShadowTexCoord.y = 1.0f - ShadowTexCoord.y;
 	
 	float d = SAMPLE_TEXTURE(ShadowMapTexture, ShadowTexCoord).w;
-	if (d  <  pin.ShadowPosition.z) {
+	if (d < pin.ShadowPosition.z - 0.004) {
 		visibility = 0.5;
 	}
 	color = color * visibility;

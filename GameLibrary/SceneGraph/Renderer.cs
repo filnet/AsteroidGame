@@ -354,9 +354,9 @@ namespace GameLibrary.SceneGraph
             wireframeSamplerState.AddressU = TextureAddressMode.Mirror;
 
             // shadow texture sampler
-            shadowSamplerState.Filter = TextureFilter.Linear;
-            shadowSamplerState.AddressU = TextureAddressMode.Clamp;
-            shadowSamplerState.AddressV = TextureAddressMode.Clamp;
+            shadowSamplerState.Filter = TextureFilter.Point;
+            shadowSamplerState.AddressU = TextureAddressMode.Border;
+            shadowSamplerState.AddressV = TextureAddressMode.Border;
         }
 
         public override void Render(RenderContext rc, List<Drawable> drawableList)
@@ -406,6 +406,7 @@ namespace GameLibrary.SceneGraph
     {
         public VoxelShadowRenderer(VoxelShadowEffect effect) : base(effect)
         {
+            RasterizerState = RasterizerState.CullNone;
         }
 
         public override void Render(RenderContext rc, List<Drawable> drawableList)
