@@ -24,7 +24,7 @@ struct VSInput
 struct VSShadowOutput
 {
     float4 PositionPS     : POSITION;
-    float4 Position2D     : TEXCOORD0;
+    float2 Depth     : TEXCOORD0;
 };
 
 VSShadowOutput VSShadow(VSInput vin)
@@ -32,14 +32,14 @@ VSShadowOutput VSShadow(VSInput vin)
     VSShadowOutput vout;
     
 	vout.PositionPS = mul(vin.Position, WorldViewProj);
-	vout.Position2D = vout.PositionPS;
+	vout.Depth = vout.PositionPS.zw;
     
     return vout;
 }
 
 float PSShadow(VSShadowOutput pin) : SV_Target0
 { 
-	float depth = pin.Position2D.z / pin.Position2D.w;
+	float depth = pin.Depth.x / pin.Depth.y;
     return depth;//float4(depth, depth, depth, depth);
 }
 

@@ -63,8 +63,9 @@ namespace GameLibrary.SceneGraph
         // debug camera
         private MeshNode frustrumGeo;
 
-        private MeshNode sceneBoundingBoxGeo;
         private MeshNode lightFrustrumGeo;
+        private MeshNode sceneBoundingBoxGeo;
+        private MeshNode occluderBoundingBoxGeo;
 
         private BillboardNode billboardNode;
 
@@ -131,6 +132,9 @@ namespace GameLibrary.SceneGraph
             sceneBoundingBoxGeo = GeometryUtil.CreateCubeWF("SCENE_BOUNDING_BOX", 1);
             sceneBoundingBoxGeo.Initialize(GraphicsDevice);
 
+            occluderBoundingBoxGeo = GeometryUtil.CreateCubeWF("OCCLUDER_BOUNDING_BOX", 1);
+            occluderBoundingBoxGeo.Initialize(GraphicsDevice);
+
             billboardNode = new BillboardNode("SHADOW_MAP");
             billboardNode.Initialize(GraphicsDevice);
             //billboardNode.Translation = new Vector3(10, 40, 0);
@@ -153,17 +157,9 @@ namespace GameLibrary.SceneGraph
             //renderers[VOXEL_MAP] = new VoxelMapInstancedRenderer(EffectFactory.CreateInstancedEffect(GraphicsDevice));
 
             renderers[VOXEL] = new VoxelRenderer(VoxelUtil.CreateVoxelEffect(GraphicsDevice));
-            renderers[VOXEL_WATER] = new VoxelRenderer(VoxelUtil.CreateVoxelWaterEffect(GraphicsDevice));
-            // TODO there is no need to disable depth write if the transparent is Z sorted
-            //DepthStencilState depthState = new DepthStencilState();
-            //depthState.DepthBufferEnable = true;
-            //depthState.DepthBufferWriteEnable = false;
-            //renderers[VOXEL_WATER].DepthStencilState = depthState;
-            renderers[VOXEL_WATER].RasterizerState = RasterizerState.CullNone;
-            renderers[VOXEL_WATER].BlendState = BlendState.AlphaBlend;
+            renderers[VOXEL_WATER] = new VoxelWaterRenderer(VoxelUtil.CreateVoxelWaterEffect(GraphicsDevice));
 
             renderers2[VOXEL] = new VoxelShadowRenderer(VoxelUtil.CreateVoxelShadowEffect(GraphicsDevice));
-            //renderers2[VOXEL_WATER] = new VoxelRenderer(VoxelUtil.CreateVoxelShadowEffect(GraphicsDevice));
 
             //renderers[OCTREE] = new OctreeRenderer(EffectFactory.CreateBasicEffect3(GraphicsDevice)); // no light
             //renderers[OCTREE] = new OctreeRenderer(EffectFactory.CreateBasicEffect1(GraphicsDevice)); // 3 lights
@@ -189,14 +185,17 @@ namespace GameLibrary.SceneGraph
 
             lightCamera = new LightCamera();
 
-            int renderTargetSize = 512;
+            int renderTargetSize = 1024;
+            int cascadeCount = 1;
             RenderTarget2D renderTarget = new RenderTarget2D(
                 GraphicsDevice,
-                renderTargetSize, //GraphicsDevice.PresentationParameters.BackBufferWidth,
-                renderTargetSize, //GraphicsDevice.PresentationParameters.BackBufferHeight,
+                renderTargetSize, renderTargetSize,
                 false,
-                SurfaceFormat.Single, //GraphicsDevice.PresentationParameters.BackBufferFormat,
-                DepthFormat.Depth24);
+                SurfaceFormat.Single, DepthFormat.Depth24,
+                1,
+                RenderTargetUsage.DiscardContents,
+                false,
+                cascadeCount);
 
             shadowRenderContext = new RenderContext(GraphicsDevice, lightCamera, renderTarget);
             shadowRenderContext.ClearColor = Color.White;
@@ -308,6 +307,8 @@ namespace GameLibrary.SceneGraph
                 {
                     if (Debug) Console.WriteLine("Structure Dirty");
                 }
+                // main camera culling
+                
                 // FIXME most of the time nodes stay in the same render group
                 // so doing a clear + full reconstruct is not very efficient
                 // but RENDER_GROUP_VISITOR does the culling...
@@ -318,10 +319,29 @@ namespace GameLibrary.SceneGraph
 
                 rootNode.Visit(RENDER_VISITOR, renderContext);
 
+
+                // light camera culling
+
+                shadowRenderContext.ClearBins();
+
                 Bounding.BoundingBox sceneBoundingBox = new Bounding.BoundingBox(
                     (renderContext.sceneMax + renderContext.sceneMin) / 2.0f,
                     (renderContext.sceneMax - renderContext.sceneMin) / 2.0f);
-                lightCamera.Update(sceneBoundingBox);
+
+                lightCamera.Update(sceneBoundingBox, true);
+                shadowRenderContext.UpdateCamera();
+
+                shadowRenderContext.sceneMax = new Vector3(float.MinValue);
+                shadowRenderContext.sceneMin = new Vector3(float.MaxValue);
+
+                rootNode.Visit(RENDER_VISITOR, shadowRenderContext);
+
+                Bounding.BoundingBox occluderBoundingBox = new Bounding.BoundingBox(
+                    (shadowRenderContext.sceneMax + shadowRenderContext.sceneMin) / 2.0f,
+                    (shadowRenderContext.sceneMax - shadowRenderContext.sceneMin) / 2.0f);
+
+                lightCamera.UpdateZNear(sceneBoundingBox, occluderBoundingBox);
+                shadowRenderContext.UpdateCamera();
 
                 // DEBUG STUFF
 
@@ -334,14 +354,17 @@ namespace GameLibrary.SceneGraph
                 // visible scene bounding box
                 if (true)
                 {
-                    /*
-                    Bounding.BoundingBox sceneBoundingBox = new Bounding.BoundingBox(
-                        (renderContext.sceneMax + renderContext.sceneMin) / 2.0f,
-                        (renderContext.sceneMax - renderContext.sceneMin) / 2.0f);*/
-
                     sceneBoundingBoxGeo.BoundingVolume = sceneBoundingBox;
                     sceneBoundingBoxGeo.WorldBoundingVolume = sceneBoundingBox;
                     renderContext.AddToBin(BOUNDING_BOX, sceneBoundingBoxGeo);
+                }
+
+                // occluder bounding box
+                if (true)
+                {
+                    occluderBoundingBoxGeo.BoundingVolume = occluderBoundingBox;
+                    occluderBoundingBoxGeo.WorldBoundingVolume = occluderBoundingBox;
+                    renderContext.AddToBin(BOUNDING_BOX, occluderBoundingBoxGeo);
                 }
 
                 // light frustrum
@@ -376,6 +399,13 @@ namespace GameLibrary.SceneGraph
 
                     renderContext.AddToBin(FRUSTRUM, lightFrustrumGeo);
                 }
+
+                // shadow map texture
+                if (true)
+                {
+                    // TODO move away..
+                    renderContext.AddToBin(HUD, billboardNode);
+                }
             }
 
             if (CaptureFrustrum)
@@ -407,19 +437,15 @@ namespace GameLibrary.SceneGraph
         {
             if (true)
             {
-                Render(shadowRenderContext, renderContext.renderBins, renderers2);
+                Render(shadowRenderContext, shadowRenderContext.renderBins, renderers2);
                 billboardNode.Texture = shadowRenderContext.RenderTarget;
                 
                 // HACK
                 VoxelEffect voxelEffect = ((VoxelRenderer)renderers[VOXEL]).effect;
                 voxelEffect.LightWorldViewProj = shadowRenderContext.Camera.ViewProjectionMatrix;
                 voxelEffect.ShadowMapTexture = shadowRenderContext.RenderTarget;
-
-                // TODO add it to the scene (but don't render in shadow map...)
-                renderContext.AddToBin(HUD, billboardNode);
             }
 
-            //renderContext.ClearBins();
             Render(renderContext, renderContext.renderBins, renderers);
 
             renderContext.ShowStats();

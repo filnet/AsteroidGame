@@ -113,7 +113,7 @@ namespace GameLibrary.SceneGraph
                     {
                         effectMatrices.World = transform.WorldTransform;
                         pass.Apply();
-                    }                   
+                    }
                     drawable.PreDraw(rc.GraphicsDevice);
                     drawable.Draw(rc.GraphicsDevice);
                     drawable.PostDraw(rc.GraphicsDevice);
@@ -272,7 +272,12 @@ namespace GameLibrary.SceneGraph
         public BillboardRenderer(Effect effect) : base(effect)
         {
             RasterizerState = RasterizerState.CullNone;
-            //BlendState = BlendState.AlphaBlend;        
+            //BlendState = BlendState.AlphaBlend;
+
+            DepthStencilState depthState = new DepthStencilState();
+            depthState.DepthBufferEnable = false;
+            depthState.DepthBufferWriteEnable = false;
+            DepthStencilState = depthState;
         }
 
         public override void Render(RenderContext rc, List<Drawable> drawableList)
@@ -357,9 +362,11 @@ namespace GameLibrary.SceneGraph
 
             // shadow texture sampler
             shadowSamplerState.Filter = TextureFilter.Linear;
-            shadowSamplerState.AddressU = TextureAddressMode.Border;
-            shadowSamplerState.AddressV = TextureAddressMode.Border;
-            shadowSamplerState.BorderColor = new Color(1f, 1f, 1f, 1f);
+            shadowSamplerState.AddressU = TextureAddressMode.Clamp;
+            shadowSamplerState.AddressV = TextureAddressMode.Clamp;
+            //shadowSamplerState.ComparisonFunction = CompareFunction.LessEqual;
+            //shadowSamplerState.FilterMode = TextureFilterMode.Comparison;
+            //shadowSamplerState.BorderColor = new Color(1f, 1f, 1f, 1f);
         }
 
         public override void Render(RenderContext rc, List<Drawable> drawableList)
@@ -403,14 +410,28 @@ namespace GameLibrary.SceneGraph
                 }
             }
         }
-
     }
+
+    public class VoxelWaterRenderer : VoxelRenderer
+    {
+        public VoxelWaterRenderer(VoxelEffect effect) : base(effect)
+        {
+            RasterizerState = RasterizerState.CullNone;
+            BlendState = BlendState.AlphaBlend;
+            // TODO there is no need to disable depth write if the transparent is Z sorted
+            //DepthStencilState depthState = new DepthStencilState();
+            //depthState.DepthBufferEnable = true;
+            //depthState.DepthBufferWriteEnable = false;
+            //DepthStencilState = depthState;
+        }
+    }
+
     public class VoxelShadowRenderer : EffectRenderer<VoxelShadowEffect>
     {
         public VoxelShadowRenderer(VoxelShadowEffect effect) : base(effect)
         {
             //RasterizerState = RasterizerState.CullNone;
-            RasterizerState = RasterizerState.CullCounterClockwise;
+            //RasterizerState = RasterizerState.CullCounterClockwise;
         }
 
         public override void Render(RenderContext rc, List<Drawable> drawableList)

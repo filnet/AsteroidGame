@@ -162,7 +162,6 @@ Shadow mapping
 
 http://www.opengl-tutorial.org/intermediate-tutorials/tutorial-16-shadow-mapping/
 
-very good : https://docs.microsoft.com/en-us/windows/desktop/dxtecharts/cascaded-shadow-maps
 https://docs.microsoft.com/en-us/windows/desktop/dxtecharts/common-techniques-to-improve-shadow-depth-maps
 
 http://www.opengl-tutorial.org/fr/intermediate-tutorials/tutorial-16-shadow-mapping/
@@ -171,4 +170,12 @@ http://community.monogame.net/t/shadow-mapping-on-monogame/8212/2
 
 http://www.riemers.net/eng/Tutorials/XNA/Csharp/Series3/Shadow_map.php
 
+http://www.sunandblackcat.com/tipFullView.php?l=eng&topicid=35
+
 https://blogs.msdn.microsoft.com/shawnhar/2010/09/10/yellow-light-and-blue-shadows/
+
+Cascade shadow mapping
+
+http://timjones.io/blog/archive/2015/04/13/cascaded-shadow-maps-sample-for-monogame
+
+very good : https://docs.microsoft.com/en-us/windows/desktop/dxtecharts/cascaded-shadow-maps

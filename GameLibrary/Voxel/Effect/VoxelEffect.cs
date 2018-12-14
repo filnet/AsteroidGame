@@ -24,6 +24,8 @@ namespace Voxel
         #region Effect Parameters
 
         EffectParameter textureParam;
+
+        EffectParameter ambientColorParam;
         EffectParameter diffuseColorParam;
         EffectParameter emissiveColorParam;
         EffectParameter specularColorParam;
@@ -59,9 +61,9 @@ namespace Voxel
 
         Matrix lightWorldViewProj;
 
+        Vector3 ambientColor = Vector3.Zero;
         Vector3 diffuseColor = Vector3.One;
         Vector3 emissiveColor = Vector3.Zero;
-        Vector3 ambientLightColor = Vector3.Zero;
 
         float alpha = 1;
 
@@ -119,6 +121,21 @@ namespace Voxel
             {
                 projection = value;
                 dirtyFlags |= EffectDirtyFlags.WorldViewProj;
+            }
+        }
+
+
+        /// <summary>
+        /// Gets or sets the material ambient color (range 0 to 1).
+        /// </summary>
+        public Vector3 AmbientLightColor
+        {
+            get { return ambientColor; }
+
+            set
+            {
+                ambientColor = value;
+                dirtyFlags |= EffectDirtyFlags.MaterialColor;
             }
         }
 
@@ -217,19 +234,6 @@ namespace Voxel
                     preferPerPixelLighting = value;
                     dirtyFlags |= EffectDirtyFlags.ShaderIndex;
                 }
-            }
-        }
-
-
-        /// <inheritdoc/>
-        public Vector3 AmbientLightColor
-        {
-            get { return ambientLightColor; }
-
-            set
-            {
-                ambientLightColor = value;
-                dirtyFlags |= EffectDirtyFlags.MaterialColor;
             }
         }
 
@@ -403,9 +407,9 @@ namespace Voxel
             view = cloneSource.view;
             projection = cloneSource.projection;
 
+            ambientColor = cloneSource.ambientColor;
             diffuseColor = cloneSource.diffuseColor;
             emissiveColor = cloneSource.emissiveColor;
-            ambientLightColor = cloneSource.ambientLightColor;
 
             alpha = cloneSource.alpha;
 
@@ -429,7 +433,7 @@ namespace Voxel
         {
             LightingEnabled = true;
 
-            AmbientLightColor = EffectHelpers.EnableDefaultLighting(light0, light1, light2);
+            ambientColor = EffectHelpers.EnableDefaultLighting(light0, light1, light2);
         }
 
 
@@ -438,6 +442,7 @@ namespace Voxel
         /// </summary>
         void CacheEffectParameters(VoxelEffect cloneSource)
         {
+            ambientColorParam = Parameters["AmbientColor"];
             diffuseColorParam = Parameters["DiffuseColor"];
             emissiveColorParam = Parameters["EmissiveColor"];
             specularColorParam = Parameters["SpecularColor"];
@@ -485,7 +490,7 @@ namespace Voxel
             // Recompute the diffuse/emissive/alpha material color parameters?
             if ((dirtyFlags & EffectDirtyFlags.MaterialColor) != 0)
             {
-                EffectHelpers.SetMaterialColor(lightingEnabled, alpha, ref diffuseColor, ref emissiveColor, ref ambientLightColor, diffuseColorParam, emissiveColorParam);
+                EffectHelpers.SetMaterialColor(lightingEnabled, alpha, ref ambientColor, ref diffuseColor, ref emissiveColor, ambientColorParam, diffuseColorParam, emissiveColorParam);
 
                 dirtyFlags &= ~EffectDirtyFlags.MaterialColor;
             }

@@ -15,32 +15,33 @@ DECLARE_TEXTURE(ShadowMapTexture, 2);
 
 BEGIN_CONSTANTS
 
-    float4 DiffuseColor             _vs(c0)  _ps(c1)  _cb(c0);
-    float3 EmissiveColor            _vs(c1)  _ps(c2)  _cb(c1);
-    float3 SpecularColor            _vs(c2)  _ps(c3)  _cb(c2);
-    float  SpecularPower            _vs(c3)  _ps(c4)  _cb(c2.w);
+    float4 AmbientColor             _vs(c0)  _ps(c1)  _cb(c0);
+    float4 DiffuseColor             _vs(c1)  _ps(c2)  _cb(c1);
+    float3 EmissiveColor            _vs(c2)  _ps(c3)  _cb(c3);
+    float3 SpecularColor            _vs(c3)  _ps(c4)  _cb(c3);
+    float  SpecularPower            _vs(c4)  _ps(c5)  _cb(c3.w);
 
-    float3 DirLight0Direction       _vs(c4)  _ps(c5)  _cb(c3);
-    float3 DirLight0DiffuseColor    _vs(c5)  _ps(c6)  _cb(c4);
-    float3 DirLight0SpecularColor   _vs(c6)  _ps(c7)  _cb(c5);
+    float3 DirLight0Direction       _vs(c5)  _ps(c6)  _cb(c4);
+    float3 DirLight0DiffuseColor    _vs(c6)  _ps(c7)  _cb(c5);
+    float3 DirLight0SpecularColor   _vs(c7)  _ps(c8)  _cb(c6);
 
-    float3 DirLight1Direction       _vs(c7)  _ps(c8)  _cb(c6);
-    float3 DirLight1DiffuseColor    _vs(c8)  _ps(c9)  _cb(c7);
-    float3 DirLight1SpecularColor   _vs(c9)  _ps(c10) _cb(c8);
+    float3 DirLight1Direction       _vs(c8)  _ps(c9)  _cb(c7);
+    float3 DirLight1DiffuseColor    _vs(c9)  _ps(c10) _cb(c8);
+    float3 DirLight1SpecularColor   _vs(c10) _ps(c11) _cb(c9);
 
-    float3 DirLight2Direction       _vs(c10) _ps(c11) _cb(c9);
-    float3 DirLight2DiffuseColor    _vs(c11) _ps(c12) _cb(c10);
-    float3 DirLight2SpecularColor   _vs(c12) _ps(c13) _cb(c11);
+    float3 DirLight2Direction       _vs(c11) _ps(c12) _cb(c10);
+    float3 DirLight2DiffuseColor    _vs(c12) _ps(c13) _cb(c11);
+    float3 DirLight2SpecularColor   _vs(c13) _ps(c14) _cb(c12);
 
-    float3 EyePosition              _vs(c13) _ps(c14) _cb(c12);
+    float3 EyePosition              _vs(c14) _ps(c15) _cb(c13);
 
-    float3 FogColor                          _ps(c0)  _cb(c13);
-    float4 FogVector                _vs(c14)          _cb(c14);
+    float3 FogColor                          _ps(c0)  _cb(c14);
+    float4 FogVector                _vs(c15)          _cb(c15);
 
-    float4x4 World                  _vs(c19)          _cb(c15);
+    float4x4 World                  _vs(c19)          _cb(c16);
     float3x3 WorldInverseTranspose  _vs(c23)          _cb(c19);
 
-	float4x4 LightWorldViewProj     _vs(c25) _ps(c15) _cb(c20);
+	float4x4 LightWorldViewProj     _vs(c25) _ps(c16) _cb(c20);
 
 MATRIX_CONSTANTS
 
@@ -492,8 +493,17 @@ float4 blendWF(float4 src, float4 dst)
 // Pixel shader: vertex lighting + texture, no fog.
 float4 PSBasicVertexLightingTxNoFog(VSOutputTx pin) : SV_Target0
 {
+	// TODO light is wrongly calculated
+	// main problem is that :
+	// - facing light + in shadow = ambient * diffuse * shadow
+	// - not facing light + in shadow = ambient * shadow (= darker than above case but should not)
+	// for surfaces not facing the light the shadow is accounted for twice
+	// should both be = ambient
+	// and a surface that does not face the light should be as dark even if the shadow is not taken into account
+	// i.e. get rid of "visibility" and, instead, add diffuse if not facing light *or* in 
+
     //float4 color = float4(1,1,1,1);
-    float4 color = SAMPLE_TEXTURE_ARRAY(Texture, float3(pin.TexCoord, pin.TextureIndex[0])) * pin.Diffuse;
+    float4 color = SAMPLE_TEXTURE_ARRAY(Texture, float3(pin.TexCoord, pin.TextureIndex[0])); //* pin.Diffuse;
     
 	color *= SampleAmbientOcclusionFactors(pin.AmbientOcclusionFactors, pin.TexCoord);
 
@@ -503,22 +513,23 @@ float4 PSBasicVertexLightingTxNoFog(VSOutputTx pin) : SV_Target0
 	float4 wfColor2 = SAMPLE_TEXTURE(WireframeTexture, pin.WF2TexCoord);
 	color = blendWF(wfColor2, color);
 
-	float visibility = 1.0;
-
 	// FIXME this can be done upfront in the light projection
 	float2 shadowTexCoord = mad(0.5f , pin.ShadowPosition.xy / pin.ShadowPosition.w , float2(0.5f, 0.5f));
     shadowTexCoord.y = 1.0f - shadowTexCoord.y;
 	
+	float depthOffset = 0.0005;
+
 	float lightDepth = SAMPLE_TEXTURE(ShadowMapTexture, shadowTexCoord).x;
 	float lightDistance = pin.ShadowPosition.z / pin.ShadowPosition.w;
-	if ((lightDistance - 0.00001) > lightDepth) {
-		visibility = 0.5f;
+
+	float4 cout = color * AmbientColor;
+
+	if ((lightDistance - depthOffset) < lightDepth) {
+		cout += color * pin.Diffuse;
+	    AddSpecular(cout, pin.Specular.rgb);
 	}
 
-	color = color * visibility;
-    AddSpecular(color, pin.Specular.rgb);
-
-    return color;
+    return cout;
 }
 
 
@@ -544,19 +555,27 @@ float4 PSBasicPixelLighting(VSOutputPixelLighting pin) : SV_Target0
 // Pixel shader: pixel lighting + texture.
 float4 PSBasicPixelLightingTx(VSOutputPixelLightingTx pin) : SV_Target0
 {
-    float4 color = SAMPLE_TEXTURE_ARRAY(Texture, float3(pin.TexCoord, pin.TextureIndex[0])) * pin.Diffuse;
+    float4 color = SAMPLE_TEXTURE_ARRAY(Texture, float3(pin.TexCoord, pin.TextureIndex[0]));
     
     float3 eyeVector = normalize(EyePosition - pin.PositionWS.xyz);
     float3 worldNormal = normalize(pin.NormalWS);
     
     ColorPair lightResult = ComputeLights(eyeVector, worldNormal, 3);
     
-    color.rgb *= lightResult.Diffuse;
+	float4 cout = color * AmbientColor;
+	
+	cout.rgb += color.rgb * pin.Diffuse;
 
-    AddSpecular(color, lightResult.Specular);
-    ApplyFog(color, pin.PositionWS.w);
+    cout.rgb *= lightResult.Diffuse;
+
+	//cout.a = 1;
+
+    AddSpecular(cout, lightResult.Specular);
+    ApplyFog(cout, pin.PositionWS.w);
     
-    return color;
+	//cout.a = 0.5;
+
+    return cout;
 }
 
 

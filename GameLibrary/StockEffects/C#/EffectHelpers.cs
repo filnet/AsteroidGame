@@ -275,5 +275,70 @@ namespace StockEffects
                 diffuseColorParam.SetValue(diffuse);
             }
         }
+
+        /// <summary>
+        /// Sets the diffuse/emissive/alpha material color parameters.
+        /// </summary>
+        internal static void SetMaterialColor(bool lightingEnabled, float alpha,
+                                              ref Vector3 ambientColor, ref Vector3 diffuseColor, ref Vector3 emissiveColor,
+                                              EffectParameter ambientColorParam, EffectParameter diffuseColorParam, EffectParameter emissiveColorParam)
+        {
+            // Desired lighting model:
+            //
+            //     ((AmbientLightColor + sum(diffuse directional light)) * DiffuseColor) + EmissiveColor
+            //
+            // When lighting is disabled, ambient and directional lights are ignored, leaving:
+            //
+            //     DiffuseColor + EmissiveColor
+            //
+            // For the lighting disabled case, we can save one shader instruction by precomputing
+            // diffuse+emissive on the CPU, after which the shader can use DiffuseColor directly,
+            // ignoring its emissive parameter.
+            //
+            // NOT TRUE HERE: When lighting is enabled, we can merge the ambient and emissive settings. If we
+            // set our emissive parameter to emissive+(ambient*diffuse), the shader no longer
+            // needs to bother adding the ambient contribution, simplifying its computation to:
+            //
+            //     (sum(diffuse directional light) * DiffuseColor) + EmissiveColor
+            //
+            // For futher optimization goodness, we merge material alpha with the diffuse
+            // color parameter, and premultiply all color values by this alpha.
+
+            if (lightingEnabled)
+            {
+                Vector4 diffuse = new Vector4();
+                Vector3 emissive = new Vector3();
+
+                diffuse.X = diffuseColor.X * alpha;
+                diffuse.Y = diffuseColor.Y * alpha;
+                diffuse.Z = diffuseColor.Z * alpha;
+                diffuse.W = alpha;
+
+                emissive.X = emissiveColor.X * alpha;
+                emissive.Y = emissiveColor.Y * alpha;
+                emissive.Z = emissiveColor.Z * alpha;
+
+                diffuseColorParam.SetValue(diffuse);
+                emissiveColorParam.SetValue(emissive);
+            }
+            else
+            {
+                Vector4 diffuse = new Vector4();
+
+                diffuse.X = (diffuseColor.X + emissiveColor.X) * alpha;
+                diffuse.Y = (diffuseColor.Y + emissiveColor.Y) * alpha;
+                diffuse.Z = (diffuseColor.Z + emissiveColor.Z) * alpha;
+                diffuse.W = alpha;
+
+                diffuseColorParam.SetValue(diffuse);
+            }
+
+            Vector4 ambient = new Vector4();
+            ambient.X = ambientColor.X * alpha;
+            ambient.Y = ambientColor.Y * alpha;
+            ambient.Z = ambientColor.Z * alpha;
+            ambient.W = alpha;
+            ambientColorParam.SetValue(ambient);
+        }
     }
 }
