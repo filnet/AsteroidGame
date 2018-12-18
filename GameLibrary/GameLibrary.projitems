@@ -33,6 +33,7 @@
     <Compile Include="$(MSBuildThisFileDirectory)Geometry\QuadMeshFactory.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)SceneGraph\Common\Drawable.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)SceneGraph\Common\BillboardNode.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)SceneGraph\Common\LightNode.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)SceneGraph\Common\Physical.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)SceneGraph\Common\Transform.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)SceneGraph\LightCamera.cs" />

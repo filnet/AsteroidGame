@@ -42,6 +42,9 @@ namespace GameLibrary.SceneGraph
         public static int CULLED_BOUNDING_SPHERE = 32;
         public static int CULLED_BOUNDING_BOX = 33;
 
+        public static int CASTER_BOUNDING_SPHERE = 34;
+        public static int CASTER_BOUNDING_BOX = 35;
+
         public static int COLLISION_SPHERE = 40;
         public static int COLLISION_BOX = 41;
 
@@ -64,8 +67,8 @@ namespace GameLibrary.SceneGraph
         private MeshNode frustrumGeo;
 
         private MeshNode lightFrustrumGeo;
-        private MeshNode sceneBoundingBoxGeo;
-        private MeshNode occluderBoundingBoxGeo;
+        private MeshNode visibleBoundingBoxGeo;
+        private MeshNode casterBoundingBoxGeo;
 
         private BillboardNode billboardNode;
 
@@ -96,10 +99,6 @@ namespace GameLibrary.SceneGraph
 
         public RenderContext renderContext;
 
-        public LightCamera lightCamera;
-
-        public RenderContext shadowRenderContext;
-
         public Node RootNode
         {
             get { return rootNode; }
@@ -129,11 +128,11 @@ namespace GameLibrary.SceneGraph
             boundingBoxGeo = GeometryUtil.CreateCubeWF("BOUNDING_BOX", 1);
             boundingBoxGeo.Initialize(GraphicsDevice);
 
-            sceneBoundingBoxGeo = GeometryUtil.CreateCubeWF("SCENE_BOUNDING_BOX", 1);
-            sceneBoundingBoxGeo.Initialize(GraphicsDevice);
+            visibleBoundingBoxGeo = GeometryUtil.CreateCubeWF("VISIBLE_BOUNDING_BOX", 1);
+            visibleBoundingBoxGeo.Initialize(GraphicsDevice);
 
-            occluderBoundingBoxGeo = GeometryUtil.CreateCubeWF("OCCLUDER_BOUNDING_BOX", 1);
-            occluderBoundingBoxGeo.Initialize(GraphicsDevice);
+            casterBoundingBoxGeo = GeometryUtil.CreateCubeWF("CASTER_BOUNDING_BOX", 1);
+            casterBoundingBoxGeo.Initialize(GraphicsDevice);
 
             billboardNode = new BillboardNode("SHADOW_MAP");
             billboardNode.Initialize(GraphicsDevice);
@@ -171,6 +170,8 @@ namespace GameLibrary.SceneGraph
             renderers[BOUNDING_BOX] = new BoundRenderer(EffectFactory.CreateBoundEffect(GraphicsDevice, clip), boundingBoxGeo);
             renderers[CULLED_BOUNDING_SPHERE] = new BoundRenderer(EffectFactory.CreateCulledBoundEffect(GraphicsDevice, clip), boundingSphereGeo);
             renderers[CULLED_BOUNDING_BOX] = new BoundRenderer(EffectFactory.CreateCulledBoundEffect(GraphicsDevice, clip), boundingBoxGeo);
+            renderers[CASTER_BOUNDING_SPHERE] = new BoundRenderer(EffectFactory.CreateCasterBoundEffect(GraphicsDevice, clip), boundingSphereGeo);
+            renderers[CASTER_BOUNDING_BOX] = new BoundRenderer(EffectFactory.CreateCasterBoundEffect(GraphicsDevice, clip), boundingBoxGeo);
             renderers[COLLISION_SPHERE] = new BoundRenderer(EffectFactory.CreateCollisionEffect(GraphicsDevice, clip), boundingSphereGeo);
             renderers[COLLISION_BOX] = new BoundRenderer(EffectFactory.CreateCollisionEffect(GraphicsDevice, clip), boundingBoxGeo);
 
@@ -182,23 +183,6 @@ namespace GameLibrary.SceneGraph
             rootNode.Visit(COMMIT_VISITOR, this);
 
             renderContext = new RenderContext(GraphicsDevice, cameraComponent);
-
-            lightCamera = new LightCamera();
-
-            int renderTargetSize = 1024;
-            int cascadeCount = 1;
-            RenderTarget2D renderTarget = new RenderTarget2D(
-                GraphicsDevice,
-                renderTargetSize, renderTargetSize,
-                false,
-                SurfaceFormat.Single, DepthFormat.Depth24,
-                1,
-                RenderTargetUsage.DiscardContents,
-                false,
-                cascadeCount);
-
-            shadowRenderContext = new RenderContext(GraphicsDevice, lightCamera, renderTarget);
-            shadowRenderContext.ClearColor = Color.White;
         }
 
         public void Dispose()
@@ -280,7 +264,6 @@ namespace GameLibrary.SceneGraph
 
             renderContext.GameTime = gameTime;
             renderContext.ResetStats();
-            shadowRenderContext.ResetStats();
 
             // do the RENDER_GROUP_VISITOR only if:
             // - camera is dirty
@@ -307,41 +290,97 @@ namespace GameLibrary.SceneGraph
                 {
                     if (Debug) Console.WriteLine("Structure Dirty");
                 }
+
                 // main camera culling
-                
+
                 // FIXME most of the time nodes stay in the same render group
                 // so doing a clear + full reconstruct is not very efficient
                 // but RENDER_GROUP_VISITOR does the culling...
-                renderContext.ClearBins();
+                renderContext.Clear();
 
-                renderContext.sceneMax = new Vector3(float.MinValue);
-                renderContext.sceneMin = new Vector3(float.MaxValue);
-
-                rootNode.Visit(RENDER_VISITOR, renderContext);
-
+                rootNode.Visit(CULL_VISITOR, renderContext);
 
                 // light camera culling
 
-                shadowRenderContext.ClearBins();
+                // visible bounding box includes "whole" chunks
+                // so we need to intersect with frustrum to get a tighter visible bounding box
+                Vector3 min = renderContext.sceneMin;
+                Vector3 max = renderContext.sceneMax;
 
-                Bounding.BoundingBox sceneBoundingBox = new Bounding.BoundingBox(
-                    (renderContext.sceneMax + renderContext.sceneMin) / 2.0f,
-                    (renderContext.sceneMax - renderContext.sceneMin) / 2.0f);
+                //min.Z = Math.Min(min.Z, renderContext.BoundingFrustum.Near.);
+                //max.Z = Math.Min(max.Z, renderContext.BoundingFrustum.Far);
 
-                lightCamera.Update(sceneBoundingBox, true);
-                shadowRenderContext.UpdateCamera();
+                Bounding.BoundingBox visibleBoundingBox = Bounding.BoundingBox.CreateFromMinMax(min, max);               
 
-                shadowRenderContext.sceneMax = new Vector3(float.MinValue);
-                shadowRenderContext.sceneMin = new Vector3(float.MaxValue);
+                // FIXME only last casters BB and light frustrum will be shown...
+                RenderContext shadowRenderContext = null;
+                LightCamera lightCamera = null;
+                Bounding.BoundingBox casterBoundingBox = null;
+                for (int i = 0; i < renderContext.lightNodes.Count; i++)
+                {
+                    LightNode lightNode = renderContext.lightNodes[i];
+                    shadowRenderContext = renderContext.lightRenderContextes[i];
 
-                rootNode.Visit(RENDER_VISITOR, shadowRenderContext);
+                    bool computeCasterBoundingBox = true;
 
-                Bounding.BoundingBox occluderBoundingBox = new Bounding.BoundingBox(
-                    (shadowRenderContext.sceneMax + shadowRenderContext.sceneMin) / 2.0f,
-                    (shadowRenderContext.sceneMax - shadowRenderContext.sceneMin) / 2.0f);
+                    // FIXME light frustrum can be made tighter
+                    // should use the scene bounding box only for near and far planes...
+                    // scene bounding box can be bigger than frustrum...
+                    // need to use the intersection of the frustum and scenebounding box
+                    lightCamera = shadowRenderContext.Camera as LightCamera;
+                    lightCamera.lightDirection = -lightNode.Translation;
+                    lightCamera.Update(visibleBoundingBox, computeCasterBoundingBox);
+                    shadowRenderContext.UpdateCamera();
 
-                lightCamera.UpdateZNear(sceneBoundingBox, occluderBoundingBox);
-                shadowRenderContext.UpdateCamera();
+                    shadowRenderContext.sceneMax = new Vector3(float.MinValue);
+                    shadowRenderContext.sceneMin = new Vector3(float.MaxValue);
+
+                    // find casters
+                    // FIXME we get spurious casters that are too far away to really
+                    // contribute shadow... no idea atm on how to ignore them
+                    rootNode.Visit(CULL_VISITOR, shadowRenderContext);
+
+                    // shadow context can be empty (i.e. no additional casters where found
+                    if (computeCasterBoundingBox && shadowRenderContext.DrawableCount > 0)
+                    {
+                        // TODO casterBoundingBox can be empty...
+                        casterBoundingBox = Bounding.BoundingBox.CreateFromMinMax(
+                            shadowRenderContext.sceneMin, shadowRenderContext.sceneMax);
+
+                        lightCamera.UpdateZNear(visibleBoundingBox, casterBoundingBox);
+                        shadowRenderContext.UpdateCamera();
+                    }
+                    else
+                    {
+                        lightCamera.Update(visibleBoundingBox, false);
+                        shadowRenderContext.UpdateCamera();
+                    }
+
+                    // show caster bounding boxes
+                    bool ShowCasters = true;
+                    if (ShowCasters)
+                    {
+                        foreach (KeyValuePair<int, List<Drawable>> renderBinKVP in shadowRenderContext.renderBins)
+                        {
+                            int renderBinId = renderBinKVP.Key;
+                            List<Drawable> drawableList = renderBinKVP.Value;
+                            renderContext.AddToBin(CASTER_BOUNDING_BOX, drawableList);
+                        }
+                    }
+                    
+                    // add visible drawables to casters drawables
+                    // FIXME this is expensive as we check for duplicates...
+                    foreach (KeyValuePair<int, List<Drawable>> renderBinKVP in shadowRenderContext.renderBins)
+                    {
+                        int renderBinId = renderBinKVP.Key;
+                        List<Drawable> drawableList = renderBinKVP.Value;
+                        List<Drawable> visibleList;
+                        if (renderContext.renderBins.TryGetValue(renderBinId, out visibleList))
+                        {
+                            shadowRenderContext.AddToBin(renderBinId, visibleList);
+                        }
+                    }
+                }
 
                 // DEBUG STUFF
 
@@ -351,24 +390,24 @@ namespace GameLibrary.SceneGraph
                     renderContext.AddToBin(FRUSTRUM, frustrumGeo);
                 }
 
-                // visible scene bounding box
+                // visible bounding box
                 if (true)
                 {
-                    sceneBoundingBoxGeo.BoundingVolume = sceneBoundingBox;
-                    sceneBoundingBoxGeo.WorldBoundingVolume = sceneBoundingBox;
-                    renderContext.AddToBin(BOUNDING_BOX, sceneBoundingBoxGeo);
+                    visibleBoundingBoxGeo.BoundingVolume = visibleBoundingBox;
+                    visibleBoundingBoxGeo.WorldBoundingVolume = visibleBoundingBox;
+                    renderContext.AddToBin(BOUNDING_BOX, visibleBoundingBoxGeo);
                 }
 
-                // occluder bounding box
-                if (true)
+                // caster bounding box
+                if (true && casterBoundingBox != null)
                 {
-                    occluderBoundingBoxGeo.BoundingVolume = occluderBoundingBox;
-                    occluderBoundingBoxGeo.WorldBoundingVolume = occluderBoundingBox;
-                    renderContext.AddToBin(BOUNDING_BOX, occluderBoundingBoxGeo);
+                    casterBoundingBoxGeo.BoundingVolume = casterBoundingBox;
+                    casterBoundingBoxGeo.WorldBoundingVolume = casterBoundingBox;
+                    renderContext.AddToBin(BOUNDING_BOX, casterBoundingBoxGeo);
                 }
 
                 // light frustrum
-                if (true)
+                if (true && lightCamera != null)
                 {
                     //if (lightFrustrumGeo == null)
                     //{
@@ -435,21 +474,29 @@ namespace GameLibrary.SceneGraph
 
         public void Draw(GameTime gameTime)
         {
+            RenderContext shadowRenderContext = null;
             if (true)
             {
-                Render(shadowRenderContext, shadowRenderContext.renderBins, renderers2);
-                billboardNode.Texture = shadowRenderContext.RenderTarget;
-                
-                // HACK
-                VoxelEffect voxelEffect = ((VoxelRenderer)renderers[VOXEL]).effect;
-                voxelEffect.LightWorldViewProj = shadowRenderContext.Camera.ViewProjectionMatrix;
-                voxelEffect.ShadowMapTexture = shadowRenderContext.RenderTarget;
+                for (int i = 0; i < renderContext.lightNodes.Count; i++)
+                {
+                    LightNode lightNode = renderContext.lightNodes[i];
+                    shadowRenderContext = renderContext.lightRenderContextes[i];
+
+                    Render(shadowRenderContext, shadowRenderContext.renderBins, renderers2);
+
+                    billboardNode.Texture = shadowRenderContext.RenderTarget;
+
+                    // HACK
+                    VoxelEffect voxelEffect = ((VoxelRenderer)renderers[VOXEL]).effect;
+                    voxelEffect.DirectionalLight0.Direction = shadowRenderContext.Camera.ViewDirection;
+                    voxelEffect.LightWorldViewProj = shadowRenderContext.Camera.ViewProjectionMatrix;
+                    voxelEffect.ShadowMapTexture = shadowRenderContext.RenderTarget;
+                }
             }
 
             Render(renderContext, renderContext.renderBins, renderers);
 
-            renderContext.ShowStats();
-            shadowRenderContext.ShowStats();
+            renderContext.ShowStats("Scene");
         }
 
         public void Render(RenderContext renderContext, SortedDictionary<int, List<Drawable>> renderBins, Dictionary<int, Renderer> renderers)
@@ -468,16 +515,16 @@ namespace GameLibrary.SceneGraph
             foreach (KeyValuePair<int, List<Drawable>> renderBinKVP in renderBins)
             {
                 int renderBinId = renderBinKVP.Key;
-                List<Drawable> nodeList = renderBinKVP.Value;
-                if (nodeList.Count() == 0) continue;
+                List<Drawable> drawableList = renderBinKVP.Value;
+                if (drawableList.Count() == 0) continue;
 
-                if (Debug) Console.WriteLine(renderBinId + " " + nodeList.Count);
+                if (Debug) Console.WriteLine(renderBinId + " " + drawableList.Count);
 
                 Renderer renderer;
                 renderers.TryGetValue(renderBinId, out renderer);
                 if (renderer != null)
                 {
-                    renderer.Render(renderContext, nodeList);
+                    renderer.Render(renderContext, drawableList);
                 }
                 else
                 {
@@ -493,45 +540,6 @@ namespace GameLibrary.SceneGraph
             GraphicsDevice.RasterizerState = oldRasterizerState;
             GraphicsDevice.SamplerStates[0] = oldSamplerState;
         }
-
-        /*
-                private void drawIntersection(GameTime gameTime)
-                {
-                    DrawContext dc = new DrawContext();
-                    dc.scene = this;
-                    dc.gameTime = gameTime;
-
-                    Effect effect = renderEffects[BOUND];
-                    IEffectMatrices effectMatrices = effect as IEffectMatrices;
-                    if (effectMatrices != null)
-                    {
-                        effectMatrices.Projection = cameraComponent.ProjectionMatrix;
-                        effectMatrices.View = cameraComponent.ViewMatrix;
-                    }
-                    dc.effect = effect;
-
-                    GraphicsDevice.RasterizerState = RasterizerState.CullClockwise;
-                    GraphicsDevice.BlendState = BlendState.NonPremultiplied;
-                    //GraphicsDevice.BlendState = BlendState.AlphaBlend;
-
-                    foreach (GameLibrary.Util.Intersection intersection in intersections)
-                    {
-                        if (effectMatrices != null)
-                        {
-                            //effectMatrices.World = node.WorldMatrix;// *Matrix.CreateScale(boundingSphere.Radius); // node.WorldMatrix;
-                            effectMatrices.World = Matrix.CreateScale(0.04f) * Matrix.CreateTranslation(intersection.vertex); // node.WorldMatrix;
-                        }
-                        boundingGeo.preDraw(dc);
-                        foreach (EffectPass pass in effect.CurrentTechnique.Passes)
-                        {
-                            pass.Apply();
-                            dc.pass = pass;
-                            boundingGeo.Draw(dc);
-                        }
-                        boundingGeo.postDraw(dc);
-                    }
-                }
-        */
 
         private static readonly Node.Visitor UPDATE_VISITOR = delegate (Node node, ref object arg)
         {
@@ -601,7 +609,7 @@ namespace GameLibrary.SceneGraph
             return true;
         };
 
-        private static readonly Node.Visitor RENDER_VISITOR = delegate (Node node, ref Object arg)
+        private static readonly Node.Visitor CULL_VISITOR = delegate (Node node, ref Object arg)
             {
                 if (!node.Visible)
                 {
@@ -610,11 +618,12 @@ namespace GameLibrary.SceneGraph
 
                 RenderContext ctxt = arg as RenderContext;
 
+                // FIXME get rid this endless if/else if/else if/...
                 if (node is VoxelOctreeGeometry voxelOctreeGeometry)
                 {
                     voxelOctreeGeometry.voxelOctree.ClearLoadQueue();
                     voxelOctreeGeometry.voxelOctree.Visit(
-                        ctxt.VisitOrder, VOXEL_OCTREE_RENDER_VISITOR, null, VOXEL_OCTREE_RENDER_POST_VISITOR, ref arg);
+                        ctxt.VisitOrder, VOXEL_OCTREE_CULL_VISITOR, null, VOXEL_OCTREE_CULL_POST_VISITOR, ref arg);
                     return true;
                 }
                 else if (node is Drawable drawable)
@@ -640,16 +649,23 @@ namespace GameLibrary.SceneGraph
                         ctxt.AddBoundingVolume(drawable, cull);
                     }
                 }
+                else if (!ctxt.Light && node is LightNode lightNode)
+                {
+                    ctxt.AddLightNode(lightNode);
+                }
                 // TODO should return !cull
                 return true;
             };
 
         static float minA = float.MaxValue;
-        private static readonly VoxelOctree.Visitor<VoxelChunk> VOXEL_OCTREE_RENDER_VISITOR = delegate (Octree<VoxelChunk> octree, OctreeNode<VoxelChunk> node, ref Object arg)
+        private static readonly VoxelOctree.Visitor<VoxelChunk> VOXEL_OCTREE_CULL_VISITOR = delegate (Octree<VoxelChunk> octree, OctreeNode<VoxelChunk> node, ref Object arg)
         {
             RenderContext ctxt = arg as RenderContext;
 
             bool culled = false;
+
+            Bounding.BoundingBox boundingBox = (node.obj.Drawable != null) ?
+                node.obj.Drawable.BoundingVolume as Bounding.BoundingBox : node.obj.BoundingBox;
 
             // frustrum culling
             if (!culled && ctxt.FrustrumCullingEnabled)
@@ -664,7 +680,7 @@ namespace GameLibrary.SceneGraph
                 // https://github.com/labnation/MonoGame/blob/master/MonoGame.Framework/BoundingBox.cs
 
                 BoundingFrustum boundingFrustum = ctxt.BoundingFrustum;
-                ContainmentType containmentType = node.obj.BoundingBox.IsContained(boundingFrustum);
+                ContainmentType containmentType = boundingBox.IsContained(boundingFrustum);
                 if (containmentType == ContainmentType.Disjoint)
                 {
                     culled = true;
@@ -683,8 +699,8 @@ namespace GameLibrary.SceneGraph
             // distance culling
             if (!culled && ctxt.DistanceCullingEnabled)
             {
-                Vector3 center = node.obj.BoundingBox.Center;
-                Vector3 halfSize = node.obj.BoundingBox.HalfSize;
+                Vector3 center = boundingBox.Center;
+                Vector3 halfSize = boundingBox.HalfSize;
                 // TODO move to BoundingBox
                 // compute min and max distance (squared) of a point to an AABB
                 // see http://mcmains.me.berkeley.edu/pubs/TVCG2010finalKrishnamurthyMcMains.pdf
@@ -732,8 +748,8 @@ namespace GameLibrary.SceneGraph
             {
                 // https://gdbooks.gitbooks.io/3dcollisions/content/Chapter2/static_aabb_plane.html
 
-                Vector3 center = node.obj.BoundingBox.Center;
-                Vector3 halfSize = node.obj.BoundingBox.HalfSize;
+                Vector3 center = boundingBox.Center;
+                Vector3 halfSize = boundingBox.HalfSize;
 
                 // plane normal
                 Vector3 n = ctxt.Camera.ViewDirection;
@@ -756,7 +772,7 @@ namespace GameLibrary.SceneGraph
                         // TODO use dynamic vertex buffer
                         // then use dynamic vertex buffer to plot graph of mouse dx / dy (using line strip)
                         // and for camera frustrums...
-                        AddBBoxHull(ctxt, ref node.obj.BoundingBox);
+                        AddBBoxHull(ctxt, ref boundingBox);
                     }
                     float a = VectorUtil.BBoxArea(ref ctxt.CameraPosition, ref node.obj.BoundingBox, ctxt.ProjectToScreen);
                     if (a != -1 && a < minA)
@@ -796,12 +812,12 @@ namespace GameLibrary.SceneGraph
                 {
                     ctxt.AddToBin(drawable);
 
-                    ctxt.sceneMax.X = Math.Max(ctxt.sceneMax.X, node.obj.BoundingBox.Center.X + node.obj.BoundingBox.HalfSize.X);
-                    ctxt.sceneMax.Y = Math.Max(ctxt.sceneMax.Y, node.obj.BoundingBox.Center.Y + node.obj.BoundingBox.HalfSize.Y);
-                    ctxt.sceneMax.Z = Math.Max(ctxt.sceneMax.Z, node.obj.BoundingBox.Center.Z + node.obj.BoundingBox.HalfSize.Z);
-                    ctxt.sceneMin.X = Math.Min(ctxt.sceneMin.X, node.obj.BoundingBox.Center.X - node.obj.BoundingBox.HalfSize.X);
-                    ctxt.sceneMin.Y = Math.Min(ctxt.sceneMin.Y, node.obj.BoundingBox.Center.Y - node.obj.BoundingBox.HalfSize.Y);
-                    ctxt.sceneMin.Z = Math.Min(ctxt.sceneMin.Z, node.obj.BoundingBox.Center.Z - node.obj.BoundingBox.HalfSize.Z);
+                    ctxt.sceneMax.X = Math.Max(ctxt.sceneMax.X, boundingBox.Center.X + boundingBox.HalfSize.X);
+                    ctxt.sceneMax.Y = Math.Max(ctxt.sceneMax.Y, boundingBox.Center.Y + boundingBox.HalfSize.Y);
+                    ctxt.sceneMax.Z = Math.Max(ctxt.sceneMax.Z, boundingBox.Center.Z + boundingBox.HalfSize.Z);
+                    ctxt.sceneMin.X = Math.Min(ctxt.sceneMin.X, boundingBox.Center.X - boundingBox.HalfSize.X);
+                    ctxt.sceneMin.Y = Math.Min(ctxt.sceneMin.Y, boundingBox.Center.Y - boundingBox.HalfSize.Y);
+                    ctxt.sceneMin.Z = Math.Min(ctxt.sceneMin.Z, boundingBox.Center.Z - boundingBox.HalfSize.Z);
                 }
                 if (drawable.BoundingVolumeVisible)
                 {
@@ -819,7 +835,7 @@ namespace GameLibrary.SceneGraph
             return !culled;
         };
 
-        private static readonly VoxelOctree.Visitor<VoxelChunk> VOXEL_OCTREE_RENDER_POST_VISITOR = delegate (Octree<VoxelChunk> octree, OctreeNode<VoxelChunk> node, ref Object arg)
+        private static readonly VoxelOctree.Visitor<VoxelChunk> VOXEL_OCTREE_CULL_POST_VISITOR = delegate (Octree<VoxelChunk> octree, OctreeNode<VoxelChunk> node, ref Object arg)
         {
             RenderContext ctxt = arg as RenderContext;
             // restore culling flags
@@ -991,6 +1007,45 @@ namespace GameLibrary.SceneGraph
                 nodeList.Clear();
             }
         }
+
+        /*
+        private void drawIntersection(GameTime gameTime)
+        {
+            DrawContext dc = new DrawContext();
+            dc.scene = this;
+            dc.gameTime = gameTime;
+
+            Effect effect = renderEffects[BOUND];
+            IEffectMatrices effectMatrices = effect as IEffectMatrices;
+            if (effectMatrices != null)
+            {
+                effectMatrices.Projection = cameraComponent.ProjectionMatrix;
+                effectMatrices.View = cameraComponent.ViewMatrix;
+            }
+            dc.effect = effect;
+
+            GraphicsDevice.RasterizerState = RasterizerState.CullClockwise;
+            GraphicsDevice.BlendState = BlendState.NonPremultiplied;
+            //GraphicsDevice.BlendState = BlendState.AlphaBlend;
+
+            foreach (GameLibrary.Util.Intersection intersection in intersections)
+            {
+                if (effectMatrices != null)
+                {
+                    //effectMatrices.World = node.WorldMatrix;// *Matrix.CreateScale(boundingSphere.Radius); // node.WorldMatrix;
+                    effectMatrices.World = Matrix.CreateScale(0.04f) * Matrix.CreateTranslation(intersection.vertex); // node.WorldMatrix;
+                }
+                boundingGeo.preDraw(dc);
+                foreach (EffectPass pass in effect.CurrentTechnique.Passes)
+                {
+                    pass.Apply();
+                    dc.pass = pass;
+                    boundingGeo.Draw(dc);
+                }
+                boundingGeo.postDraw(dc);
+            }
+        }
+*/
 
     }
 }

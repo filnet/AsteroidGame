@@ -7,6 +7,7 @@ using GameLibrary.SceneGraph.Bounding;
 using System.ComponentModel;
 using GameLibrary.Component;
 using GameLibrary.Component.Camera;
+using System.Linq;
 
 namespace GameLibrary.SceneGraph
 {
@@ -129,10 +130,17 @@ namespace GameLibrary.SceneGraph
         public Vector3 sceneMax;
         public Vector3 sceneMin;
 
+        // render bins
         public readonly SortedDictionary<int, List<Drawable>> renderBins;
+        public int DrawableCount;
 
+        // lights
+        public readonly List<LightNode> lightNodes;
+        public readonly List<RenderContext> lightRenderContextes;
+        public bool Light;
+
+        // render target
         public Color ClearColor;
-
         public readonly RenderTarget2D RenderTarget;
 
         // stats
@@ -172,6 +180,11 @@ namespace GameLibrary.SceneGraph
             // state
             renderBins = new SortedDictionary<int, List<Drawable>>();
 
+            lightNodes = new List<LightNode>(1);
+            lightRenderContextes = new List<RenderContext>(1);
+
+            Light = false;
+
             ClearColor = Color.CornflowerBlue;
 
             renderTarget = null;
@@ -190,6 +203,48 @@ namespace GameLibrary.SceneGraph
         public void ClearRedrawRequested()
         {
             drawRequested = false;
+        }
+
+        public void Clear()
+        {
+            ClearBins();
+
+            lightNodes.Clear();
+            foreach (RenderContext context in lightRenderContextes)
+            {
+                context.Clear();
+            }
+
+            sceneMax = new Vector3(float.MinValue);
+            sceneMin = new Vector3(float.MaxValue);
+        }
+
+        public void AddLightNode(LightNode lightNode)
+        {
+            lightNodes.Add(lightNode);
+
+            int index = lightNodes.Count - 1;
+            if (index >= lightRenderContextes.Count)
+            {
+                Console.WriteLine("Creating light render context");
+                int renderTargetSize = 1024;
+                int cascadeCount = 1;
+                RenderTarget2D renderTarget = new RenderTarget2D(
+                    GraphicsDevice,
+                    renderTargetSize, renderTargetSize,
+                    false,
+                    SurfaceFormat.Single, DepthFormat.Depth24,
+                    1,
+                    RenderTargetUsage.DiscardContents,
+                    false,
+                    cascadeCount);
+
+                Camera lightCamera = new LightCamera();
+                RenderContext rc = new RenderContext(GraphicsDevice, lightCamera, renderTarget);
+                rc.Light = true;
+                rc.ClearColor = Color.White;
+                lightRenderContextes.Add(rc);
+            }
         }
 
         public void UpdateCamera()
@@ -224,51 +279,51 @@ namespace GameLibrary.SceneGraph
                 CameraPosition = Camera.Position;
             }
         }
-/*
-        public void LightMatrices(Bounding.BoundingBox sceneBoundingBox, out Matrix view, out Matrix projection)
-        {
-            // Think of light's orthographic frustum as a bounding box that encloses all objects visible by the camera,
-            // plus objects not visible but potentially casting shadows. For the simplicity let's disregard the latter.
-            // So to find this frustum:
-            // - find all objects that are inside the current camera frustum
-            // - find minimal aa bounding box that encloses them all
-            // - transform corners of that bounding box to the light's space (using light's view matrix)
-            // - find aa bounding box in light's space of the transformed (now obb) bounding box
-            // - this aa bounding box is your directional light's orthographic frustum.
-            //
-            // Note that actual translation component in light view matrix doesn't really matter as you'll
-            // only get different Z values for the frustum but the boundaries will be the same in world space.
-            // For the convenience, when building light view matrix, you can assume the light "position" is at
-            // the center of the bounding box enclosing all visible objects.
+        /*
+                public void LightMatrices(Bounding.BoundingBox sceneBoundingBox, out Matrix view, out Matrix projection)
+                {
+                    // Think of light's orthographic frustum as a bounding box that encloses all objects visible by the camera,
+                    // plus objects not visible but potentially casting shadows. For the simplicity let's disregard the latter.
+                    // So to find this frustum:
+                    // - find all objects that are inside the current camera frustum
+                    // - find minimal aa bounding box that encloses them all
+                    // - transform corners of that bounding box to the light's space (using light's view matrix)
+                    // - find aa bounding box in light's space of the transformed (now obb) bounding box
+                    // - this aa bounding box is your directional light's orthographic frustum.
+                    //
+                    // Note that actual translation component in light view matrix doesn't really matter as you'll
+                    // only get different Z values for the frustum but the boundaries will be the same in world space.
+                    // For the convenience, when building light view matrix, you can assume the light "position" is at
+                    // the center of the bounding box enclosing all visible objects.
 
-            Vector3 lightPosition = sceneBoundingBox.Center;
-            Vector3 lightDirection = Vector3.Normalize(new Vector3(-1, -1, -1));
+                    Vector3 lightPosition = sceneBoundingBox.Center;
+                    Vector3 lightDirection = Vector3.Normalize(new Vector3(-1, -1, -1));
 
-            Matrix lightView = Matrix.CreateLookAt(lightPosition, lightPosition + lightDirection, Vector3.Up);
+                    Matrix lightView = Matrix.CreateLookAt(lightPosition, lightPosition + lightDirection, Vector3.Up);
 
-            // transform bounding box
-            Matrix matrix = lightView;
+                    // transform bounding box
+                    Matrix matrix = lightView;
 
-            //Vector3 newCenter;
-            //Vector3 v = sceneBoundingBox.Center;
-            //newCenter.X = (v.X * matrix.M11) + (v.Y * matrix.M21) + (v.Z * matrix.M31) + matrix.M41;
-            //newCenter.Y = (v.X * matrix.M12) + (v.Y * matrix.M22) + (v.Z * matrix.M32) + matrix.M42;
-            //newCenter.Z = (v.X * matrix.M13) + (v.Y * matrix.M23) + (v.Z * matrix.M33) + matrix.M43;
+                    //Vector3 newCenter;
+                    //Vector3 v = sceneBoundingBox.Center;
+                    //newCenter.X = (v.X * matrix.M11) + (v.Y * matrix.M21) + (v.Z * matrix.M31) + matrix.M41;
+                    //newCenter.Y = (v.X * matrix.M12) + (v.Y * matrix.M22) + (v.Z * matrix.M32) + matrix.M42;
+                    //newCenter.Z = (v.X * matrix.M13) + (v.Y * matrix.M23) + (v.Z * matrix.M33) + matrix.M43;
 
-            Vector3 newHalfSize;
-            Vector3 v = sceneBoundingBox.HalfSize;
-            newHalfSize.X = (v.X * Math.Abs(matrix.M11)) + (v.Y * Math.Abs(matrix.M21)) + (v.Z * Math.Abs(matrix.M31));
-            newHalfSize.Y = (v.X * Math.Abs(matrix.M12)) + (v.Y * Math.Abs(matrix.M22)) + (v.Z * Math.Abs(matrix.M32));
-            newHalfSize.Z = (v.X * Math.Abs(matrix.M13)) + (v.Y * Math.Abs(matrix.M23)) + (v.Z * Math.Abs(matrix.M33));
+                    Vector3 newHalfSize;
+                    Vector3 v = sceneBoundingBox.HalfSize;
+                    newHalfSize.X = (v.X * Math.Abs(matrix.M11)) + (v.Y * Math.Abs(matrix.M21)) + (v.Z * Math.Abs(matrix.M31));
+                    newHalfSize.Y = (v.X * Math.Abs(matrix.M12)) + (v.Y * Math.Abs(matrix.M22)) + (v.Z * Math.Abs(matrix.M32));
+                    newHalfSize.Z = (v.X * Math.Abs(matrix.M13)) + (v.Y * Math.Abs(matrix.M23)) + (v.Z * Math.Abs(matrix.M33));
 
-            //Bounding.BoundingBox bb = new Bounding.BoundingBox(newCenter, newHalfSize);
+                    //Bounding.BoundingBox bb = new Bounding.BoundingBox(newCenter, newHalfSize);
 
-            Matrix lightProjection = Matrix.CreateOrthographic(newHalfSize.X * 2, newHalfSize.Y * 2, -newHalfSize.Z, newHalfSize.Z);
+                    Matrix lightProjection = Matrix.CreateOrthographic(newHalfSize.X * 2, newHalfSize.Y * 2, -newHalfSize.Z, newHalfSize.Z);
 
-            view = lightView;
-            projection = lightProjection;
-        }
-*/
+                    view = lightView;
+                    projection = lightProjection;
+                }
+        */
         public void ResetStats()
         {
             // culli
@@ -279,11 +334,21 @@ namespace GameLibrary.SceneGraph
             // draw
             DrawCount = 0;
             VertexCount = 0;
+
+            foreach (RenderContext context in lightRenderContextes)
+            {
+                context.ResetStats();
+            }
         }
 
-        public void ShowStats()
+        public void ShowStats(String name)
         {
-            Console.WriteLine(DrawCount + " " + VertexCount);
+            Console.WriteLine(name + ": " + DrawCount + " " + VertexCount);
+            int i = 1;
+            foreach (RenderContext context in lightRenderContextes)
+            {
+                context.ShowStats("Light #" + i++);
+            }
         }
 
         public Vector2 ProjectToScreen2(ref Vector3 vector)
@@ -331,12 +396,42 @@ namespace GameLibrary.SceneGraph
             {
                 list = new List<Drawable>();
                 renderBins[binId] = list;
+                list.Add(drawable);
+                DrawableCount += list.Count;
+                return;
             }
             if (Debug && list.Contains(drawable))
             {
-                throw new Exception("Node already in group " + binId);
+                throw new Exception("Drawable already in group " + binId);
             }
             list.Add(drawable);
+            DrawableCount += list.Count;
+        }
+
+        // FIXME Slow...!!!
+        public void AddToBin(int binId, List<Drawable> drawableList)
+        {
+            if (binId < 0)
+            {
+                return;
+            }
+            List<Drawable> list;
+            if (!renderBins.TryGetValue(binId, out list))
+            {
+                list = new List<Drawable>(drawableList);
+                renderBins[binId] = list;
+                DrawableCount += list.Count;
+                return;
+            }
+            foreach(Drawable drawable in drawableList)
+            {
+                // FIXME SLOW !!!
+                if (!list.Contains(drawable))
+                {
+                    list.Add(drawable);
+                    DrawableCount++;
+                }
+            }
         }
 
         public void ClearBins()
@@ -346,6 +441,7 @@ namespace GameLibrary.SceneGraph
                 List<Drawable> drawableList = drawableListKVP.Value;
                 drawableList.Clear();
             }
+            DrawableCount = 0;
         }
 
         public void AddBoundingVolume(Drawable drawable, bool culled)
@@ -373,7 +469,7 @@ namespace GameLibrary.SceneGraph
             }
             else
             {
-                // handle culled nodes
+                // handle culled Drawables
                 if (ShowCulledBoundingVolumes)
                 {
                     AddToBin((boundingType == BoundingType.Sphere) ? Scene.CULLED_BOUNDING_SPHERE : Scene.CULLED_BOUNDING_BOX, drawable);

@@ -5,6 +5,9 @@
 // Copyright (C) Microsoft Corporation. All rights reserved.
 //-----------------------------------------------------------------------------
 
+// make VS happy...
+#define SM4 1
+
 #include "Macros.fxh"
 
 DECLARE_TEXTURE_ARRAY(Texture, 0);
@@ -12,6 +15,8 @@ DECLARE_TEXTURE_ARRAY(Texture, 0);
 DECLARE_TEXTURE(WireframeTexture, 1);
 
 DECLARE_TEXTURE(ShadowMapTexture, 2);
+
+SamplerComparisonState ShadowSampler;
 
 BEGIN_CONSTANTS
 
@@ -61,7 +66,7 @@ static float4 ambientOcclusionCurve = float4(0.2f, 0.6f, 0.8f, 1.0f);
 
 float4 ComputeAmbientOcclusionFactors(int aoBits)
 {
-   return float4(
+    return float4(
 		ambientOcclusionCurve[aoBits & 3],
 		ambientOcclusionCurve[(aoBits >> 2) & 3],
 		ambientOcclusionCurve[(aoBits >> 4) & 3],
@@ -74,7 +79,7 @@ float SampleAmbientOcclusionFactors(float4 factors, float2 texCoord)
    // TODO optimize lerps away if all factors are the same
     float a1 = lerp(factors[1], factors[3], texCoord.x);
     float a2 = lerp(factors[0], factors[2], texCoord.x);
-	float a = lerp(a1, a2, texCoord.y);
+    float a = lerp(a1, a2, texCoord.y);
     return a;
 }
 
@@ -176,7 +181,7 @@ VSOutputTx VSBasicTxVc(VSInputTxVc vin)
     CommonVSOutput cout = ComputeCommonVSOutput(vin.Position);
     SetCommonVSOutputParams;
     
-	vout.Diffuse *= vin.Color;
+    vout.Diffuse *= vin.Color;
 
 	SetVoxelVSOutputParams;
 
@@ -350,8 +355,8 @@ VSOutputPixelLightingTx VSBasicPixelLightingTx(VSInputNmTx vin)
     
     vout.Diffuse = float4(1, 1, 1, DiffuseColor.a);
     vout.TexCoord = vin.TexCoord;
-	vout.TextureIndex = vin.TextureIndex;
-	vout.AmbientOcclusionFactors = ComputeAmbientOcclusionFactors(vin.TextureIndex[1]);
+    vout.TextureIndex = vin.TextureIndex;
+    vout.AmbientOcclusionFactors = ComputeAmbientOcclusionFactors(vin.TextureIndex[1]);
 
     return vout;
 }
@@ -368,8 +373,8 @@ VSOutputPixelLightingTx VSBasicPixelLightingTxVc(VSInputNmTxVc vin)
     vout.Diffuse.rgb = vin.Color.rgb;
     vout.Diffuse.a = vin.Color.a * DiffuseColor.a;
     vout.TexCoord = vin.TexCoord;
-	vout.TextureIndex = vin.TextureIndex;
-	vout.AmbientOcclusionFactors = ComputeAmbientOcclusionFactors(vin.TextureIndex[1]);
+    vout.TextureIndex = vin.TextureIndex;
+    vout.AmbientOcclusionFactors = ComputeAmbientOcclusionFactors(vin.TextureIndex[1]);
 
     return vout;
 }
@@ -447,21 +452,21 @@ float4 PSBasicVertexLightingTx(VSOutputTx pin) : SV_Target0
 // see https://en.wikipedia.org/wiki/Alpha_compositing;
 float4 blend(float4 src, float4 dst)
 {
-	float4 o;
-	o.a = src.a + dst.a * (1 - src.a);
-	o.rgb = (src.rgb * src.a + dst.rgb * dst.a * (1 - src.a)) / o.a;
-	return o;
+    float4 o;
+    o.a = src.a + dst.a * (1 - src.a);
+    o.rgb = (src.rgb * src.a + dst.rgb * dst.a * (1 - src.a)) / o.a;
+    return o;
 }
 
 float4 blendWF(float4 src, float4 dst)
 {
-	float4 o;
+    float4 o;
 	//o = src * dst;
 	//o = lerp(dst, src, src.a);
-	o = blend(src, dst);
+    o = blend(src, dst);
 	//o = dst * float4(1 - src.a, 1 - src.a, 1 - src.a, 1 - src.a);
 	//o = src.a > 0 ? src : dst;
-	return o;
+    return o;
 }
 
 // Calculates the shadow term using PCF
@@ -505,29 +510,37 @@ float4 PSBasicVertexLightingTxNoFog(VSOutputTx pin) : SV_Target0
     //float4 color = float4(1,1,1,1);
     float4 color = SAMPLE_TEXTURE_ARRAY(Texture, float3(pin.TexCoord, pin.TextureIndex[0])); //* pin.Diffuse;
     
-	color *= SampleAmbientOcclusionFactors(pin.AmbientOcclusionFactors, pin.TexCoord);
+    color *= SampleAmbientOcclusionFactors(pin.AmbientOcclusionFactors, pin.TexCoord);
 
 	// quad wireframe
-	float4 wfColor1 = SAMPLE_TEXTURE(WireframeTexture, pin.WF1TexCoord);
-	color = blendWF(wfColor1, color);
-	float4 wfColor2 = SAMPLE_TEXTURE(WireframeTexture, pin.WF2TexCoord);
-	color = blendWF(wfColor2, color);
+    float4 wfColor1 = SAMPLE_TEXTURE(WireframeTexture, pin.WF1TexCoord);
+    color = blendWF(wfColor1, color);
+    float4 wfColor2 = SAMPLE_TEXTURE(WireframeTexture, pin.WF2TexCoord);
+    color = blendWF(wfColor2, color);
 
 	// FIXME this can be done upfront in the light projection
-	float2 shadowTexCoord = mad(0.5f , pin.ShadowPosition.xy / pin.ShadowPosition.w , float2(0.5f, 0.5f));
+    float2 shadowTexCoord = mad(0.5f, pin.ShadowPosition.xy / pin.ShadowPosition.w, float2(0.5f, 0.5f));
     shadowTexCoord.y = 1.0f - shadowTexCoord.y;
 	
-	float depthOffset = 0.0005;
+    float depthOffset = 0.002;
 
-	float lightDepth = SAMPLE_TEXTURE(ShadowMapTexture, shadowTexCoord).x;
-	float lightDistance = pin.ShadowPosition.z / pin.ShadowPosition.w;
+    //float lightDepth = SAMPLE_TEXTURE(ShadowMapTexture, shadowTexCoord).x;
+    float lightDistance = pin.ShadowPosition.z / pin.ShadowPosition.w;
+    lightDistance -= depthOffset;
 
-	float4 cout = color * AmbientColor;
+    float4 cout = color * AmbientColor;
 
-	if ((lightDistance - depthOffset) < lightDepth) {
-		cout += color * pin.Diffuse;
-	    AddSpecular(cout, pin.Specular.rgb);
-	}
+    //float2 shadowMapSize;
+    //float numSlices;
+    //ShadowMapTexture.GetDimensions(shadowMapSize.x, shadowMapSize.y/*, numSlices*/);
+
+    float shadowFactor = ShadowMapTexture.SampleCmpLevelZero(ShadowSampler, shadowTexCoord.xy, lightDistance);
+//  if ((lightDistance - depthOffset) <= lightDepth)
+    if (shadowFactor)
+    {
+        cout += color * pin.Diffuse * shadowFactor;
+        AddSpecular(cout, pin.Specular.rgb);
+    }
 
     return cout;
 }
@@ -556,17 +569,18 @@ float4 PSBasicPixelLighting(VSOutputPixelLighting pin) : SV_Target0
 float4 PSBasicPixelLightingTx(VSOutputPixelLightingTx pin) : SV_Target0
 {
     float4 color = SAMPLE_TEXTURE_ARRAY(Texture, float3(pin.TexCoord, pin.TextureIndex[0]));
-    
+   
     float3 eyeVector = normalize(EyePosition - pin.PositionWS.xyz);
     float3 worldNormal = normalize(pin.NormalWS);
     
     ColorPair lightResult = ComputeLights(eyeVector, worldNormal, 3);
     
-	float4 cout = color * AmbientColor;
+    float4 cout = color * AmbientColor;
 	
-	cout.rgb += color.rgb * pin.Diffuse;
+    // FIXME seems wrong : why multiply by color.rgb ?
+    cout.rgb += color.rgb * pin.Diffuse.rgb * lightResult.Diffuse;
 
-    cout.rgb *= lightResult.Diffuse;
+    //cout.rgb *= lightResult.Diffuse;
 
 	//cout.a = 1;
 
@@ -582,38 +596,38 @@ float4 PSBasicPixelLightingTx(VSOutputPixelLightingTx pin) : SV_Target0
 // NOTE: The order of the techniques here are
 // defined to match the indexing in VoxelEffect.cs.
 
-TECHNIQUE( BasicEffect,								VSBasic,			PSBasic );
-TECHNIQUE( BasicEffect_NoFog,						VSBasicNoFog,		PSBasicNoFog );
-TECHNIQUE( BasicEffect_VertexColor,					VSBasicVc,			PSBasic );
-TECHNIQUE( BasicEffect_VertexColor_NoFog,			VSBasicVcNoFog,		PSBasicNoFog );
-TECHNIQUE( BasicEffect_Texture,						VSBasicTx,			PSBasicTx );
-TECHNIQUE( BasicEffect_Texture_NoFog,				VSBasicTxNoFog,		PSBasicTxNoFog );
-TECHNIQUE( BasicEffect_Texture_VertexColor,			VSBasicTxVc,		PSBasicTx );
-TECHNIQUE( BasicEffect_Texture_VertexColor_NoFog,	VSBasicTxVcNoFog,	PSBasicTxNoFog );
+TECHNIQUE(BasicEffect, VSBasic, PSBasic);
+TECHNIQUE(BasicEffect_NoFog, VSBasicNoFog, PSBasicNoFog);
+TECHNIQUE(BasicEffect_VertexColor, VSBasicVc, PSBasic);
+TECHNIQUE(BasicEffect_VertexColor_NoFog, VSBasicVcNoFog, PSBasicNoFog);
+TECHNIQUE(BasicEffect_Texture, VSBasicTx, PSBasicTx);
+TECHNIQUE(BasicEffect_Texture_NoFog, VSBasicTxNoFog, PSBasicTxNoFog);
+TECHNIQUE(BasicEffect_Texture_VertexColor, VSBasicTxVc, PSBasicTx);
+TECHNIQUE(BasicEffect_Texture_VertexColor_NoFog, VSBasicTxVcNoFog, PSBasicTxNoFog);
 
-TECHNIQUE( BasicEffect_VertexLighting,								VSBasicVertexLighting,		PSBasicVertexLighting );
-TECHNIQUE( BasicEffect_VertexLighting_NoFog,						VSBasicVertexLighting,		PSBasicVertexLightingNoFog );
-TECHNIQUE( BasicEffect_VertexLighting_VertexColor,					VSBasicVertexLightingVc,	PSBasicVertexLighting );
-TECHNIQUE( BasicEffect_VertexLighting_VertexColor_NoFog,			VSBasicVertexLightingVc,	PSBasicVertexLightingNoFog );
-TECHNIQUE( BasicEffect_VertexLighting_Texture,						VSBasicVertexLightingTx,	PSBasicVertexLightingTx );
-TECHNIQUE( BasicEffect_VertexLighting_Texture_NoFog,				VSBasicVertexLightingTx,	PSBasicVertexLightingTxNoFog );
-TECHNIQUE( BasicEffect_VertexLighting_Texture_VertexColor,			VSBasicVertexLightingTxVc,	PSBasicVertexLightingTx );
-TECHNIQUE( BasicEffect_VertexLighting_Texture_VertexColor_NoFog,	VSBasicVertexLightingTxVc,	PSBasicVertexLightingTxNoFog );
+TECHNIQUE(BasicEffect_VertexLighting, VSBasicVertexLighting, PSBasicVertexLighting);
+TECHNIQUE(BasicEffect_VertexLighting_NoFog, VSBasicVertexLighting, PSBasicVertexLightingNoFog);
+TECHNIQUE(BasicEffect_VertexLighting_VertexColor, VSBasicVertexLightingVc, PSBasicVertexLighting);
+TECHNIQUE(BasicEffect_VertexLighting_VertexColor_NoFog, VSBasicVertexLightingVc, PSBasicVertexLightingNoFog);
+TECHNIQUE(BasicEffect_VertexLighting_Texture, VSBasicVertexLightingTx, PSBasicVertexLightingTx);
+TECHNIQUE(BasicEffect_VertexLighting_Texture_NoFog, VSBasicVertexLightingTx, PSBasicVertexLightingTxNoFog);
+TECHNIQUE(BasicEffect_VertexLighting_Texture_VertexColor, VSBasicVertexLightingTxVc, PSBasicVertexLightingTx);
+TECHNIQUE(BasicEffect_VertexLighting_Texture_VertexColor_NoFog, VSBasicVertexLightingTxVc, PSBasicVertexLightingTxNoFog);
 
-TECHNIQUE( BasicEffect_OneLight,							VSBasicOneLight,		PSBasicVertexLighting );
-TECHNIQUE( BasicEffect_OneLight_NoFog,						VSBasicOneLight,		PSBasicVertexLightingNoFog );
-TECHNIQUE( BasicEffect_OneLight_VertexColor,				VSBasicOneLightVc,		PSBasicVertexLighting );
-TECHNIQUE( BasicEffect_OneLight_VertexColor_NoFog,			VSBasicOneLightVc,		PSBasicVertexLightingNoFog );
-TECHNIQUE( BasicEffect_OneLight_Texture,					VSBasicOneLightTx,		PSBasicVertexLightingTx );
-TECHNIQUE( BasicEffect_OneLight_Texture_NoFog,				VSBasicOneLightTx,		PSBasicVertexLightingTxNoFog );
-TECHNIQUE( BasicEffect_OneLight_Texture_VertexColor,		VSBasicOneLightTxVc,	PSBasicVertexLightingTx );
-TECHNIQUE( BasicEffect_OneLight_Texture_VertexColor_NoFog,	VSBasicOneLightTxVc,	PSBasicVertexLightingTxNoFog );
+TECHNIQUE(BasicEffect_OneLight, VSBasicOneLight, PSBasicVertexLighting);
+TECHNIQUE(BasicEffect_OneLight_NoFog, VSBasicOneLight, PSBasicVertexLightingNoFog);
+TECHNIQUE(BasicEffect_OneLight_VertexColor, VSBasicOneLightVc, PSBasicVertexLighting);
+TECHNIQUE(BasicEffect_OneLight_VertexColor_NoFog, VSBasicOneLightVc, PSBasicVertexLightingNoFog);
+TECHNIQUE(BasicEffect_OneLight_Texture, VSBasicOneLightTx, PSBasicVertexLightingTx);
+TECHNIQUE(BasicEffect_OneLight_Texture_NoFog, VSBasicOneLightTx, PSBasicVertexLightingTxNoFog);
+TECHNIQUE(BasicEffect_OneLight_Texture_VertexColor, VSBasicOneLightTxVc, PSBasicVertexLightingTx);
+TECHNIQUE(BasicEffect_OneLight_Texture_VertexColor_NoFog, VSBasicOneLightTxVc, PSBasicVertexLightingTxNoFog);
 
-TECHNIQUE( BasicEffect_PixelLighting,							VSBasicPixelLighting,		PSBasicPixelLighting );
-TECHNIQUE( BasicEffect_PixelLighting_NoFog,						VSBasicPixelLighting,		PSBasicPixelLighting );
-TECHNIQUE( BasicEffect_PixelLighting_VertexColor,				VSBasicPixelLightingVc,		PSBasicPixelLighting );
-TECHNIQUE( BasicEffect_PixelLighting_VertexColor_NoFog,			VSBasicPixelLightingVc,		PSBasicPixelLighting );
-TECHNIQUE( BasicEffect_PixelLighting_Texture,					VSBasicPixelLightingTx,		PSBasicPixelLightingTx );
-TECHNIQUE( BasicEffect_PixelLighting_Texture_NoFog,				VSBasicPixelLightingTx,		PSBasicPixelLightingTx );
-TECHNIQUE( BasicEffect_PixelLighting_Texture_VertexColor,		VSBasicPixelLightingTxVc,	PSBasicPixelLightingTx );
-TECHNIQUE( BasicEffect_PixelLighting_Texture_VertexColor_NoFog,	VSBasicPixelLightingTxVc,	PSBasicPixelLightingTx );
+TECHNIQUE(BasicEffect_PixelLighting, VSBasicPixelLighting, PSBasicPixelLighting);
+TECHNIQUE(BasicEffect_PixelLighting_NoFog, VSBasicPixelLighting, PSBasicPixelLighting);
+TECHNIQUE(BasicEffect_PixelLighting_VertexColor, VSBasicPixelLightingVc, PSBasicPixelLighting);
+TECHNIQUE(BasicEffect_PixelLighting_VertexColor_NoFog, VSBasicPixelLightingVc, PSBasicPixelLighting);
+TECHNIQUE(BasicEffect_PixelLighting_Texture, VSBasicPixelLightingTx, PSBasicPixelLightingTx);
+TECHNIQUE(BasicEffect_PixelLighting_Texture_NoFog, VSBasicPixelLightingTx, PSBasicPixelLightingTx);
+TECHNIQUE(BasicEffect_PixelLighting_Texture_VertexColor, VSBasicPixelLightingTxVc, PSBasicPixelLightingTx);
+TECHNIQUE(BasicEffect_PixelLighting_Texture_VertexColor_NoFog, VSBasicPixelLightingTxVc, PSBasicPixelLightingTx);

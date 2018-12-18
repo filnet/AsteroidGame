@@ -322,16 +322,16 @@ namespace GameLibrary.Voxel
                 if (mesh != null)
                 {
                     // FIXME should get bounding box from mesh...
-                    SceneGraph.Bounding.BoundingBox boundingBox = node.obj.BoundingBox;
-                    node.obj.Drawable = new MeshDrawable(Scene.VOXEL, mesh, boundingBox);
+                    //SceneGraph.Bounding.BoundingBox boundingBox = node.obj.BoundingBox;
+                    node.obj.Drawable = new MeshDrawable(Scene.VOXEL, mesh);
                 }
                 // FIXME meshFactory API is bad...
                 Mesh transparentMesh = meshFactory.CreateTransparentMesh();
                 if (transparentMesh != null)
                 {
                     // FIXME should get bounding box from transparentMesh...
-                    SceneGraph.Bounding.BoundingBox boundingBox = node.obj.BoundingBox;
-                    node.obj.TransparentDrawable = new MeshDrawable(Scene.VOXEL_WATER, transparentMesh, boundingBox);
+                    //SceneGraph.Bounding.BoundingBox boundingBox = node.obj.BoundingBox;
+                    node.obj.TransparentDrawable = new MeshDrawable(Scene.VOXEL_WATER, transparentMesh);
                 }
             }
         }
@@ -390,13 +390,13 @@ namespace GameLibrary.Voxel
             {
             }
 
-            public MeshDrawable(int renderGroupId, Mesh mesh, SceneGraph.Bounding.BoundingBox boundingBox)
+            public MeshDrawable(int renderGroupId, Mesh mesh)
             {
                 this.mesh = mesh;
                 Enabled = true;
                 Visible = true;
                 RenderGroupId = renderGroupId;
-                BoundingVolume = boundingBox;
+                BoundingVolume = mesh.BoundingVolume;
                 BoundingVolumeVisible = true;
             }
         }

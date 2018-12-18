@@ -59,6 +59,17 @@ namespace GameLibrary.SceneGraph
             return CreateClippingEffect(gd, c);
         }
 
+        public static Effect CreateCasterBoundEffect(GraphicsDevice gd, bool clipping)
+        {
+            Color c = new Color(Color.Yellow, 255);
+
+            if (!clipping)
+            {
+                return CreateBasicEffect3(gd, c);
+            }
+            return CreateClippingEffect(gd, c);
+        }
+
         public static Effect CreateCollisionEffect(GraphicsDevice gd, bool clipping)
         {
             Color c = new Color(Color.Red, 128);

@@ -36,7 +36,7 @@ namespace GameLibrary.Voxel
         {
             base.Initialize(gd);
 
-            BoundingVolume = new GameLibrary.SceneGraph.Bounding.BoundingBox(voxelOctree.Center, voxelOctree.HalfSize);
+            //BoundingVolume = new GameLibrary.SceneGraph.Bounding.BoundingBox(voxelOctree.Center, voxelOctree.HalfSize);
 
             voxelOctree.Initialize(gd);
         }

@@ -364,8 +364,9 @@ namespace GameLibrary.SceneGraph
             shadowSamplerState.Filter = TextureFilter.Linear;
             shadowSamplerState.AddressU = TextureAddressMode.Clamp;
             shadowSamplerState.AddressV = TextureAddressMode.Clamp;
-            //shadowSamplerState.ComparisonFunction = CompareFunction.LessEqual;
-            //shadowSamplerState.FilterMode = TextureFilterMode.Comparison;
+            shadowSamplerState.AddressW = TextureAddressMode.Clamp;
+            shadowSamplerState.ComparisonFunction = CompareFunction.LessEqual;
+            shadowSamplerState.FilterMode = TextureFilterMode.Comparison;
             //shadowSamplerState.BorderColor = new Color(1f, 1f, 1f, 1f);
         }
 

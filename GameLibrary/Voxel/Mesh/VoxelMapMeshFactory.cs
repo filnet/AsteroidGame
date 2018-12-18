@@ -59,7 +59,9 @@ namespace GameLibrary.Voxel
             }
             Mesh mesh = new Mesh(PrimitiveType.TriangleList, drawVisitor.opaqueBuilder.VertexCount / 2);
             drawVisitor.opaqueBuilder.SetToMesh(mesh);
-            mesh.BoundingVolume = new GameLibrary.SceneGraph.Bounding.BoundingBox(octree.Center, octree.HalfSize);
+
+            //mesh.BoundingVolume = new GameLibrary.SceneGraph.Bounding.BoundingBox(octree.Center, octree.HalfSize);
+            mesh.BoundingVolume = SceneGraph.Bounding.BoundingBox.CreateFromMinMax(drawVisitor.min, drawVisitor.max);
 
             return mesh;
         }
@@ -72,7 +74,9 @@ namespace GameLibrary.Voxel
             }
             Mesh mesh = new Mesh(PrimitiveType.TriangleList, drawVisitor.transparentBuilder.VertexCount / 2);
             drawVisitor.transparentBuilder.SetToMesh(mesh);
-            mesh.BoundingVolume = new GameLibrary.SceneGraph.Bounding.BoundingBox(octree.Center, octree.HalfSize);
+
+            //mesh.BoundingVolume = new GameLibrary.SceneGraph.Bounding.BoundingBox(octree.Center, octree.HalfSize);
+            mesh.BoundingVolume = SceneGraph.Bounding.BoundingBox.CreateFromMinMax(drawVisitor.min, drawVisitor.max);
 
             return mesh;
         }
@@ -143,6 +147,9 @@ namespace GameLibrary.Voxel
             Vector3 leftNormal = new Vector3(-1.0f, 0.0f, 0.0f);
             Vector3 rightNormal = new Vector3(1.0f, 0.0f, 0.0f);
 
+            public Vector3 min;
+            public Vector3 max;
+
             public DrawVisitor(VoxelMapMeshFactory factory)
             {
                 this.factory = factory;
@@ -167,6 +174,8 @@ namespace GameLibrary.Voxel
             public bool Begin(int size)
             {
                 this.size = size;
+                min = new Vector3(float.MaxValue);
+                max = new Vector3(float.MinValue);
                 return true;
             }
 
@@ -191,7 +200,7 @@ namespace GameLibrary.Voxel
                 if (tileInfo.IsOpaque)
                 {
                     builder = opaqueBuilder;
-        }
+                }
                 else
                 {
                     builder = transparentBuilder;
@@ -260,6 +269,13 @@ namespace GameLibrary.Voxel
                     builder.AddIndex(i);
 
                     faceCount++;
+
+                    max.X = Math.Max(max.X, t.X + d);
+                    max.Y = Math.Max(max.Y, t.Y + d);
+                    max.Z = Math.Max(max.Z, t.Z + d);
+                    min.X = Math.Min(min.X, t.X - d);
+                    min.Y = Math.Min(min.Y, t.Y - d);
+                    //min.Z = Math.Min(min.Z, t.Z - d);
                 }
                 // Back
                 if (ShowFace(ite, tileInfo, Direction.Back, Direction.Front))
@@ -303,6 +319,13 @@ namespace GameLibrary.Voxel
                     builder.AddIndex(i);
 
                     faceCount++;
+
+                    max.X = Math.Max(max.X, t.X + d);
+                    max.Y = Math.Max(max.Y, t.Y + d);
+                    //max.Z = Math.Max(max.Z, t.Z + d);
+                    min.X = Math.Min(min.X, t.X - d);
+                    min.Y = Math.Min(min.Y, t.Y - d);
+                    min.Z = Math.Min(min.Z, t.Z - d);
                 }
                 // Top
                 if (ShowFace(ite, tileInfo, Direction.Top, Direction.Bottom))
@@ -346,6 +369,13 @@ namespace GameLibrary.Voxel
                     builder.AddIndex(i);
 
                     faceCount++;
+
+                    max.X = Math.Max(max.X, t.X + d);
+                    max.Y = Math.Max(max.Y, t.Y + d);
+                    max.Z = Math.Max(max.Z, t.Z + d);
+                    min.X = Math.Min(min.X, t.X - d);
+                    //min.Y = Math.Min(min.Y, t.Y - d);
+                    min.Z = Math.Min(min.Z, t.Z - d);
                 }
                 // Bottom
                 if (ShowFace(ite, tileInfo, Direction.Bottom, Direction.Top))
@@ -389,6 +419,13 @@ namespace GameLibrary.Voxel
                     builder.AddIndex(i);
 
                     faceCount++;
+
+                    max.X = Math.Max(max.X, t.X + d);
+                    //max.Y = Math.Max(max.Y, t.Y + d);
+                    max.Z = Math.Max(max.Z, t.Z + d);
+                    min.X = Math.Min(min.X, t.X - d);
+                    min.Y = Math.Min(min.Y, t.Y - d);
+                    min.Z = Math.Min(min.Z, t.Z - d);
                 }
                 // Left
                 if (ShowFace(ite, tileInfo, Direction.Left, Direction.Right))
@@ -432,6 +469,12 @@ namespace GameLibrary.Voxel
                     builder.AddIndex(i);
 
                     faceCount++;
+                    //max.X = Math.Max(max.X, t.X + d);
+                    max.Y = Math.Max(max.Y, t.Y + d);
+                    max.Z = Math.Max(max.Z, t.Z + d);
+                    min.X = Math.Min(min.X, t.X - d);
+                    min.Y = Math.Min(min.Y, t.Y - d);
+                    min.Z = Math.Min(min.Z, t.Z - d);
                 }
                 // Right
                 if (ShowFace(ite, tileInfo, Direction.Right, Direction.Left))
@@ -475,6 +518,13 @@ namespace GameLibrary.Voxel
                     builder.AddIndex(i);
 
                     faceCount++;
+
+                    max.X = Math.Max(max.X, t.X + d);
+                    max.Y = Math.Max(max.Y, t.Y + d);
+                    max.Z = Math.Max(max.Z, t.Z + d);
+                    min.X = Math.Min(min.X, t.X - d);
+                    //min.Y = Math.Min(min.Y, t.Y - d);
+                    min.Z = Math.Min(min.Z, t.Z - d);
                 }
                 ite.voxelsCount += (faceCount > 0) ? 1 : 0;
                 ite.facesCount += faceCount;

@@ -34,7 +34,7 @@ namespace GameLibrary.Voxel
                 effect.DirectionalLight0.Enabled = true;
                 if (effect.DirectionalLight0.Enabled)
                 {
-                    effect.DirectionalLight0.DiffuseColor = new Vector3(0.8f, 0.8f, 0.8f); // range is 0 to 1
+                    effect.DirectionalLight0.DiffuseColor = new Vector3(0.6f, 0.6f, 0.6f); // range is 0 to 1
                     effect.DirectionalLight0.Direction = Vector3.Normalize(new Vector3(-1, -1, -1));
                     // points from the light to the origin of the scene
                     //effect.DirectionalLight0.SpecularColor = Vector3.One;

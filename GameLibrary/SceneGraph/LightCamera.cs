@@ -23,7 +23,7 @@ namespace GameLibrary.SceneGraph
         public override BoundingFrustum BoundingFrustum { get { return boundingFrustum; } }
 
         private Vector3 lightPosition;
-        private Vector3 lightDirection;
+        public Vector3 lightDirection;
 
         private Matrix viewMatrix;
         private Matrix projectionMatrix;
@@ -37,7 +37,7 @@ namespace GameLibrary.SceneGraph
         {
         }
 
-        public void Update(Bounding.BoundingBox sceneBoundingBox, bool expandNearZ)
+        public void Update(Bounding.BoundingBox sceneBoundingBox, bool expand)
         {
             // Think of light's orthographic frustum as a bounding box that encloses all objects visible by the camera,
             // plus objects not visible but potentially casting shadows. For the simplicity let's disregard the latter.
@@ -54,7 +54,7 @@ namespace GameLibrary.SceneGraph
             // the center of the bounding box enclosing all visible objects.
 
             lightPosition = sceneBoundingBox.Center;
-            lightDirection = Vector3.Normalize(new Vector3(-1, -1, -1));
+            //lightDirection = Vector3.Normalize(new Vector3(-1, -1, -1));
 
             viewMatrix = Matrix.CreateLookAt(lightPosition, lightPosition + lightDirection, Vector3.Up);
 
@@ -75,9 +75,16 @@ namespace GameLibrary.SceneGraph
 
             //Bounding.BoundingBox bb = new Bounding.BoundingBox(newCenter, newHalfSize);
 
-            // move near plane to "minus infinity" to account for all occluders
-            float zNearPlane = expandNearZ ? - 1000 : -sceneHalfSize.Z;
-            projectionMatrix = Matrix.CreateOrthographic(sceneHalfSize.X * 2, sceneHalfSize.Y * 2, zNearPlane, sceneHalfSize.Z);
+            float zNearPlane = -sceneHalfSize.Z;
+            float zFarPlane = sceneHalfSize.Z;
+            if (expand)
+            {
+                // move near plane to "minus infinity" to account for all casters
+                //zFarPlane = zFarPlane - (zFarPlane - zNearPlane) * 2; 
+                zFarPlane = zNearPlane;
+                zNearPlane = -1000;
+            }
+            projectionMatrix = Matrix.CreateOrthographic(sceneHalfSize.X * 2, sceneHalfSize.Y * 2, zNearPlane, zFarPlane);
 
             viewProjectionMatrix = viewMatrix * projectionMatrix;
 
@@ -86,10 +93,10 @@ namespace GameLibrary.SceneGraph
             boundingFrustum = new BoundingFrustum(viewProjectionMatrix);
         }
 
-        public void UpdateZNear(Bounding.BoundingBox sceneBoundingBox, Bounding.BoundingBox occluderBoundingBox)
-        {
+        public void UpdateZNear(Bounding.BoundingBox sceneBoundingBox, Bounding.BoundingBox casterBoundingBox)
+        {        
             lightPosition = sceneBoundingBox.Center;
-            lightDirection = Vector3.Normalize(new Vector3(-1, -1, -1));
+            //lightDirection = Vector3.Normalize(new Vector3(-1, -1, -1));
 
             viewMatrix = Matrix.CreateLookAt(lightPosition, lightPosition + lightDirection, Vector3.Up);
 
@@ -102,13 +109,19 @@ namespace GameLibrary.SceneGraph
             sceneHalfSize.Y = (v.X * Math.Abs(m.M12)) + (v.Y * Math.Abs(m.M22)) + (v.Z * Math.Abs(m.M32));
             sceneHalfSize.Z = (v.X * Math.Abs(m.M13)) + (v.Y * Math.Abs(m.M23)) + (v.Z * Math.Abs(m.M33));
 
-            Vector3 occluderHalfSize;
-            v = occluderBoundingBox.HalfSize;
-            occluderHalfSize.X = (v.X * Math.Abs(m.M11)) + (v.Y * Math.Abs(m.M21)) + (v.Z * Math.Abs(m.M31));
-            occluderHalfSize.Y = (v.X * Math.Abs(m.M12)) + (v.Y * Math.Abs(m.M22)) + (v.Z * Math.Abs(m.M32));
-            occluderHalfSize.Z = (v.X * Math.Abs(m.M13)) + (v.Y * Math.Abs(m.M23)) + (v.Z * Math.Abs(m.M33));
+            Vector3 casterHalfSize;
+            v = casterBoundingBox.HalfSize;
+            casterHalfSize.X = (v.X * Math.Abs(m.M11)) + (v.Y * Math.Abs(m.M21)) + (v.Z * Math.Abs(m.M31));
+            casterHalfSize.Y = (v.X * Math.Abs(m.M12)) + (v.Y * Math.Abs(m.M22)) + (v.Z * Math.Abs(m.M32));
+            casterHalfSize.Z = (v.X * Math.Abs(m.M13)) + (v.Y * Math.Abs(m.M23)) + (v.Z * Math.Abs(m.M33));
 
-            projectionMatrix = Matrix.CreateOrthographic(sceneHalfSize.X * 2, sceneHalfSize.Y * 2, -occluderHalfSize.Z, sceneHalfSize.Z);
+            float zNearPlane = -sceneHalfSize.Z;
+            float zFarPlane = sceneHalfSize.Z;
+
+            //zFarPlane = zFarPlane - (zFarPlane - zNearPlane) * 2;
+            zNearPlane = -casterHalfSize.Z;
+
+            projectionMatrix = Matrix.CreateOrthographic(sceneHalfSize.X * 2, sceneHalfSize.Y * 2, zNearPlane, zFarPlane);
 
             viewProjectionMatrix = viewMatrix * projectionMatrix;
 

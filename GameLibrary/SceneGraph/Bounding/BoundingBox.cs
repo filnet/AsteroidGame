@@ -46,7 +46,7 @@ namespace GameLibrary.SceneGraph.Bounding
         public BoundingBox()
         {
             this.center = Vector3.Zero;
-            this.halfSize = Vector3.Zero; 
+            this.halfSize = Vector3.Zero;
         }
 
         public BoundingBox(Vector3 center, Vector3 halfSize)
@@ -59,6 +59,17 @@ namespace GameLibrary.SceneGraph.Bounding
         {
             center = bb.center;
             halfSize = bb.halfSize;
+        }
+
+        public static BoundingBox CreateFromMinMax(Vector3 min, Vector3 max)
+        {
+            return new BoundingBox((max + min) / 2.0f, (max - min) / 2.0f);
+        }
+
+        public static void FromMinMax(Vector3 min, Vector3 max, ref BoundingBox store)
+        {
+            store.Center = (max + min) / 2.0f;
+            store.HalfSize = (max - min) / 2.0f;
         }
 
         /// <summary>
@@ -88,15 +99,15 @@ namespace GameLibrary.SceneGraph.Bounding
         /// <param name="points">Array of Vectors</param>
         public override void ComputeFromPoints(Vector3[] points)
         {
-/*
-            //Vector3[] copy = new Vector3[points.Length];
-            //System.Array.Copy(points, copy, points.Length);
-            //CalculateWelzl(copy, copy.Length, 0, 0);
-            Sphere s = new Sphere();
-            SphereUtil.FromPoints(ref s, points);
-            Radius = s.radius;
-            Center = s.center;
-*/
+            /*
+                        //Vector3[] copy = new Vector3[points.Length];
+                        //System.Array.Copy(points, copy, points.Length);
+                        //CalculateWelzl(copy, copy.Length, 0, 0);
+                        Sphere s = new Sphere();
+                        SphereUtil.FromPoints(ref s, points);
+                        Radius = s.radius;
+                        Center = s.center;
+            */
         }
 
         //private void CalculateWelzl(Vector3[] points, int p, int b, int ap)
@@ -297,7 +308,136 @@ namespace GameLibrary.SceneGraph.Bounding
 
         public override ContainmentType IsContained(BoundingFrustum boundingFrustum)
         {
-            return boundingFrustum.Contains(asXnaBoundingBox());
+            var intersects = false;
+            Plane[] planes = new Plane[] {
+                boundingFrustum.Left, boundingFrustum.Right,
+                boundingFrustum.Bottom, boundingFrustum.Top,
+                boundingFrustum.Far, boundingFrustum.Near
+            };
+
+            for (int i = 0; i < BoundingFrustum.PlaneCount; i++)
+            {
+                switch (Intersects(ref planes[i]))
+                {
+                    case PlaneIntersectionType.Front:
+                        return ContainmentType.Disjoint;
+                    case PlaneIntersectionType.Intersecting:
+                        intersects = true;
+                        break;
+                }
+            }
+            if (!intersects)
+            {
+                return ContainmentType.Contains;
+            }
+
+            bool fast = true;
+            if (!fast)
+            {
+                // check frustum outside/inside box
+                Vector3[] points = new Vector3[BoundingFrustum.CornerCount];
+                boundingFrustum.GetCorners(points);
+                int c;
+
+                c = 0;
+                for (int i = 0; i < points.Length; i++)
+                {
+                    c += ((points[i].X > center.X + halfSize.X) ? 1 : 0);
+                }
+                if (c == 8) return ContainmentType.Disjoint;
+                c = 0;
+                for (int i = 0; i < points.Length; i++)
+                {
+                    c += ((points[i].X < center.X - halfSize.X) ? 1 : 0);
+                }
+                if (c == 8) return ContainmentType.Disjoint;
+
+                c = 0;
+                for (int i = 0; i < points.Length; i++)
+                {
+                    c += ((points[i].Y > center.Y + halfSize.Y) ? 1 : 0);
+                }
+                if (c == 8) return ContainmentType.Disjoint;
+                c = 0;
+                for (int i = 0; i < points.Length; i++)
+                {
+                    c += ((points[i].Y < center.Y - halfSize.Y) ? 1 : 0);
+                }
+                if (c == 8) return ContainmentType.Disjoint;
+
+                c = 0;
+                for (int i = 0; i < points.Length; i++)
+                {
+                    c += ((points[i].Z > center.Z + halfSize.Z) ? 1 : 0);
+                }
+                if (c == 8) return ContainmentType.Disjoint;
+                c = 0;
+                for (int i = 0; i < points.Length; i++)
+                {
+                    c += ((points[i].Z < center.Z - halfSize.Z) ? 1 : 0);
+                }
+                if (c == 8) return ContainmentType.Disjoint;
+            }
+
+            return ContainmentType.Intersects;
+        }
+
+
+        public PlaneIntersectionType Intersects(ref Plane plane)
+        {
+            // See http://zach.in.tu-clausthal.de/teaching/cg_literatur/lighthouse3d_view_frustum_culling/index.html
+
+            Vector3 positiveVertex = center;
+            Vector3 negativeVertex = center;
+
+            if (plane.Normal.X >= 0)
+            {
+                positiveVertex.X += halfSize.X;
+                negativeVertex.X -= halfSize.X;
+            }
+            else
+            {
+                positiveVertex.X -= halfSize.X;
+                negativeVertex.X += halfSize.X;
+            }
+
+            if (plane.Normal.Y >= 0)
+            {
+                positiveVertex.Y += halfSize.Y;
+                negativeVertex.Y -= halfSize.Y;
+            }
+            else
+            {
+                positiveVertex.Y -= halfSize.Y;
+                negativeVertex.Y += halfSize.Y;
+            }
+
+            if (plane.Normal.Z >= 0)
+            {
+                positiveVertex.Z += halfSize.Z;
+                negativeVertex.Z -= halfSize.Z;
+            }
+            else
+            {
+                positiveVertex.Z -= halfSize.Z;
+                negativeVertex.Z += halfSize.Z;
+            }
+
+            // Inline Vector3.Dot(plane.Normal, negativeVertex) + plane.D;
+            var distance = plane.Normal.X * negativeVertex.X + plane.Normal.Y * negativeVertex.Y + plane.Normal.Z * negativeVertex.Z + plane.D;
+            if (distance > 0)
+            {
+                return PlaneIntersectionType.Front;
+            }
+
+            // Inline Vector3.Dot(plane.Normal, positiveVertex) + plane.D;
+            distance = plane.Normal.X * positiveVertex.X + plane.Normal.Y * positiveVertex.Y + plane.Normal.Z * positiveVertex.Z + plane.D;
+            if (distance < 0)
+            {
+                return PlaneIntersectionType.Back;
+            }
+
+            return PlaneIntersectionType.Intersecting;
         }
 
         /// <summary>
@@ -459,40 +599,40 @@ namespace GameLibrary.SceneGraph.Bounding
         //    }
         //}
 
-/*
-        private BoundingSphere Merge(float radius, Vector3 center, BoundingSphere sphere)
-        {
-
-            Vector3 diff = center - Center;
-            float radiusDiff = radius - Radius;
-
-            if (radiusDiff * radiusDiff >= diff.LengthSquared())
-            {
-                if (radiusDiff <= 0.0f)
+        /*
+                private BoundingSphere Merge(float radius, Vector3 center, BoundingSphere sphere)
                 {
-                    return this;
+
+                    Vector3 diff = center - Center;
+                    float radiusDiff = radius - Radius;
+
+                    if (radiusDiff * radiusDiff >= diff.LengthSquared())
+                    {
+                        if (radiusDiff <= 0.0f)
+                        {
+                            return this;
+                        }
+                        sphere.Center = center;
+                        sphere.Radius = radius;
+                        return sphere;
+                    }
+
+                    Vector3 rCenter;
+                    if (diff.Length() > RADIUS_EPSILON)
+                    {
+                        float coeff = (diff.Length() + radiusDiff) / (2.0f * diff.Length());
+                        rCenter = Center + (diff * coeff);
+                    }
+                    else
+                    {
+                        rCenter = Center;
+                    }
+                    sphere.Center = rCenter;
+                    sphere.Radius = (0.5f * (diff.Length() + Radius + radius));
+
+                    return sphere;
                 }
-                sphere.Center = center;
-                sphere.Radius = radius;
-                return sphere;
-            }
-
-            Vector3 rCenter;
-            if (diff.Length() > RADIUS_EPSILON)
-            {
-                float coeff = (diff.Length() + radiusDiff) / (2.0f * diff.Length());
-                rCenter = Center + (diff * coeff);
-            }
-            else
-            {
-                rCenter = Center;
-            }
-            sphere.Center = rCenter;
-            sphere.Radius = (0.5f * (diff.Length() + Radius + radius));
-
-            return sphere;
-        }
-*/
+        */
         //private BoundSphere MergeOBB(OrientedBoundBox obb, BoundSphere sphere)
         //{
 

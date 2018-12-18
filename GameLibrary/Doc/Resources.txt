@@ -174,8 +174,24 @@ http://www.sunandblackcat.com/tipFullView.php?l=eng&topicid=35
 
 https://blogs.msdn.microsoft.com/shawnhar/2010/09/10/yellow-light-and-blue-shadows/
 
+https://developer.nvidia.com/gpugems/GPUGems/gpugems_ch11.html
+
+https://developer.nvidia.com/gpugems/GPUGems/gpugems_ch15.html
+
+https://developer.nvidia.com/gpugems/GPUGems2/gpugems2_chapter17.html
+
+
 Cascade shadow mapping
 
 http://timjones.io/blog/archive/2015/04/13/cascaded-shadow-maps-sample-for-monogame
 
 very good : https://docs.microsoft.com/en-us/windows/desktop/dxtecharts/cascaded-shadow-maps
+
+Water
+
+https://developer.nvidia.com/gpugems/GPUGems2/gpugems2_chapter18.html
+
+Thin lines (cables...)
+
+https://developer.nvidia.com/gpugems/GPUGems2/gpugems2_chapter22.html
+

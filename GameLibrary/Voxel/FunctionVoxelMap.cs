@@ -175,13 +175,21 @@ namespace GameLibrary.Voxel
                 if (y < 5)
                 {
                     int lx = (x >= 0) ? x % size : size + (x % size) - 1;
+                    int ly = (y >= 0) ? y % size : size + (y % size) - 1;
                     int lz = (z >= 0) ? z % size : size + (z % size) - 1;
 
                     if ((lx == 2 || lx == 3) && (lz == 2 || lz == 3))
-                    { 
+                    {
                         return ((y % 3) == 2) ? (ushort)VoxelType.Rock : (ushort)VoxelType.Rock;
                     }
                 }
+                //if (y < 5)
+                //{
+                    if (x == -1)
+                    {
+                        //return (ushort)VoxelType.Rock;
+                    }
+                //}
                 return 0;
             }
             if (n < 0.05f)

@@ -316,10 +316,15 @@ namespace AsteroidGame
         {
             Node voxelOctreeNode = createVoxelOctreeNode("OCTREE", 64, 32);
 
-            TransformNode node = new TransformNode("SCENE");
-            node.Add(voxelOctreeNode);
+            TransformNode sceneNode = new TransformNode("SCENE");
 
-            return node;
+            LightNode sunNode = new LightNode("LIGHT_SUN");
+            sunNode.Translation = new Vector3(1, 1, 1);
+
+            sceneNode.Add(sunNode);
+            sunNode.Add(voxelOctreeNode);
+
+            return sceneNode;
         }
 
         private Node createVoxelOctreeNode(String name, int size, int chunkSize)
