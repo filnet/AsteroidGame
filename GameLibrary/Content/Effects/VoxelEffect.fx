@@ -524,7 +524,7 @@ float4 PSBasicVertexLightingTxNoFog(VSOutputTx pin) : SV_Target0
 	
     float depthOffset = 0.002;
 
-    //float lightDepth = SAMPLE_TEXTURE(ShadowMapTexture, shadowTexCoord).x;
+    float lightDepth = SAMPLE_TEXTURE(ShadowMapTexture, shadowTexCoord).x;
     float lightDistance = pin.ShadowPosition.z / pin.ShadowPosition.w;
     lightDistance -= depthOffset;
 
@@ -534,11 +534,11 @@ float4 PSBasicVertexLightingTxNoFog(VSOutputTx pin) : SV_Target0
     //float numSlices;
     //ShadowMapTexture.GetDimensions(shadowMapSize.x, shadowMapSize.y/*, numSlices*/);
 
-    float shadowFactor = ShadowMapTexture.SampleCmpLevelZero(ShadowSampler, shadowTexCoord.xy, lightDistance);
-//  if ((lightDistance - depthOffset) <= lightDepth)
-    if (shadowFactor)
+    //float shadowFactor = ShadowMapTexture.SampleCmpLevelZero(ShadowSampler, shadowTexCoord.xy, lightDistance);
+    if ((lightDistance - depthOffset) <= lightDepth)
+    //if (shadowFactor)
     {
-        cout += color * pin.Diffuse * shadowFactor;
+        cout += color * pin.Diffuse;// * shadowFactor;
         AddSpecular(cout, pin.Specular.rgb);
     }
 

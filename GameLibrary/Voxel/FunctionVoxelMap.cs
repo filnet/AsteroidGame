@@ -200,7 +200,10 @@ namespace GameLibrary.Voxel
                 }
                 return (ushort)VoxelType.Rock;
             }
-            if (n < 0.2f) return (ushort)VoxelType.GrassyDirt;
+            if (n < 0.2f)
+            {
+                return (ushort)VoxelType.GrassyDirt;
+            }
             if (y >= -10)
             {
                 return (n > 0.5f) ? (ushort)VoxelType.Water : (ushort)VoxelType.Dirt;

@@ -181,6 +181,8 @@ https://developer.nvidia.com/gpugems/GPUGems/gpugems_ch15.html
 https://developer.nvidia.com/gpugems/GPUGems2/gpugems2_chapter17.html
 
 
+Good one: https://gamedev.stackexchange.com/questions/73851/how-do-i-fit-the-camera-frustum-inside-directional-light-space
+
 Cascade shadow mapping
 
 http://timjones.io/blog/archive/2015/04/13/cascaded-shadow-maps-sample-for-monogame

@@ -29,28 +29,9 @@ namespace GameLibrary.SceneGraph.Bounding
     /// </summary>
     public abstract class BoundingVolume
     {
-        protected Matrix worldMatrix;
-
-        protected bool dirty = true;
-
-        public Matrix WorldMatrix
-        {
-            get
-            {
-                if (dirty)
-                {
-                    updateWorldMatrix();
-                    dirty = false;
-                }
-                return worldMatrix;
-            }
-        }
-
         public BoundingVolume()
         {
         }
-
-        protected abstract void updateWorldMatrix();
 
         /// <summary>
         /// Creates a deep-copy of this BoundVolume, returns the same type.
@@ -99,7 +80,7 @@ namespace GameLibrary.SceneGraph.Bounding
             return 0; //Vector3.DistanceSquared(Center, point);
         }
 
-        public abstract ContainmentType IsContained(BoundingFrustum boundingFrustum);
+        public abstract ContainmentType IsContained(BoundingFrustum boundingFrustum, bool fast);
 
         /// <summary>
         /// Compute the distance from the nearest edge of the volume
@@ -210,5 +191,9 @@ namespace GameLibrary.SceneGraph.Bounding
         public abstract BoundingVolume Transform(Matrix m, ref BoundingVolume store);
 
         //public abstract Camera.FrustumIntersect CheckFrustumPlane(Plane plane);
+
+        public abstract Matrix WorldMatrix();
+
+        public abstract void WorldMatrix(out Matrix m);
     }
 }

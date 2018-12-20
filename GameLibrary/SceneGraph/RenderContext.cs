@@ -233,8 +233,8 @@ namespace GameLibrary.SceneGraph
                     GraphicsDevice,
                     renderTargetSize, renderTargetSize,
                     false,
-                    SurfaceFormat.Single, DepthFormat.Depth24,
-                    1,
+                    SurfaceFormat.Single, DepthFormat.Depth24Stencil8,
+                    0,
                     RenderTargetUsage.DiscardContents,
                     false,
                     cascadeCount);

@@ -177,6 +177,8 @@ namespace GameLibrary.SceneGraph
                 effectMatrices.View = rc.Camera.ViewMatrix;
             }
 
+            Matrix worldMatrix;
+
             boundingGeometry.PreDraw(rc.GraphicsDevice);
             foreach (EffectPass pass in effect.CurrentTechnique.Passes)
             {
@@ -185,7 +187,8 @@ namespace GameLibrary.SceneGraph
                 {
                     if (effectMatrices != null)
                     {
-                        effectMatrices.World = drawable.WorldBoundingVolume.WorldMatrix;
+                        drawable.WorldBoundingVolume.WorldMatrix(out worldMatrix);
+                        effectMatrices.World = worldMatrix;
                         pass.Apply();
                     }
                     boundingGeometry.Draw(rc.GraphicsDevice);

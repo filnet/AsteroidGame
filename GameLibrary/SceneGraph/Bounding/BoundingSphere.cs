@@ -6,7 +6,6 @@ namespace GameLibrary.SceneGraph.Bounding
 {
     public class BoundingSphere : BoundingVolume
     {
-
         private static readonly float EPSILON = 0.00001f;
         private static readonly float RADIUS_EPSILON = 1.0f + EPSILON;
 
@@ -18,31 +17,16 @@ namespace GameLibrary.SceneGraph.Bounding
         public Vector3 Center
         {
             get { return center; }
-            set
-            {
-                if (center != value)
-                {
-                    center = value;
-                    dirty = true;
-                }
-            }
+            set { center = value; }
         }
 
         public float Radius
         {
             get { return radius; }
-            set
-            {
-                if (radius != value)
-                {
-                    radius = value;
-                    dirty = true;
-                }
-            }
+            set { radius = value; }
         }
 
-        public BoundingSphere()
-        : base()
+        public BoundingSphere() : base()
         {
             center = new Vector3(0, 0, 0);
             radius = 0;
@@ -82,9 +66,14 @@ namespace GameLibrary.SceneGraph.Bounding
             return xnaBoundingSphere;
         }
 
-        protected override void updateWorldMatrix()
+        public override Matrix WorldMatrix()
         {
-            worldMatrix = Matrix.CreateScale(Radius) * Matrix.CreateTranslation(Center);
+            return Matrix.CreateScale(Radius) * Matrix.CreateTranslation(Center);
+        }
+
+        public override void WorldMatrix(out Matrix m)
+        {
+            m = Matrix.CreateScale(Radius) * Matrix.CreateTranslation(Center);
         }
 
         /// <summary>
@@ -292,18 +281,18 @@ namespace GameLibrary.SceneGraph.Bounding
         //    return obb.IntersectsBoundSphere(this);
         //}
 
-        public override ContainmentType IsContained(BoundingFrustum boundingFrustum)
+        public override ContainmentType IsContained(BoundingFrustum boundingFrustum, bool fast)
         {
             return boundingFrustum.Contains(asXnaBoundingSphere());
         }
 
-    /// <summary>
-    /// Merges the two bound volumes into a brand new
-    /// bounding volume and leaves the two unchanged.
-    /// </summary>
-    /// <param name="bv">BoundVolume to merge with</param>
-    /// <returns>A new volume containing both volumes</returns>
-    public override BoundingVolume Merge(BoundingVolume bv)
+        /// <summary>
+        /// Merges the two bound volumes into a brand new
+        /// bounding volume and leaves the two unchanged.
+        /// </summary>
+        /// <param name="bv">BoundVolume to merge with</param>
+        /// <returns>A new volume containing both volumes</returns>
+        public override BoundingVolume Merge(BoundingVolume bv)
         {
             if (bv == null)
             {

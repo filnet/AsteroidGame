@@ -15,32 +15,16 @@ namespace GameLibrary.SceneGraph.Bounding
         protected Vector3 center;
         protected Vector3 halfSize;
 
-        protected Microsoft.Xna.Framework.BoundingBox xnaBoundingBox;
-
         public Vector3 Center
         {
             get { return center; }
-            set
-            {
-                if (center != value)
-                {
-                    center = value;
-                    dirty = true;
-                }
-            }
+            set { center = value; }
         }
 
         public Vector3 HalfSize
         {
             get { return halfSize; }
-            set
-            {
-                if (halfSize != value)
-                {
-                    halfSize = value;
-                    dirty = true;
-                }
-            }
+            set { halfSize = value; }
         }
 
         public BoundingBox()
@@ -66,7 +50,7 @@ namespace GameLibrary.SceneGraph.Bounding
             return new BoundingBox((max + min) / 2.0f, (max - min) / 2.0f);
         }
 
-        public static void FromMinMax(Vector3 min, Vector3 max, ref BoundingBox store)
+        public static void CreateFromMinMax(Vector3 min, Vector3 max, ref BoundingBox store)
         {
             store.Center = (max + min) / 2.0f;
             store.HalfSize = (max - min) / 2.0f;
@@ -81,16 +65,21 @@ namespace GameLibrary.SceneGraph.Bounding
             return new BoundingBox(this);
         }
 
-        public Microsoft.Xna.Framework.BoundingBox asXnaBoundingBox()
+        /*public Microsoft.Xna.Framework.BoundingBox asXnaBoundingBox()
         {
             xnaBoundingBox.Max = center + halfSize;
             xnaBoundingBox.Min = center - halfSize;
             return xnaBoundingBox;
+        }*/
+
+        public override Matrix WorldMatrix()
+        {
+            return Matrix.CreateScale(halfSize) * Matrix.CreateTranslation(center);
         }
 
-        protected override void updateWorldMatrix()
+        public override void WorldMatrix(out Matrix m)
         {
-            worldMatrix = Matrix.CreateScale(halfSize) * Matrix.CreateTranslation(center);
+            m = Matrix.CreateScale(halfSize) * Matrix.CreateTranslation(center);
         }
 
         /// <summary>
@@ -99,54 +88,21 @@ namespace GameLibrary.SceneGraph.Bounding
         /// <param name="points">Array of Vectors</param>
         public override void ComputeFromPoints(Vector3[] points)
         {
-            /*
-                        //Vector3[] copy = new Vector3[points.Length];
-                        //System.Array.Copy(points, copy, points.Length);
-                        //CalculateWelzl(copy, copy.Length, 0, 0);
-                        Sphere s = new Sphere();
-                        SphereUtil.FromPoints(ref s, points);
-                        Radius = s.radius;
-                        Center = s.center;
-            */
-        }
+            Vector3 min = new Vector3(float.MaxValue);
+            Vector3 max = new Vector3(float.MinValue);
 
-        //private void CalculateWelzl(Vector3[] points, int p, int b, int ap)
-        //{
-        //    switch (b)
-        //    {
-        //        case 0:
-        //            radius = 0;
-        //            center = Vector3.Zero;
-        //            break;
-        //        case 1:
-        //            radius = -EPSILON;
-        //            center = points[ap - 1];
-        //            break;
-        //        case 2:
-        //            SetSphere(points[ap - 1], points[ap - 2]);
-        //            break;
-        //        case 3:
-        //            SetSphere(points[ap - 1], points[ap - 2], points[ap - 3]);
-        //            break;
-        //        case 4:
-        //            SetSphere(points[ap - 1], points[ap - 2], points[ap - 3], points[ap - 4]);
-        //            return;
-        //    }
-        //    for (int i = 0; i < p; i++)
-        //    {
-        //        Vector3 compVec = points[i + ap];
-        //        if (Vector3.DistanceSquared(compVec, center) - (radius * radius) > EPSILON)
-        //        {
-        //            for (int j = i; j > 0; j--)
-        //            {
-        //                Vector3 temp = points[j + ap];
-        //                points[j + ap] = points[j - 1 + ap];
-        //                points[j - 1 + ap] = temp;
-        //            }
-        //            CalculateWelzl(points, i, b + 1, ap + 1);
-        //        }
-        //    }
-        //}
+            foreach(Vector3 v in points)
+            {
+                min.X = Math.Min(min.X, v.X);
+                min.Y = Math.Min(min.Y, v.Y);
+                min.Z = Math.Min(min.Z, v.Z);
+                max.X = Math.Max(max.X, v.X);
+                max.Y = Math.Max(max.Y, v.Y);
+                max.Z = Math.Max(max.Z, v.Z);
+            }
+            Center = (max + min) / 2.0f;
+            HalfSize = (max - min) / 2.0f;
+        }
 
         /// <summary>
         /// Ask this BoundVolume if a point is within its volume.
@@ -306,7 +262,7 @@ namespace GameLibrary.SceneGraph.Bounding
         //}
 
 
-        public override ContainmentType IsContained(BoundingFrustum boundingFrustum)
+        public override ContainmentType IsContained(BoundingFrustum boundingFrustum, bool fast)
         {
             var intersects = false;
             Plane[] planes = new Plane[] {
@@ -331,7 +287,7 @@ namespace GameLibrary.SceneGraph.Bounding
                 return ContainmentType.Contains;
             }
 
-            bool fast = true;
+            //bool fast = false;
             if (!fast)
             {
                 // check frustum outside/inside box

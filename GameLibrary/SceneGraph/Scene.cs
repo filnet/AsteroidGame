@@ -43,7 +43,7 @@ namespace GameLibrary.SceneGraph
         public static int CULLED_BOUNDING_BOX = 33;
 
         public static int CASTER_BOUNDING_SPHERE = 34;
-        public static int CASTER_BOUNDING_BOX = 35;
+        public static int OCCLUDER_BOUNDING_BOX = 35;
 
         public static int COLLISION_SPHERE = 40;
         public static int COLLISION_BOX = 41;
@@ -65,10 +65,11 @@ namespace GameLibrary.SceneGraph
 
         // debug camera
         private MeshNode frustrumGeo;
+        private MeshNode frustrumBoundingBoxGeo;
+        private MeshNode visibleBoundingBoxGeo;
 
         private MeshNode lightFrustrumGeo;
-        private MeshNode visibleBoundingBoxGeo;
-        private MeshNode casterBoundingBoxGeo;
+        private MeshNode occluderBoundingBoxGeo;
 
         private BillboardNode billboardNode;
 
@@ -131,8 +132,11 @@ namespace GameLibrary.SceneGraph
             visibleBoundingBoxGeo = GeometryUtil.CreateCubeWF("VISIBLE_BOUNDING_BOX", 1);
             visibleBoundingBoxGeo.Initialize(GraphicsDevice);
 
-            casterBoundingBoxGeo = GeometryUtil.CreateCubeWF("CASTER_BOUNDING_BOX", 1);
-            casterBoundingBoxGeo.Initialize(GraphicsDevice);
+            frustrumBoundingBoxGeo = GeometryUtil.CreateCubeWF("FRUSTRUM_BOUNDING_BOX", 1);
+            frustrumBoundingBoxGeo.Initialize(GraphicsDevice);
+
+            occluderBoundingBoxGeo = GeometryUtil.CreateCubeWF("CASTER_BOUNDING_BOX", 1);
+            occluderBoundingBoxGeo.Initialize(GraphicsDevice);
 
             billboardNode = new BillboardNode("SHADOW_MAP");
             billboardNode.Initialize(GraphicsDevice);
@@ -171,7 +175,7 @@ namespace GameLibrary.SceneGraph
             renderers[CULLED_BOUNDING_SPHERE] = new BoundRenderer(EffectFactory.CreateCulledBoundEffect(GraphicsDevice, clip), boundingSphereGeo);
             renderers[CULLED_BOUNDING_BOX] = new BoundRenderer(EffectFactory.CreateCulledBoundEffect(GraphicsDevice, clip), boundingBoxGeo);
             renderers[CASTER_BOUNDING_SPHERE] = new BoundRenderer(EffectFactory.CreateCasterBoundEffect(GraphicsDevice, clip), boundingSphereGeo);
-            renderers[CASTER_BOUNDING_BOX] = new BoundRenderer(EffectFactory.CreateCasterBoundEffect(GraphicsDevice, clip), boundingBoxGeo);
+            renderers[OCCLUDER_BOUNDING_BOX] = new BoundRenderer(EffectFactory.CreateCasterBoundEffect(GraphicsDevice, clip), boundingBoxGeo);
             renderers[COLLISION_SPHERE] = new BoundRenderer(EffectFactory.CreateCollisionEffect(GraphicsDevice, clip), boundingSphereGeo);
             renderers[COLLISION_BOX] = new BoundRenderer(EffectFactory.CreateCollisionEffect(GraphicsDevice, clip), boundingBoxGeo);
 
@@ -302,45 +306,72 @@ namespace GameLibrary.SceneGraph
 
                 // light camera culling
 
+                Bounding.BoundingBox frustrumBoundingBox = null;
+                if (true)
+                {
+                    // FIXME garbage
+                    frustrumBoundingBox = new Bounding.BoundingBox();
+                    Vector3[] corners = new Vector3[BoundingFrustum.CornerCount];
+                    renderContext.BoundingFrustum.GetCorners(corners);
+                    frustrumBoundingBox.ComputeFromPoints(corners);
+                }
+
                 // visible bounding box includes "whole" chunks
                 // so we need to intersect with frustrum to get a tighter visible bounding box
-                Vector3 min = renderContext.sceneMin;
-                Vector3 max = renderContext.sceneMax;
+                Bounding.BoundingBox visibleBoundingBox = Bounding.BoundingBox.CreateFromMinMax(renderContext.sceneMin, renderContext.sceneMax);
 
-                //min.Z = Math.Min(min.Z, renderContext.BoundingFrustum.Near.);
-                //max.Z = Math.Min(max.Z, renderContext.BoundingFrustum.Far);
-
-                Bounding.BoundingBox visibleBoundingBox = Bounding.BoundingBox.CreateFromMinMax(min, max);               
-
-                // FIXME only last casters BB and light frustrum will be shown...
+                // FIXME only last occluders BB and light frustrum will be shown...
                 RenderContext shadowRenderContext = null;
                 LightCamera lightCamera = null;
-                Bounding.BoundingBox casterBoundingBox = null;
+                Bounding.BoundingBox occluderBoundingBox = null;
                 for (int i = 0; i < renderContext.lightNodes.Count; i++)
                 {
                     LightNode lightNode = renderContext.lightNodes[i];
                     shadowRenderContext = renderContext.lightRenderContextes[i];
-
-                    bool computeCasterBoundingBox = true;
-
-                    // FIXME light frustrum can be made tighter
-                    // should use the scene bounding box only for near and far planes...
-                    // scene bounding box can be bigger than frustrum...
-                    // need to use the intersection of the frustum and scenebounding box
                     lightCamera = shadowRenderContext.Camera as LightCamera;
+
+                    bool findOccluders = true;
+
+                    // 
                     lightCamera.lightDirection = -lightNode.Translation;
-                    lightCamera.Update(visibleBoundingBox, computeCasterBoundingBox);
+                    lightCamera.FitToScene(renderContext.BoundingFrustum, findOccluders ? 1000.0f : 0.0f);
+
+                    if (findOccluders)
+                    {
+                        shadowRenderContext.sceneMin = new Vector3(float.MaxValue);
+                        shadowRenderContext.sceneMax = new Vector3(float.MinValue);
+                        shadowRenderContext.UpdateCamera();
+                        // find occluders
+                        // FIXME we get spurious occluders that are too far away to really
+                        // contribute shadow... no idea atm on how to ignore them
+                        // FIXME this will trigger chunk loading in conflict with main camera
+                        // TODO should load occluders at a lower priority (but will cause shadow pops)
+                        rootNode.Visit(CULL_VISITOR, shadowRenderContext);
+
+                        // update near plane
+                        occluderBoundingBox = Bounding.BoundingBox.CreateFromMinMax(
+                            shadowRenderContext.sceneMin, shadowRenderContext.sceneMax);
+                        lightCamera.UpdateZNear(occluderBoundingBox);
+                    }
+                    else
+                    {
+                        // no culling was done to find occluders
+                        // just copy occluders from main context
+                        foreach (KeyValuePair<int, List<Drawable>> renderBinKVP in renderContext.renderBins)
+                        {
+                            int renderBinId = renderBinKVP.Key;
+                            // HACK HACK HACK
+                            if (renderBinId == VOXEL)
+                            {
+                                List<Drawable> drawableList = renderBinKVP.Value;
+                                shadowRenderContext.AddToBin(renderBinId, drawableList);
+                            }
+                        }
+                    }
                     shadowRenderContext.UpdateCamera();
 
-                    shadowRenderContext.sceneMax = new Vector3(float.MinValue);
-                    shadowRenderContext.sceneMin = new Vector3(float.MaxValue);
-
-                    // find casters
-                    // FIXME we get spurious casters that are too far away to really
-                    // contribute shadow... no idea atm on how to ignore them
-                    rootNode.Visit(CULL_VISITOR, shadowRenderContext);
-
-                    // shadow context can be empty (i.e. no additional casters where found
+                    /*
+                    // shadow context can be empty (i.e. no additional occluders where found
                     if (computeCasterBoundingBox && shadowRenderContext.DrawableCount > 0)
                     {
                         // TODO casterBoundingBox can be empty...
@@ -355,22 +386,22 @@ namespace GameLibrary.SceneGraph
                         lightCamera.Update(visibleBoundingBox, false);
                         shadowRenderContext.UpdateCamera();
                     }
-
-                    // show caster bounding boxes
-                    bool ShowCasters = true;
-                    if (ShowCasters)
+                    */
+                    // show occluder bounding boxes
+                    bool ShowOccluders = true;
+                    if (ShowOccluders)
                     {
                         foreach (KeyValuePair<int, List<Drawable>> renderBinKVP in shadowRenderContext.renderBins)
                         {
                             int renderBinId = renderBinKVP.Key;
                             List<Drawable> drawableList = renderBinKVP.Value;
-                            renderContext.AddToBin(CASTER_BOUNDING_BOX, drawableList);
+                            renderContext.AddToBin(OCCLUDER_BOUNDING_BOX, drawableList);
                         }
                     }
-                    
-                    // add visible drawables to casters drawables
+
+                    // add visible drawables to occluders drawables
                     // FIXME this is expensive as we check for duplicates...
-                    foreach (KeyValuePair<int, List<Drawable>> renderBinKVP in shadowRenderContext.renderBins)
+                    /*foreach (KeyValuePair<int, List<Drawable>> renderBinKVP in shadowRenderContext.renderBins)
                     {
                         int renderBinId = renderBinKVP.Key;
                         List<Drawable> drawableList = renderBinKVP.Value;
@@ -379,7 +410,7 @@ namespace GameLibrary.SceneGraph
                         {
                             shadowRenderContext.AddToBin(renderBinId, visibleList);
                         }
-                    }
+                    }*/
                 }
 
                 // DEBUG STUFF
@@ -391,50 +422,36 @@ namespace GameLibrary.SceneGraph
                 }
 
                 // visible bounding box
-                if (true)
+                if (false)
                 {
                     visibleBoundingBoxGeo.BoundingVolume = visibleBoundingBox;
                     visibleBoundingBoxGeo.WorldBoundingVolume = visibleBoundingBox;
                     renderContext.AddToBin(BOUNDING_BOX, visibleBoundingBoxGeo);
                 }
 
-                // caster bounding box
-                if (true && casterBoundingBox != null)
+                // frustrum bounding box
+                if (false)
                 {
-                    casterBoundingBoxGeo.BoundingVolume = casterBoundingBox;
-                    casterBoundingBoxGeo.WorldBoundingVolume = casterBoundingBox;
-                    renderContext.AddToBin(BOUNDING_BOX, casterBoundingBoxGeo);
+                    frustrumBoundingBoxGeo.BoundingVolume = frustrumBoundingBox;
+                    frustrumBoundingBoxGeo.WorldBoundingVolume = frustrumBoundingBox;
+                    renderContext.AddToBin(BOUNDING_BOX, frustrumBoundingBoxGeo);
+                }
+
+                // occluder bounding box
+                if (true && occluderBoundingBox != null)
+                {
+                    occluderBoundingBoxGeo.BoundingVolume = occluderBoundingBox;
+                    occluderBoundingBoxGeo.WorldBoundingVolume = occluderBoundingBox;
+                    renderContext.AddToBin(BOUNDING_BOX, occluderBoundingBoxGeo);
                 }
 
                 // light frustrum
                 if (true && lightCamera != null)
                 {
-                    //if (lightFrustrumGeo == null)
-                    //{
-                    /*Bounding.BoundingBox sceneBoundingBox = new Bounding.BoundingBox(
-                        (renderContext.sceneMax + renderContext.sceneMin) / 2.0f,
-                        (renderContext.sceneMax - renderContext.sceneMin) / 2.0f);*/
-
-                    /*
-                    Matrix lightView;
-                    Matrix lightProjection;
-                    renderContext.LightMatrices(sceneBoundingBox, out lightView, out lightProjection);
-
-                    BoundingFrustum boundingFrustum = new BoundingFrustum(lightView * lightProjection);
-
-                    Matrix m = lightView * lightProjection;
-                    m = Matrix.Invert(m);
-                    */
-                    BoundingFrustum boundingFrustum = lightCamera.BoundingFrustum;
-                    Matrix m = lightCamera.InverseViewProjectionMatrix;
-
-                    lightFrustrumGeo = GeometryUtil.CreateFrustrum("FRUSTRUM", boundingFrustum);
+                    BoundingFrustum lightFrustum = lightCamera.BoundingFrustum;
+                    lightFrustrumGeo = GeometryUtil.CreateFrustrum("FRUSTRUM", lightFrustum);
                     lightFrustrumGeo.RenderGroupId = FRUSTRUM;
                     lightFrustrumGeo.Initialize(GraphicsDevice);
-                    lightFrustrumGeo.Transform = m;
-                    lightFrustrumGeo.UpdateTransform();
-                    lightFrustrumGeo.UpdateWorldTransform(null);
-                    //}
 
                     renderContext.AddToBin(FRUSTRUM, lightFrustrumGeo);
                 }
@@ -453,11 +470,12 @@ namespace GameLibrary.SceneGraph
                 if (frustrumGeo == null)
                 {
                     BoundingFrustum boundingFrustum = cameraComponent.BoundingFrustum;
+
                     frustrumGeo = GeometryUtil.CreateFrustrum("FRUSTRUM", boundingFrustum);
                     frustrumGeo.RenderGroupId = FRUSTRUM;
                     frustrumGeo.Initialize(GraphicsDevice);
-                    frustrumGeo.UpdateTransform();
-                    frustrumGeo.UpdateWorldTransform(null);
+                    //frustrumGeo.UpdateTransform();
+                    //frustrumGeo.UpdateWorldTransform(null);
 
                     // tweak camera zfar...
                     // TODO restore zfar later...
@@ -633,7 +651,9 @@ namespace GameLibrary.SceneGraph
                     if (bv != null)
                     {
                         BoundingFrustum boundingFrustum = ctxt.BoundingFrustum;
-                        if (bv.IsContained(boundingFrustum) == ContainmentType.Disjoint)
+                        // TODO use a more accurate test for leaf nodes (but still not 100% accurate...)
+                        bool slow = false;
+                        if (bv.IsContained(boundingFrustum, !slow) == ContainmentType.Disjoint)
                         {
                             //if (Debug) Console.WriteLine("Culling " + node.Name);
                             cull = true;
@@ -680,7 +700,10 @@ namespace GameLibrary.SceneGraph
                 // https://github.com/labnation/MonoGame/blob/master/MonoGame.Framework/BoundingBox.cs
 
                 BoundingFrustum boundingFrustum = ctxt.BoundingFrustum;
-                ContainmentType containmentType = boundingBox.IsContained(boundingFrustum);
+
+                // use a more accurate test for leaf nodes (but still not 100% accurate...)
+                bool slow = (node.obj.Drawable != null);
+                ContainmentType containmentType = boundingBox.IsContained(boundingFrustum, !slow);
                 if (containmentType == ContainmentType.Disjoint)
                 {
                     culled = true;

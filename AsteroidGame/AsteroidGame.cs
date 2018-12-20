@@ -314,7 +314,7 @@ namespace AsteroidGame
 
         private Node createVoxelTestScene()
         {
-            Node voxelOctreeNode = createVoxelOctreeNode("OCTREE", 64, 32);
+            Node voxelOctreeNode = createVoxelOctreeNode("OCTREE", 256, 32);
 
             TransformNode sceneNode = new TransformNode("SCENE");
 
