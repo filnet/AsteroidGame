@@ -89,6 +89,7 @@ float SampleAmbientOcclusionFactors(float4 factors, float2 texCoord)
 	vout.AmbientOcclusionFactors = ComputeAmbientOcclusionFactors(vin.TextureIndex[1]); \
 	vout.WF1TexCoord = vin.TexCoord.x ? 1 : -1; \
 	vout.WF2TexCoord = vin.TexCoord.y ? 1 : -1; \
+    vout.PositionWS = mul(vin.Position, World); \
 	vout.ShadowPosition = mul(vin.Position, LightWorldViewProj);
 
 	//float4x4 biasedLightWorldViewProj = LightWorldViewProj; \
@@ -518,14 +519,19 @@ float4 PSBasicVertexLightingTxNoFog(VSOutputTx pin) : SV_Target0
     float4 wfColor2 = SAMPLE_TEXTURE(WireframeTexture, pin.WF2TexCoord);
     color = blendWF(wfColor2, color);
 
+    float4 PositionLS = mul(pin.PositionWS, LightWorldViewProj);
+    //float3 shadowPosition = mul(float4(samplePos, 1.0f), ShadowMatrix).xyz;
+
 	// FIXME this can be done upfront in the light projection
-    float2 shadowTexCoord = mad(0.5f, pin.ShadowPosition.xy / pin.ShadowPosition.w, float2(0.5f, 0.5f));
+    //float2 shadowTexCoord = mad(0.5f, pin.ShadowPosition.xy / pin.ShadowPosition.w, float2(0.5f, 0.5f));
+    float2 shadowTexCoord = mad(0.5f, PositionLS.xy / PositionLS.w, float2(0.5f, 0.5f));
     shadowTexCoord.y = 1.0f - shadowTexCoord.y;
 	
-    float depthOffset = 0.002;
+    float depthOffset = 0.0002;
 
     float lightDepth = SAMPLE_TEXTURE(ShadowMapTexture, shadowTexCoord).x;
-    float lightDistance = pin.ShadowPosition.z / pin.ShadowPosition.w;
+    //float lightDistance = pin.ShadowPosition.z / pin.ShadowPosition.w;
+    float lightDistance = PositionLS.z / PositionLS.w;
     lightDistance -= depthOffset;
 
     float4 cout = color * AmbientColor;

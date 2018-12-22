@@ -370,8 +370,6 @@ namespace Voxel
             set { shadowMapTextureParam.SetValue(value); }
         }
 
-
-
         #endregion
 
         #region Methods

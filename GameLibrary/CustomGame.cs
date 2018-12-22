@@ -347,10 +347,10 @@ namespace GameLibrary
                         Scene.ShowCollisionVolumes = !Scene.ShowCollisionVolumes;
                         break;
                     case "f":
-                        Scene.ShowFrustrum = !Scene.ShowFrustrum;
+                        Scene.ShowFrustum = !Scene.ShowFrustum;
                         break;
                     case "cf":
-                        Scene.CaptureFrustrum = !Scene.CaptureFrustrum;
+                        Scene.CaptureFrustum = !Scene.CaptureFrustum;
                         break;
                     default:
                         break;
@@ -368,10 +368,10 @@ namespace GameLibrary
                 switch (subargs[0])
                 {
                     case "on":
-                        Scene.ShowFrustrum = true;
+                        Scene.ShowFrustum = true;
                         break;
                     case "off":
-                        Scene.ShowFrustrum = false;
+                        Scene.ShowFrustum = false;
                         break;
                     case "reset":
                         //ResetLog();
@@ -399,14 +399,14 @@ namespace GameLibrary
                     case "--help":
                         host.Echo("bv [on|off]");
                         host.Echo("Options:");
-                        host.Echo("       on     Show bounding frustrum.");
-                        host.Echo("       off    Hide bounding frustrum.");
+                        host.Echo("       on     Show bounding Frustum.");
+                        host.Echo("       off    Hide bounding Frustum.");
                         break;
                     default:
                         break;
                 }
             }
-            Scene.CaptureFrustrum = true;
+            Scene.CaptureFrustum = true;
         }
 
 

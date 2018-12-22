@@ -57,7 +57,7 @@ CommonVSOutput ComputeCommonVSOutputWithLighting(float4 position, float3 normal,
 
     ColorPair lightResult = ComputeLights(eyeVector, worldNormal, numLights);
     
-    vout.Pos_ps = mul(position, WorldViewProj);
+    vout.PositionCS = mul(position, WorldViewProj);
     vout.Diffuse = float4(lightResult.Diffuse, DiffuseColor.a);
     vout.Specular = lightResult.Specular;
     vout.FogFactor = ComputeFogFactor(position);
@@ -68,8 +68,8 @@ CommonVSOutput ComputeCommonVSOutputWithLighting(float4 position, float3 normal,
 
 struct CommonVSOutputPixelLighting
 {
-    float4 Pos_ps;
-    float3 Pos_ws;
+    float4 PositionCS;
+    float3 PositionWS;
     float3 Normal_ws;
     float  FogFactor;
 };
@@ -79,8 +79,8 @@ CommonVSOutputPixelLighting ComputeCommonVSOutputPixelLighting(float4 position, 
 {
     CommonVSOutputPixelLighting vout;
     
-    vout.Pos_ps = mul(position, WorldViewProj);
-    vout.Pos_ws = mul(position, World).xyz;
+    vout.PositionCS = mul(position, WorldViewProj);
+    vout.PositionWS = mul(position, World).xyz;
     vout.Normal_ws = normalize(mul(normal, WorldInverseTranspose));
     vout.FogFactor = ComputeFogFactor(position);
     
@@ -89,6 +89,6 @@ CommonVSOutputPixelLighting ComputeCommonVSOutputPixelLighting(float4 position, 
 
 
 #define SetCommonVSOutputParamsPixelLighting \
-    vout.PositionPS = cout.Pos_ps; \
-    vout.PositionWS = float4(cout.Pos_ws, cout.FogFactor); \
+    vout.PositionCS = cout.PositionCS; \
+    vout.PositionWS = float4(cout.PositionWS, cout.FogFactor); \
     vout.NormalWS = cout.Normal_ws;

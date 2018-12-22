@@ -35,7 +35,7 @@ Voxel
 
 http://codeflow.org/entries/2010/dec/09/minecraft-like-rendering-experiments-in-opengl-4/#ambient-occlusion
 
-Octree + portals + custom frustrum
+Octree + portals + custom Frustum
 
 Octree Front to back traversal : http://graphicsinterface.org/wp-content/uploads/gi1991-21.pdf
 
@@ -160,6 +160,16 @@ https://www.redblobgames.com/pathfinding/a-star/introduction.html
 
 Shadow mapping
 
+GOOD : http://timjones.io/blog/archive/2015/04/13/cascaded-shadow-maps-sample-for-monogame
+
+https://www.gamedev.net/forums/topic/591684-xna-40---shimmering-shadow-maps/
+
+http://dev.theomader.com/cascaded-shadow-mapping-3/
+
+https://chetanjags.wordpress.com/2015/02/05/real-time-shadows-cascaded-shadow-maps/
+
+https://mynameismjp.wordpress.com/2013/09/10/shadow-maps/
+
 http://www.opengl-tutorial.org/intermediate-tutorials/tutorial-16-shadow-mapping/
 
 https://docs.microsoft.com/en-us/windows/desktop/dxtecharts/common-techniques-to-improve-shadow-depth-maps
@@ -180,8 +190,11 @@ https://developer.nvidia.com/gpugems/GPUGems/gpugems_ch15.html
 
 https://developer.nvidia.com/gpugems/GPUGems2/gpugems2_chapter17.html
 
+http://www.ce.u-sys.org/Veranstaltungen/Interaktive%20Computergraphik%20(Stamminger)/papers/04_Brabec,Annen,Seidel-PracticalShadowMaps-2005.pdf
 
 Good one: https://gamedev.stackexchange.com/questions/73851/how-do-i-fit-the-camera-frustum-inside-directional-light-space
+
+Very good one : http://bondarev.nl/files/specialization_shadow_mapping_algorithms.pdf
 
 Cascade shadow mapping
 

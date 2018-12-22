@@ -68,11 +68,11 @@ namespace GameLibrary.Geometry
             return new MeshNode(name, new GeodesicWFMeshFactory(depth, flat));
         }
 
-        // frustrum
+        // Frustum
 
-        public static MeshNode CreateFrustrum(String name, BoundingFrustum boundingFrustum)
+        public static MeshNode CreateFrustum(String name, BoundingFrustum boundingFrustum)
         {
-            return new MeshNode(name, new FrustrumMeshFactory(boundingFrustum));
+            return new MeshNode(name, new FrustumMeshFactory(boundingFrustum));
         }
     }
 }

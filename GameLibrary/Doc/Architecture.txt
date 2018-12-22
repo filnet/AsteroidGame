@@ -7,7 +7,7 @@ Octree culling
 - tree is traversed in front to back order
    
 
-Octree frustrum culling, three cases:
+Octree Frustum culling, three cases:
 - bb is disjoint, stop at this level
 - bb instersects, continue down with culling
 - bb is contained, continue down without culling (there is no need to cull children...)

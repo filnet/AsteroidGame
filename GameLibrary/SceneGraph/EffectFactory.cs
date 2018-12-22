@@ -31,7 +31,7 @@ namespace GameLibrary.SceneGraph
             return effect;
         }
 
-        public static Effect CreateFrustrumEffect(GraphicsDevice gd)
+        public static Effect CreateFrustumEffect(GraphicsDevice gd)
         {
             Color c = new Color(Color.White, 255);
             return CreateBasicEffect3(gd, c);

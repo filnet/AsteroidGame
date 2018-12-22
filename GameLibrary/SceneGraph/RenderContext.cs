@@ -16,12 +16,12 @@ namespace GameLibrary.SceneGraph
     {
         #region Properties
 
-        // frustrum culling
+        // Frustum culling
         [Category("Culling")]
-        public bool FrustrumCullingEnabled
+        public bool FrustumCullingEnabled
         {
-            get { return (frustrumCullingEnabled && (frustrumCullingOwner == 0)); }
-            set { frustrumCullingEnabled = value; RequestRedraw(); }
+            get { return (frustumCullingEnabled && (frustumCullingOwner == 0)); }
+            set { frustumCullingEnabled = value; RequestRedraw(); }
         }
 
         [Category("Culling")]
@@ -96,8 +96,8 @@ namespace GameLibrary.SceneGraph
 
         #endregion
 
-        private bool frustrumCullingEnabled;
-        internal ulong frustrumCullingOwner;
+        private bool frustumCullingEnabled;
+        internal ulong frustumCullingOwner;
         public BoundingFrustum BoundingFrustum;
 
         private bool distanceCullingEnabled;
@@ -158,11 +158,11 @@ namespace GameLibrary.SceneGraph
 
             RenderTarget = renderTarget;
 
-            frustrumCullingEnabled = true;
+            frustumCullingEnabled = true;
             distanceCullingEnabled = false;
             screenSizeCullingEnabled = false;
 
-            frustrumCullingOwner = 0;
+            frustumCullingOwner = 0;
             distanceCullingOwner = 0;
             screenSizeCullingOwner = 0;
 
@@ -227,13 +227,13 @@ namespace GameLibrary.SceneGraph
             if (index >= lightRenderContextes.Count)
             {
                 Console.WriteLine("Creating light render context");
-                int renderTargetSize = 1024;
+                int renderTargetSize = 2048;
                 int cascadeCount = 1;
                 RenderTarget2D renderTarget = new RenderTarget2D(
                     GraphicsDevice,
                     renderTargetSize, renderTargetSize,
                     false,
-                    SurfaceFormat.Single, DepthFormat.Depth24Stencil8,
+                    SurfaceFormat.Single, DepthFormat.Depth24,
                     0,
                     RenderTargetUsage.DiscardContents,
                     false,
@@ -264,20 +264,20 @@ namespace GameLibrary.SceneGraph
             VisitOrder = VectorUtil.visitOrder(dir);
             //if (Debug) Console.WriteLine(dir + " : " + VisitOrder);
 
-            // frustrum culling
-            if (FrustrumCullingEnabled)
-            {
+            // Frustum culling
+            //if (FrustumCullingEnabled)
+            //{
                 BoundingFrustum = Camera.BoundingFrustum;
-            }
+            //}
 
-            if (DistanceCullingEnabled || ScreenSizeCullingEnabled)
-            {
+            //if (DistanceCullingEnabled || ScreenSizeCullingEnabled)
+            //{
                 /*
                 Matrix vi = Matrix.Invert(viewMatrix);
                 CameraPosition = vi.Translation;
                 */
                 CameraPosition = Camera.Position;
-            }
+            //}
         }
         /*
                 public void LightMatrices(Bounding.BoundingBox sceneBoundingBox, out Matrix view, out Matrix projection)

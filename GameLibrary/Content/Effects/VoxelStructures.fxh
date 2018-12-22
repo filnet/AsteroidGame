@@ -94,45 +94,55 @@ struct VSInputNmTxWeights
 
 struct VSOutput
 {
-    float4 PositionPS : SV_Position;
+    float4 PositionCS : SV_Position;
     float4 Diffuse    : COLOR0;
     float4 Specular   : COLOR1;
 };
 
 struct VSOutputNoFog
 {
-    float4 PositionPS : SV_Position;
+    float4 PositionCS : SV_Position;
     float4 Diffuse    : COLOR0;
 };
 
 struct VSOutputTx
 {
-    float4 PositionPS : SV_Position;
+    float4 PositionCS : SV_Position;
     float4 Diffuse    : COLOR0;
     float4 Specular   : COLOR1;
+    // texture
     float2 TexCoord   : TEXCOORD0;
 	uint4 TextureIndex : BLENDINDICES0;
+    // ambient occlusion
 	float4 AmbientOcclusionFactors : BLENDWEIGHT0;
+    // wireframe
     float WF1TexCoord   : TEXCOORD1;
     float WF2TexCoord   : TEXCOORD2;
+    // shadow
+    float4 PositionWS : POSITIONWS;
 	float4 ShadowPosition : TEXCOOR3;
 };
 
 struct VSOutputTxNoFog
 {
-    float4 PositionPS : SV_Position;
+    float4 PositionCS : SV_Position;
     float4 Diffuse    : COLOR0;
+    // texture
     float2 TexCoord   : TEXCOORD0;
     uint4 TextureIndex : BLENDINDICES0;
+    // ambient occlusion
     float4 AmbientOcclusionFactors : BLENDWEIGHT0;
-    float WF1TexCoord   : TEXCOORD1;
-    float WF2TexCoord   : TEXCOORD2;
-	float4 ShadowPosition : TEXCOOR3;
+    // wireframe
+    float WF1TexCoord : TEXCOORD1;
+    float WF2TexCoord : TEXCOORD2;
+    // shadow
+    float4 PositionWS : POSITIONWS;
+    float4 ShadowPosition : TEXCOOR3;
 };
 
 struct VSOutputPixelLighting
 {
-    float4 PositionPS : SV_Position;
+    float4 PositionCS : SV_Position;
     float4 PositionWS : TEXCOORD0;
     float3 NormalWS   : TEXCOORD1;
     float4 Diffuse    : COLOR0;
@@ -140,7 +150,7 @@ struct VSOutputPixelLighting
 
 struct VSOutputPixelLightingTx
 {
-    float4 PositionPS : SV_Position;
+    float4 PositionCS : SV_Position;
     float2 TexCoord   : TEXCOORD0;
     float4 PositionWS : TEXCOORD1;
     float3 NormalWS   : TEXCOORD2;

@@ -6,7 +6,7 @@ Octree
 
 http://old.cescg.org/CESCG-2002/DSykoraJJelinek/
 Shows how to :
-- Take into account view vector to optimize AABB vs frustrum intersection test
+- Take into account view vector to optimize AABB vs Frustum intersection test
 - How to reduce the number of tests for child AABB
 - And finally, how to benefit from frame coherency (i.e. 1st test the plane that “failed” in the previous frame).
 

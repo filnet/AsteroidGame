@@ -26,7 +26,7 @@ void AddSpecular(inout float4 color, float3 specular)
 
 struct CommonVSOutput
 {
-    float4 Pos_ps;
+    float4 PositionCS;
     float4 Diffuse;
     float3 Specular;
     float  FogFactor;
@@ -37,7 +37,7 @@ CommonVSOutput ComputeCommonVSOutput(float4 position)
 {
     CommonVSOutput vout;
     
-    vout.Pos_ps = mul(position, WorldViewProj);
+    vout.PositionCS = mul(position, WorldViewProj);
     vout.Diffuse = DiffuseColor;
     vout.Specular = 0;
     vout.FogFactor = ComputeFogFactor(position);
@@ -47,12 +47,11 @@ CommonVSOutput ComputeCommonVSOutput(float4 position)
 
 
 #define SetCommonVSOutputParams \
-    vout.PositionPS = cout.Pos_ps; \
+    vout.PositionCS = cout.PositionCS; \
     vout.Diffuse = cout.Diffuse; \
     vout.Specular = float4(cout.Specular, cout.FogFactor);
 
 
 #define SetCommonVSOutputParamsNoFog \
-    vout.PositionPS = cout.Pos_ps; \
+    vout.PositionCS = cout.PositionCS; \
     vout.Diffuse = cout.Diffuse;
-

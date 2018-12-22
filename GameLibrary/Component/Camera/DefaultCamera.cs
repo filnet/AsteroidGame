@@ -74,7 +74,7 @@ namespace GameLibrary.Component.Camera
 
         private bool viewDirty;
         private bool viewProjectionDirty;
-        private bool frustrumDirty;
+        private bool frustumDirty;
 
         #region Public Methods
 
@@ -113,7 +113,7 @@ namespace GameLibrary.Component.Camera
             savedAccumPitch = 0.0f;
 
             viewProjectionDirty = true;
-            frustrumDirty = true;
+            frustumDirty = true;
         }
 
         /// <summary>
@@ -177,7 +177,7 @@ namespace GameLibrary.Component.Camera
             Quaternion.CreateFromRotationMatrix(ref viewMatrix, out orientation);
 
             viewProjectionDirty = true;
-            frustrumDirty = true;
+            frustumDirty = true;
         }
 
         /// <summary>
@@ -218,7 +218,7 @@ namespace GameLibrary.Component.Camera
 
             viewDirty = true;
             viewProjectionDirty = true;
-            frustrumDirty = true;
+            frustumDirty = true;
 
             UpdateViewMatrix();
         }
@@ -243,7 +243,7 @@ namespace GameLibrary.Component.Camera
 
             viewDirty = true;
             viewProjectionDirty = true;
-            frustrumDirty = true;
+            frustumDirty = true;
 
             UpdateViewMatrix();
         }
@@ -290,7 +290,7 @@ namespace GameLibrary.Component.Camera
             projectionMatrix.M44 = 0.0f;
 
             viewProjectionDirty = true;
-            frustrumDirty = true;
+            frustumDirty = true;
         }
 
         public void SetAspect(float aspect)
@@ -390,7 +390,7 @@ namespace GameLibrary.Component.Camera
 
                 viewDirty = true;
                 viewProjectionDirty = true;
-                frustrumDirty = true;
+                frustumDirty = true;
             }
             else
             {
@@ -398,7 +398,7 @@ namespace GameLibrary.Component.Camera
                 Perspective(zoom, aspectRatio, znear, zfar);
 
                 viewProjectionDirty = true;
-                frustrumDirty = true;
+                frustumDirty = true;
             }
             UpdateViewMatrix();
         }
@@ -431,7 +431,7 @@ namespace GameLibrary.Component.Camera
 
                             viewDirty = true;
                             viewProjectionDirty = true;
-                            frustrumDirty = true;
+                            frustumDirty = true;
                             break;
 
                         case Behavior.Orbit:
@@ -443,7 +443,7 @@ namespace GameLibrary.Component.Camera
 
                             viewDirty = true;
                             viewProjectionDirty = true;
-                            frustrumDirty = true;
+                            frustumDirty = true;
                             break;
 
                         default:
@@ -459,7 +459,7 @@ namespace GameLibrary.Component.Camera
                         case Behavior.Flight:
                             viewDirty = true;
                             viewProjectionDirty = true;
-                            frustrumDirty = true;
+                            frustumDirty = true;
                             break;
 
                         case Behavior.Orbit:
@@ -469,7 +469,7 @@ namespace GameLibrary.Component.Camera
 
                             viewDirty = true;
                             viewProjectionDirty = true;
-                            frustrumDirty = true;
+                            frustumDirty = true;
                             break;
 
                         default:
@@ -488,7 +488,7 @@ namespace GameLibrary.Component.Camera
 
                         viewDirty = true;
                         viewProjectionDirty = true;
-                        frustrumDirty = true;
+                        frustumDirty = true;
                     }
                     else
                     {
@@ -496,7 +496,7 @@ namespace GameLibrary.Component.Camera
 
                         viewDirty = true;
                         viewProjectionDirty = true;
-                        frustrumDirty = true;
+                        frustumDirty = true;
                     }
                     break;
 
@@ -549,7 +549,7 @@ namespace GameLibrary.Component.Camera
             {
                 viewDirty = true;
                 viewProjectionDirty = true;
-                frustrumDirty = true;
+                frustumDirty = true;
             }
             UpdateViewMatrix();
         }
@@ -560,7 +560,7 @@ namespace GameLibrary.Component.Camera
 
             viewDirty = true;
             viewProjectionDirty = true;
-            frustrumDirty = true;
+            frustumDirty = true;
 
             UpdateViewMatrix();
         }
@@ -599,7 +599,7 @@ namespace GameLibrary.Component.Camera
 
                 viewDirty = true;
                 viewProjectionDirty = true;
-                frustrumDirty = true;
+                frustumDirty = true;
             }
 
             // Rotate the camera about its local X axis.
@@ -610,7 +610,7 @@ namespace GameLibrary.Component.Camera
 
                 viewDirty = true;
                 viewProjectionDirty = true;
-                frustrumDirty = true;
+                frustumDirty = true;
             }
             UpdateViewMatrix();
         }
@@ -640,7 +640,7 @@ namespace GameLibrary.Component.Camera
 
             viewDirty = true;
             viewProjectionDirty = true;
-            frustrumDirty = true;
+            frustumDirty = true;
 
             UpdateViewMatrix();
         }
@@ -669,7 +669,7 @@ namespace GameLibrary.Component.Camera
 
                     viewDirty = true;
                     viewProjectionDirty = true;
-                    frustrumDirty = true;
+                    frustumDirty = true;
                 }
 
                 if (pitch != 0.0f)
@@ -679,7 +679,7 @@ namespace GameLibrary.Component.Camera
 
                     viewDirty = true;
                     viewProjectionDirty = true;
-                    frustrumDirty = true;
+                    frustumDirty = true;
                 }
             }
             else
@@ -690,7 +690,7 @@ namespace GameLibrary.Component.Camera
 
                 viewDirty = true;
                 viewProjectionDirty = true;
-                frustrumDirty = true;
+                frustumDirty = true;
             }
             UpdateViewMatrix();
         }
@@ -945,9 +945,9 @@ namespace GameLibrary.Component.Camera
         {
             get
             {
-                if (frustrumDirty)
+                if (frustumDirty)
                 {
-                    frustrumDirty = false;
+                    frustumDirty = false;
                     boundingFrustum = new BoundingFrustum(ViewProjectionMatrix);
                 }
                 return boundingFrustum;

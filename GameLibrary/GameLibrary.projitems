@@ -67,7 +67,7 @@
     <Compile Include="$(MSBuildThisFileDirectory)Geometry\GridMeshFactory.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Geometry\LineMeshFactory.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Geometry\PolygonMeshFactory.cs" />
-    <Compile Include="$(MSBuildThisFileDirectory)Geometry\FrustrumMeshFactory.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)Geometry\FrustumMeshFactory.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Geometry\SquareMeshFactory.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)SceneGraph\Bounding\BoundingBox.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)SceneGraph\Renderer.cs" />
@@ -125,6 +125,7 @@
     <Content Include="$(MSBuildThisFileDirectory)Doc\Screenshots\simplex.png" />
     <Content Include="$(MSBuildThisFileDirectory)Doc\Screenshots\simplex2.png" />
     <Content Include="$(MSBuildThisFileDirectory)Doc\Screenshots\wireframe.png" />
+    <Content Include="$(MSBuildThisFileDirectory)Doc\shadow_map_rendering.jpg" />
     <Content Include="$(MSBuildThisFileDirectory)Doc\wireframe_texture_coordinates.png" />
     <Content Include="$(MSBuildThisFileDirectory)Doc\TODO.txt" />
     <Content Include="$(MSBuildThisFileDirectory)StockEffects\HLSL\AlphaTestEffect.fx" />

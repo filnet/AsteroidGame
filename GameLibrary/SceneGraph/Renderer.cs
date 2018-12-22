@@ -141,9 +141,9 @@ namespace GameLibrary.SceneGraph
         }
     }
 
-    public class FrustrumRenderer : BasicRenderer
+    public class FrustumRenderer : BasicRenderer
     {
-        public FrustrumRenderer(Effect effect) : base(effect)
+        public FrustumRenderer(Effect effect) : base(effect)
         {
             //DepthStencilState = new DepthStencilState();
             //DepthStencilState.DepthBufferEnable = false;
@@ -364,13 +364,12 @@ namespace GameLibrary.SceneGraph
             wireframeSamplerState.AddressU = TextureAddressMode.Mirror;
 
             // shadow texture sampler
-            shadowSamplerState.Filter = TextureFilter.Linear;
+            shadowSamplerState.Filter = TextureFilter.Point;
             shadowSamplerState.AddressU = TextureAddressMode.Clamp;
             shadowSamplerState.AddressV = TextureAddressMode.Clamp;
-            shadowSamplerState.AddressW = TextureAddressMode.Clamp;
-            shadowSamplerState.ComparisonFunction = CompareFunction.LessEqual;
-            shadowSamplerState.FilterMode = TextureFilterMode.Comparison;
-            //shadowSamplerState.BorderColor = new Color(1f, 1f, 1f, 1f);
+            //shadowSamplerState.ComparisonFunction = CompareFunction.LessEqual;
+            //shadowSamplerState.FilterMode = TextureFilterMode.Comparison;
+            //shadowSamplerState.BorderColor = Color.Red;
         }
 
         public override void Render(RenderContext rc, List<Drawable> drawableList)
@@ -436,6 +435,9 @@ namespace GameLibrary.SceneGraph
         {
             //RasterizerState = RasterizerState.CullNone;
             //RasterizerState = RasterizerState.CullCounterClockwise;
+            RasterizerState = new RasterizerState();
+            RasterizerState.CullMode = CullMode.CullClockwiseFace;
+            RasterizerState.DepthClipEnable = false;
         }
 
         public override void Render(RenderContext rc, List<Drawable> drawableList)
