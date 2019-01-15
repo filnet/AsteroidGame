@@ -365,11 +365,11 @@ namespace GameLibrary.SceneGraph
 
             // shadow texture sampler
             shadowSamplerState.Filter = TextureFilter.Point;
-            shadowSamplerState.AddressU = TextureAddressMode.Clamp;
-            shadowSamplerState.AddressV = TextureAddressMode.Clamp;
+            shadowSamplerState.AddressU = TextureAddressMode.Border;
+            shadowSamplerState.AddressV = TextureAddressMode.Border;
             //shadowSamplerState.ComparisonFunction = CompareFunction.LessEqual;
             //shadowSamplerState.FilterMode = TextureFilterMode.Comparison;
-            //shadowSamplerState.BorderColor = Color.Red;
+            shadowSamplerState.BorderColor = Color.White;
         }
 
         public override void Render(RenderContext rc, List<Drawable> drawableList)
@@ -383,10 +383,9 @@ namespace GameLibrary.SceneGraph
 
             // wireframe textures
             rc.GraphicsDevice.SamplerStates[1] = wireframeSamplerState;
-            rc.GraphicsDevice.SamplerStates[2] = wireframeSamplerState;
 
             // shadow map textures
-            rc.GraphicsDevice.SamplerStates[3] = shadowSamplerState;
+            rc.GraphicsDevice.SamplerStates[2] = shadowSamplerState;
 
             if (effectMatrices != null)
             {
@@ -437,7 +436,14 @@ namespace GameLibrary.SceneGraph
             //RasterizerState = RasterizerState.CullCounterClockwise;
             RasterizerState = new RasterizerState();
             RasterizerState.CullMode = CullMode.CullClockwiseFace;
+            // disable depth clipping :
+            // occluders outside of near/far planes will have Z clamped to -1.0/1.0 instead of being clipped
             RasterizerState.DepthClipEnable = false;
+
+            //RasterizerState.DepthBias = 1;
+            //RasterizerState.SlopeScaleDepthBias = 1.5f;
+
+            //RasterizerState.ScissorTestEnable;
         }
 
         public override void Render(RenderContext rc, List<Drawable> drawableList)

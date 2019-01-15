@@ -25,9 +25,9 @@ namespace GameLibrary.Component.Camera
             Orbit
         };
 
-        public const float DEFAULT_FOVX = MathHelper.PiOver2;
+        public const float DEFAULT_FOVX = MathHelper.Pi / 3.0f;
         public const float DEFAULT_ZNEAR = 0.1f;
-        public const float DEFAULT_ZFAR = 1000.0f;
+        public const float DEFAULT_ZFAR = 100;
 
         public const float DEFAULT_ORBIT_MIN_ZOOM = DEFAULT_ZNEAR + 1.0f;
         public const float DEFAULT_ORBIT_MAX_ZOOM = DEFAULT_ZFAR * 0.5f;
@@ -252,7 +252,7 @@ namespace GameLibrary.Component.Camera
         /// Builds a perspective projection matrix based on a horizontal field
         /// of view.
         /// </summary>
-        /// <param name="fovx">Horizontal field of view in degrees.</param>
+        /// <param name="fovx">Horizontal field of view in radians.</param>
         /// <param name="aspect">The viewport's aspect ratio.</param>
         /// <param name="znear">The distance to the near clip plane.</param>
         /// <param name="zfar">The distance to the far clip plane.</param>
@@ -266,9 +266,10 @@ namespace GameLibrary.Component.Camera
             float aspectInv = 1.0f / aspect;
             float e = 1.0f / (float)Math.Tan(fovx / 2.0f);
             float fovy = 2.0f * (float)Math.Atan(aspectInv / e);
-            float xScale = 1.0f / (float)Math.Tan(0.5f * fovy);
+            float xScale = 1.0f / (float)Math.Tan(fovy / 2.0f);
             float yScale = xScale / aspectInv;
 
+            /*
             projectionMatrix.M11 = xScale;
             projectionMatrix.M12 = 0.0f;
             projectionMatrix.M13 = 0.0f;
@@ -288,6 +289,9 @@ namespace GameLibrary.Component.Camera
             projectionMatrix.M42 = 0.0f;
             projectionMatrix.M43 = (2.0f * zfar * znear) / (znear - zfar);
             projectionMatrix.M44 = 0.0f;
+            */
+            Matrix.CreatePerspectiveFieldOfView(fovy, aspect, znear, zfar, out projectionMatrix);
+
 
             viewProjectionDirty = true;
             frustumDirty = true;

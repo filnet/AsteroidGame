@@ -10,18 +10,24 @@ namespace GameLibrary.Geometry
 {
     public class FrustumMeshFactory : IMeshFactory
     {
-        protected Vector3[] vertices;
+        protected readonly Vector3[] vertices;
 
-        private BoundingFrustum boundingFrustum;
+        //private BoundingFrustum boundingFrustum;
+
+        public FrustumMeshFactory(Vector3[] vertices)
+        {
+            this.vertices = vertices;
+        }
 
         public FrustumMeshFactory(BoundingFrustum boundingFrustum)
         {
-            this.boundingFrustum = boundingFrustum;
+            vertices = boundingFrustum.GetCorners();
+            //this.boundingFrustum = boundingFrustum;
         }
 
         public Mesh CreateMesh(GraphicsDevice gd)
         {
-            vertices = boundingFrustum.GetCorners();
+            //vertices = boundingFrustum.GetCorners();
             Mesh mesh = generateMesh(gd);
             return mesh;
         }

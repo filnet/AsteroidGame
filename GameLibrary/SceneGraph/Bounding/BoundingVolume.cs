@@ -186,9 +186,9 @@ namespace GameLibrary.SceneGraph.Bounding
         /// <param name="rotation">Rotation</param>
         /// <param name="translation">Translation</param>
         /// <param name="store">BoundVolume to store in</param>
-        public abstract BoundingVolume Transform(Vector3 scale, Quaternion rotation, Vector3 translation, ref BoundingVolume store);
+        public abstract BoundingVolume Transform(Vector3 scale, Quaternion rotation, Vector3 translation, BoundingVolume store);
 
-        public abstract BoundingVolume Transform(Matrix m, ref BoundingVolume store);
+        public abstract BoundingVolume Transform(Matrix m, BoundingVolume store);
 
         //public abstract Camera.FrustumIntersect CheckFrustumPlane(Plane plane);
 

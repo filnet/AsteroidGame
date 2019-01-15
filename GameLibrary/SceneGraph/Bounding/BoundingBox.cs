@@ -50,7 +50,7 @@ namespace GameLibrary.SceneGraph.Bounding
             return new BoundingBox((max + min) / 2.0f, (max - min) / 2.0f);
         }
 
-        public static void CreateFromMinMax(Vector3 min, Vector3 max, ref BoundingBox store)
+        public static void CreateFromMinMax(Vector3 min, Vector3 max, BoundingBox store)
         {
             store.Center = (max + min) / 2.0f;
             store.HalfSize = (max - min) / 2.0f;
@@ -461,13 +461,13 @@ namespace GameLibrary.SceneGraph.Bounding
         /// <param name="scale">Scale</param>
         /// <param name="rotation">Rotation</param>
         /// <param name="translation">Translation</param>
-        public override BoundingVolume Transform(Vector3 scale, Quaternion rotation, Vector3 translation, ref BoundingVolume store)
+        public override BoundingVolume Transform(Vector3 scale, Quaternion rotation, Vector3 translation,  BoundingVolume store)
         {
             Matrix m = Matrix.CreateScale(scale) * Matrix.CreateFromQuaternion(rotation) * Matrix.CreateTranslation(translation);
-            return Transform(m, ref store);
+            return Transform(m, store);
         }
 
-        public override BoundingVolume Transform(Matrix m, ref BoundingVolume store)
+        public override BoundingVolume Transform(Matrix m, BoundingVolume store)
         {
             BoundingBox rVal = store as BoundingBox;
             if (store == null)

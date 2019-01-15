@@ -324,6 +324,7 @@ namespace GameLibrary.SceneGraph
                     projection = lightProjection;
                 }
         */
+
         public void ResetStats()
         {
             // culli

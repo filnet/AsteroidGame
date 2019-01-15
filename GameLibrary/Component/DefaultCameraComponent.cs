@@ -652,7 +652,7 @@ namespace GameLibrary.Component.Camera
             if (currentKeyboardState.IsKeyDown(Keys.LeftShift) || currentKeyboardState.IsKeyDown(Keys.RightShift))
             {
                 savedVelocity = velocity;
-                velocity *= 3.0f;                  
+                velocity *= 5.0f;
             }
 
             if (direction.X != 0.0f)

@@ -66,6 +66,7 @@ namespace GameLibrary.SceneGraph
         // debug camera
         private MeshNode frustumGeo;
         private MeshNode frustumBoundingBoxGeo;
+        private MeshNode frustumBoundingSphereGeo;
         private MeshNode sceneBoundingBoxGeo;
 
         private MeshNode lightFrustumGeo;
@@ -123,7 +124,7 @@ namespace GameLibrary.SceneGraph
         {
             //VectorUtil.CreateAABBAreaLookupTable();
 
-            boundingSphereGeo = GeometryUtil.CreateGeodesicWF("BOUNDING_SPHERE", 1);
+            boundingSphereGeo = GeometryUtil.CreateGeodesicWF("BOUNDING_SPHERE", 4);
             boundingSphereGeo.Initialize(GraphicsDevice);
 
             boundingBoxGeo = GeometryUtil.CreateCubeWF("BOUNDING_BOX", 1);
@@ -132,8 +133,11 @@ namespace GameLibrary.SceneGraph
             sceneBoundingBoxGeo = GeometryUtil.CreateCubeWF("VISIBLE_BOUNDING_BOX", 1);
             sceneBoundingBoxGeo.Initialize(GraphicsDevice);
 
-            frustumBoundingBoxGeo = GeometryUtil.CreateCubeWF("Frustum_BOUNDING_BOX", 1);
+            frustumBoundingBoxGeo = GeometryUtil.CreateCubeWF("FRUSTUM_BOUNDING_BOX", 1);
             frustumBoundingBoxGeo.Initialize(GraphicsDevice);
+
+            frustumBoundingSphereGeo = GeometryUtil.CreateGeodesicWF("FRUSTUM_BOUNDING_SPHERE", 1);
+            frustumBoundingSphereGeo.Initialize(GraphicsDevice);
 
             occluderBoundingBoxGeo = GeometryUtil.CreateCubeWF("CASTER_BOUNDING_BOX", 1);
             occluderBoundingBoxGeo.Initialize(GraphicsDevice);
@@ -299,8 +303,9 @@ namespace GameLibrary.SceneGraph
                 bool Stable = true;
                 bool FindOccluders = true;
 
-                bool ShowSceneBoundingBox = true;
+                bool ShowSceneBoundingBox = false;
                 bool ShowFrustumBoundingBox = false;
+                bool ShowFrustumBoundingSphere = false;
 
                 bool ShowLightFrustum = true;
                 bool ShowOccluderBoundingBox = false;
@@ -319,7 +324,8 @@ namespace GameLibrary.SceneGraph
                 // light camera culling
 
                 Bounding.BoundingBox FrustumBoundingBox = null;
-                if (true)
+                Bounding.BoundingSphere FrustumBoundingSphere = null;
+                if (ShowFrustumBoundingBox)
                 {
                     // FIXME garbage
                     FrustumBoundingBox = new Bounding.BoundingBox();
@@ -352,7 +358,7 @@ namespace GameLibrary.SceneGraph
                     {
                         if (Stable)
                         {
-                            lightCamera.FitToViewStable(renderContext.BoundingFrustum, FindOccluders ? 1000.0f : 0.0f);
+                            lightCamera.FitToViewStable(renderContext.BoundingFrustum, sceneBoundingBox, FindOccluders ? 1000.0f : 0.0f);
                         }
                         else
                         {
@@ -390,7 +396,7 @@ namespace GameLibrary.SceneGraph
                         {
                             if (Stable)
                             {
-                                lightCamera.FitToViewStable(renderContext.BoundingFrustum, 0.0f);
+                                lightCamera.FitToViewStable(renderContext.BoundingFrustum, sceneBoundingBox, 0.0f);
                             }
                             else
                             {
@@ -428,6 +434,8 @@ namespace GameLibrary.SceneGraph
                             renderContext.AddToBin(OCCLUDER_BOUNDING_BOX, drawableList);
                         }
                     }
+
+                    FrustumBoundingSphere = lightCamera.bs;
                 }
 
                 // DEBUG STUFF
@@ -449,9 +457,32 @@ namespace GameLibrary.SceneGraph
                 // Frustum bounding box
                 if (ShowFrustumBoundingBox)
                 {
-                    frustumBoundingBoxGeo.BoundingVolume = FrustumBoundingBox;
-                    frustumBoundingBoxGeo.WorldBoundingVolume = FrustumBoundingBox;
-                    renderContext.AddToBin(BOUNDING_BOX, frustumBoundingBoxGeo);
+                    if (false)
+                    {
+                        Vector3[] corners = new Vector3[8];
+                        renderContext.BoundingFrustum.GetCorners(corners);
+                        Matrix m = shadowRenderContext.Camera.ViewMatrix;
+                        Vector3.Transform(corners, ref m, corners);
+                        //corners[0] = FrustumBoundingBox.Center + Vector3[];
+                        //FrustumBoundingBox.Transform(lightCamera.ViewMatrix, FrustumBoundingBox);
+                        frustumBoundingBoxGeo = GeometryUtil.CreateFrustum("FRUSTUM_BOUNDING_BOX", corners);
+                        frustumBoundingBoxGeo.RenderGroupId = VECTOR;
+                        frustumBoundingBoxGeo.Initialize(GraphicsDevice);
+
+                        renderContext.AddToBin(frustumBoundingBoxGeo);
+                    }
+                    else
+                    {
+                        frustumBoundingBoxGeo.BoundingVolume = FrustumBoundingBox;
+                        frustumBoundingBoxGeo.WorldBoundingVolume = FrustumBoundingBox;
+                        renderContext.AddToBin(BOUNDING_BOX, frustumBoundingBoxGeo);
+                    }
+                }
+                if (ShowFrustumBoundingSphere && FrustumBoundingSphere != null)
+                {
+                    frustumBoundingSphereGeo.BoundingVolume = FrustumBoundingSphere;
+                    frustumBoundingSphereGeo.WorldBoundingVolume = FrustumBoundingSphere;
+                    renderContext.AddToBin(BOUNDING_SPHERE, frustumBoundingSphereGeo);
                 }
 
                 // occluder bounding box
@@ -463,7 +494,7 @@ namespace GameLibrary.SceneGraph
                 }
 
                 // light Frustum
-                if (ShowLightFrustum)
+                if (ShowLightFrustum && lightCamera != null)
                 {
                     BoundingFrustum lightFrustum = lightCamera.BoundingFrustum;
                     lightFrustumGeo = GeometryUtil.CreateFrustum("Frustum", lightFrustum);
@@ -695,6 +726,7 @@ namespace GameLibrary.SceneGraph
             };
 
         static float minA = float.MaxValue;
+
         private static readonly VoxelOctree.Visitor<VoxelChunk> VOXEL_OCTREE_CULL_VISITOR = delegate (Octree<VoxelChunk> octree, OctreeNode<VoxelChunk> node, ref Object arg)
         {
             RenderContext ctxt = arg as RenderContext;

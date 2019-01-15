@@ -119,7 +119,7 @@ namespace GameLibrary.SceneGraph.Common
                 if (BoundingVolume != null)
                 {
                     // TODO : do not create garbage
-                    worldBoundingVolume = BoundingVolume.Transform(WorldTransform, ref worldBoundingVolume);
+                    worldBoundingVolume = BoundingVolume.Transform(WorldTransform, worldBoundingVolume);
                 }
                 return true;
             }

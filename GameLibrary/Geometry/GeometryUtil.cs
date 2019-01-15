@@ -70,6 +70,11 @@ namespace GameLibrary.Geometry
 
         // Frustum
 
+        public static MeshNode CreateFrustum(String name, Vector3[] corners)
+        {
+            return new MeshNode(name, new FrustumMeshFactory(corners));
+        }
+
         public static MeshNode CreateFrustum(String name, BoundingFrustum boundingFrustum)
         {
             return new MeshNode(name, new FrustumMeshFactory(boundingFrustum));

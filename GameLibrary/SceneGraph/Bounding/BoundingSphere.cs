@@ -351,7 +351,7 @@ namespace GameLibrary.SceneGraph.Bounding
         /// <param name="scale">Scale</param>
         /// <param name="rotation">Rotation</param>
         /// <param name="translation">Translation</param>
-        public override BoundingVolume Transform(Vector3 scale, Quaternion rotation, Vector3 translation, ref BoundingVolume store)
+        public override BoundingVolume Transform(Vector3 scale, Quaternion rotation, Vector3 translation, BoundingVolume store)
         {
             BoundingSphere rVal = store as BoundingSphere;
             if (store == null)
@@ -367,7 +367,7 @@ namespace GameLibrary.SceneGraph.Bounding
             return rVal;
         }
 
-        public override BoundingVolume Transform(Matrix m, ref BoundingVolume store)
+        public override BoundingVolume Transform(Matrix m, BoundingVolume store)
         {
             BoundingSphere rVal = store as BoundingSphere;
             if (store == null)
