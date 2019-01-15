@@ -279,7 +279,7 @@ namespace GameLibrary.SceneGraph
             float nearClip;
             float farClip;
             bool fitToView = true;
-            bool fitToScene = true;
+            bool fitToScene = false;
             if (fitToView)
             {
                 // transform view frustum corners to light space

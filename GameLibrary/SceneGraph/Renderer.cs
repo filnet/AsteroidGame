@@ -440,8 +440,8 @@ namespace GameLibrary.SceneGraph
             // occluders outside of near/far planes will have Z clamped to -1.0/1.0 instead of being clipped
             RasterizerState.DepthClipEnable = false;
 
-            //RasterizerState.DepthBias = 1;
-            //RasterizerState.SlopeScaleDepthBias = 1.5f;
+            RasterizerState.DepthBias = 0.001f;
+            RasterizerState.SlopeScaleDepthBias = 0.5f;
 
             //RasterizerState.ScissorTestEnable;
         }

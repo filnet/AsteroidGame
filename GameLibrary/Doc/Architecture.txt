@@ -115,3 +115,12 @@ Directional lights:
 
 lightmaterial.exe tutor: www.xmission.com/~nate/tutors.html
 Demonstrates the more complex model of light and material properties used in OpenGL
+
+Shadows
+
+Shadow Map:
+- near and far plane are kept tight around view frustrum as seen from light viewpoint
+- occluders outside of near/far are "panckaked" (RasterizerState.DepthClipEnable is set to false)
+- depth bias (absolute and slope scaled) are handled when rendering the shadow map (slope scaled need normals)
+
+Stable Shadow Map

@@ -19,6 +19,7 @@ END_CONSTANTS
 struct VSInput
 {
     float4 Position : POSITION;
+    float3 Normal : NORMAL;
 };
 
 struct VSShadowOutput
@@ -32,15 +33,16 @@ VSShadowOutput VSShadow(VSInput vin)
     VSShadowOutput vout;
     
 	vout.PositionPS = mul(vin.Position, WorldViewProj);
-	vout.Depth = vout.PositionPS.zw;
+	//vout.Depth = vout.PositionPS.zw;
     
     return vout;
 }
 
 float PSShadow(VSShadowOutput pin) : SV_Target0
 { 
-	float depth = pin.Depth.x / pin.Depth.y;
-    return depth;//float4(depth, depth, depth, depth);
+    //float depth = pin.Depth.x / pin.Depth.y;
+    //return depth;//float4(depth, depth, depth, depth);
+    return pin.PositionPS.z / pin.PositionPS.w;
 }
 
 TECHNIQUE(ShadowEffect, VSShadow, PSShadow );

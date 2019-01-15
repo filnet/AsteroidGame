@@ -527,7 +527,7 @@ float4 PSBasicVertexLightingTxNoFog(VSOutputTx pin) : SV_Target0
     float2 shadowTexCoord = mad(0.5f, PositionLS.xy / PositionLS.w, float2(0.5f, 0.5f));
     shadowTexCoord.y = 1.0f - shadowTexCoord.y;
 	
-    float depthBias = 0.0008;
+    float depthBias = 0; //0.0008;
 
     float lightDepth = SAMPLE_TEXTURE(ShadowMapTexture, shadowTexCoord).x;
     //float lightDistance = pin.ShadowPosition.z / pin.ShadowPosition.w;
