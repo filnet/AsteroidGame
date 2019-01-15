@@ -199,7 +199,6 @@ namespace GameLibrary.SceneGraph
 
                 double fovX = MathHelper.Pi / 3.0f; // TODO do not hardcode fov...
 
-
                 double k = Math.Sqrt(1.0f + h2 / w2) * Math.Tan(fovX / 2.0);
                 double k2 = k * k;
 
@@ -219,14 +218,8 @@ namespace GameLibrary.SceneGraph
                 Vector3 nearFaceCenter = (frustumCornersWS[0] + frustumCornersWS[2]) / 2;
                 Vector3 farFaceCenter = (frustumCornersWS[4] + frustumCornersWS[6]) / 2;
 
-                //float r1 = Vector3.Distance(farFaceCenter, frustumCornersWS[6]);
-                //center = farFaceCenter;
-                //radius = r1;
-
                 center = nearFaceCenter - Vector3.Normalize(farFaceCenter - nearFaceCenter) * (float)z;
                 radius = (float)r;
-                //nearClip = (float)(n + z);
-                //farClip = (float)(f + z);
             }
             else
             {
@@ -234,9 +227,6 @@ namespace GameLibrary.SceneGraph
             }
 
             // sphere from 4 points: http://www.ambrsoft.com/TrigoCalc/Sphere/Spher3D_.htm
-
-            //Console.WriteLine(radius);
-            //radius = radius2;
 
             // TODO
             // 
@@ -283,87 +273,58 @@ namespace GameLibrary.SceneGraph
             }
 
             // create light view matrix
-            lightPosition = center - (float) radius * lightDirection;
-            viewMatrix = Matrix.CreateLookAt(lightPosition, lightPosition + lightDirection, lightUpVector);
+            lightPosition = center - (float)radius * lightDirection;
+            viewMatrix = Matrix.CreateLookAt(lightPosition, center, lightUpVector);
 
-            float nearClip = 0; //-radius;
-            float farClip = 2 * radius;
-            if (false)
+            float nearClip;
+            float farClip;
+            bool fitToView = true;
+            bool fitToScene = true;
+            if (fitToView)
             {
-                // transform scene bounding box to light space
-                Bounding.BoundingBox sceneBoundingBoxLS = new Bounding.BoundingBox();
-                //Bounding.BoundingVolume boundingVolume = sceneBoundingBoxLS as Bounding.BoundingVolume;
-                sceneBoundingBox.Transform(viewMatrix, sceneBoundingBoxLS);
-
                 // transform view frustum corners to light space
                 // FIXME we are only interested in the Z component
                 Vector3[] frustumCornersLS = new Vector3[BoundingFrustum.CornerCount];
-                //Vector3 min = new Vector3(float.MaxValue);
-                //Vector3 max = new Vector3(float.MinValue);
-                nearClip = float.MaxValue;
-                farClip = float.MinValue;
+                float minZ = float.MaxValue;
+                float maxZ = float.MinValue;
                 for (int c = 0; c < frustumCornersWS.Length; c++)
                 {
                     Vector3.Transform(ref frustumCornersWS[c], ref viewMatrix, out frustumCornersLS[c]);
                     float z = frustumCornersLS[c].Z;
-                    nearClip = Math.Min(nearClip, z);
-                    farClip = Math.Max(farClip, z);
+                    minZ = Math.Min(minZ, z);
+                    maxZ = Math.Max(maxZ, z);
                 }
-                // create light bounding box
-                Bounding.BoundingBox frustumBoundingBoxWS = new Bounding.BoundingBox();
-                frustumBoundingBoxWS.ComputeFromPoints(frustumCornersWS);
-                frustumBoundingBoxLS.ComputeFromPoints(frustumCornersLS);
 
-                Vector3 centerLS;
-                Vector3.Transform(ref center, ref viewMatrix, out centerLS);
+                // fit Z to scene ?
+                if (fitToScene)
+                {
+                    // transform scene bounding box to light space
+                    // FIXME we are only interested in the Z component
+                    Bounding.BoundingBox sceneBoundingBoxLS = new Bounding.BoundingBox();
+                    sceneBoundingBox.Transform(viewMatrix, sceneBoundingBoxLS);
 
-                float nearClip2 = frustumBoundingBoxLS.Center.Z - frustumBoundingBoxLS.HalfSize.Z;
-                float farClip2 = frustumBoundingBoxLS.Center.Z + frustumBoundingBoxLS.HalfSize.Z;
-                Console.WriteLine("* " + nearClip2 + " / " + farClip2 + " (" + radius + ")");
+                    minZ = Math.Max(minZ, sceneBoundingBoxLS.Center.Z - sceneBoundingBoxLS.HalfSize.Z);
+                    maxZ = Math.Min(maxZ, sceneBoundingBoxLS.Center.Z + sceneBoundingBoxLS.HalfSize.Z);
+                }
+
+                // ???
+                nearClip = -maxZ;
+                farClip = -minZ;
             }
-            // take minimum of view bounding box and light bounding box
-            //Vector3 min;
-            //Vector3 max;
-            //min = Vector3.Max(lightBoundingBox.Center - lightBoundingBox.HalfSize, sceneBoundingBoxLS.Center - sceneBoundingBoxLS.HalfSize);
-            //max = Vector3.Min(lightBoundingBox.Center + lightBoundingBox.HalfSize, sceneBoundingBoxLS.Center + sceneBoundingBoxLS.HalfSize);
-            //lightBoundingBox = Bounding.BoundingBox.CreateFromMinMax(min, max);
-
-            // TODO need Z in view space ...
-            //float nearClip = frustumCornersWS[0].Z;
-            //float farClip = frustumCornersWS[6].Z;
-            // for now use radius (not as tight as possible... can do better)
-            //nearClip = -radius;
-            //farClip = radius;
-            //float nearClip = sceneBoundingBoxLS.Center.Z - sceneBoundingBoxLS.HalfSize.Z;
-            //float farClip = sceneBoundingBoxLS.Center.Z + sceneBoundingBoxLS.HalfSize.Z;
-
-            //Vector3 centerLS;
-            //Vector3.Transform(ref center, ref lightRotation, out centerLS);
-            //float nearClip = Math.Abs(frustumBoundingBoxLS.Center.Z - centerLS.Z) - frustumBoundingBoxLS.HalfSize.Z;
-            //float farClip = Math.Abs(frustumBoundingBoxLS.Center.Z - centerLS.Z) + frustumBoundingBoxLS.HalfSize.Z;
-
-            Console.WriteLine(nearClip + " / " + farClip + " (" + radius + ")");
-
-            //float nearClip = lightBoundingBox.Center.Z - lightBoundingBox.HalfSize.Z;
-            //float farClip = lightBoundingBox.Center.Z + lightBoundingBox.HalfSize.Z;
+            else
+            {
+                nearClip = 0;
+                farClip = 2 * radius;
+            }
             //Console.WriteLine(nearClip + " / " + farClip + " (" + radius + ")");
 
-            /*
-            float tmp = nearClip;
-            nearClip = -farClip;
-            farClip = -tmp;
-            */
-
             // create light projection matrix
-            //float bounds = 2.0f * radius;// diagonalLength;
             if (stable)
             {
                 // increase bounds to account for position discretization
                 // the light frustum position moves in worldUnitsPerPixel steps (discretized)
                 // so we need some leeway so the light and camera frustums can slide
                 //bounds *= shadowMapSize / (shadowMapSize - 1);
-
-
 
                 //bounds = (float)Math.Ceiling(bounds);
                 // FIXME bounds += worldUnitsPerPixel.Length(); ???
