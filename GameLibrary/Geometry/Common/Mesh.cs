@@ -12,6 +12,8 @@ namespace GameLibrary.Geometry.Common
     {
         #region Member Fields
         
+        protected readonly bool isDynamic;
+
         protected VertexBuffer vertexBuffer;
 
         protected IndexBuffer indexBuffer;
@@ -25,6 +27,11 @@ namespace GameLibrary.Geometry.Common
         #endregion
 
         #region Properties
+
+        public bool IsDynamic
+        {
+            get { return isDynamic; }
+        }
 
         public VertexBuffer VertexBuffer
         {
@@ -67,8 +74,13 @@ namespace GameLibrary.Geometry.Common
 
         #region Constructors
 
-        public Mesh(PrimitiveType primitiveType, int primitiveCount)
+        public Mesh(PrimitiveType primitiveType, int primitiveCount) : this(primitiveType, primitiveCount, false)
         {
+        }
+
+        public Mesh(PrimitiveType primitiveType, int primitiveCount, bool isDynamic)
+        {
+            this.isDynamic = isDynamic;
             this.primitiveType = primitiveType;
             this.primitiveCount = primitiveCount;
         }

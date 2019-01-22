@@ -16,7 +16,7 @@ namespace GameLibrary.Component.Camera
     /// provided to remap the camera components default bindings.
     /// </summary>
     /// TODO derive from InputController
-    public class DefaultCameraCamera : GameComponent, CameraComponent
+    public class DefaultCameraComponent : GameComponent, CameraComponent
     {
         public enum Actions
         {
@@ -113,7 +113,7 @@ namespace GameLibrary.Component.Camera
         /// z axis. An initial perspective projection matrix is created
         /// as well as setting up initial key bindings to the actions.
         /// </summary>
-        public DefaultCameraCamera(Game game) : base(game)
+        public DefaultCameraComponent(Game game) : base(game)
         {
             camera = new DefaultCamera();
             camera.CurrentBehavior = DefaultCamera.Behavior.Spectator;
@@ -275,6 +275,7 @@ namespace GameLibrary.Component.Camera
             ResetMouse();
         }
 
+        /*
         public void SetAspect(float aspect)
         {
             camera.SetAspect(aspect);
@@ -286,6 +287,7 @@ namespace GameLibrary.Component.Camera
             camera.SetZFar(zfar);
             ResetMouse();
         }
+        */
 
         /// <summary>
         /// Rotates the camera. Positive angles specify counter clockwise
@@ -848,7 +850,6 @@ namespace GameLibrary.Component.Camera
             //}
 
 
-
             Vector3 direction = new Vector3();
             GetMovementDirection(out direction);
 
@@ -1070,6 +1071,18 @@ namespace GameLibrary.Component.Camera
             set { camera.OrbitTarget = value; }
         }
 
+        public float AspectRatio
+        {
+            get { return camera.AspectRatio; }
+            set { camera.AspectRatio = value; }
+        }
+
+        public float ZFar
+        {
+            get { return camera.ZFar; }
+            set { camera.ZFar = value; }
+        }
+
         /// <summary>
         /// Property to get and set the camera orientation.
         /// </summary>
@@ -1160,6 +1173,11 @@ namespace GameLibrary.Component.Camera
         public BoundingFrustum BoundingFrustum
         {
             get { return camera.BoundingFrustum; }
+        }
+
+        public SceneGraph.Bounding.BoundingSphere BoundingSphere
+        {
+            get { return camera.BoundingSphere; }
         }
 
         /// <summary>
@@ -1281,6 +1299,7 @@ namespace GameLibrary.Component.Camera
             deltaY = 0;
         }
     }
+
     internal sealed class MouseFilter
     {
         private Vector2[] mouseSmoothingCache;
@@ -1294,7 +1313,7 @@ namespace GameLibrary.Component.Camera
 
         internal MouseFilter()
         {
-            mouseSmoothingCache = new Vector2[DefaultCameraCamera.MOUSE_SMOOTHING_CACHE_SIZE];
+            mouseSmoothingCache = new Vector2[DefaultCameraComponent.MOUSE_SMOOTHING_CACHE_SIZE];
 
             mouseIndex = 0;
             mouseMovement = new Vector2[2];

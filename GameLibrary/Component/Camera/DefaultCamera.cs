@@ -67,6 +67,9 @@ namespace GameLibrary.Component.Camera
         private Matrix invViewProjectionMatrix;
 
         private BoundingFrustum boundingFrustum;
+        private readonly Vector3[] frustumCorners = new Vector3[BoundingFrustum.CornerCount];
+
+        private readonly SceneGraph.Bounding.BoundingSphere boundingSphere = new SceneGraph.Bounding.BoundingSphere();
 
         private Quaternion savedOrientation;
         private Vector3 savedEye;
@@ -295,16 +298,6 @@ namespace GameLibrary.Component.Camera
 
             viewProjectionDirty = true;
             frustumDirty = true;
-        }
-
-        public void SetAspect(float aspect)
-        {
-            Perspective(this.fovx, aspect, this.znear, this.zfar);
-        }
-
-        public void SetZFar(float zfar)
-        {
-            Perspective(this.fovx, this.aspectRatio, this.znear, zfar);
         }
 
         /// <summary>
@@ -792,6 +785,18 @@ namespace GameLibrary.Component.Camera
             set { target = value; }
         }
 
+        public float AspectRatio
+        {
+            get { return aspectRatio; }
+            set { Perspective(this.fovx, value, this.znear, this.zfar); }
+        }
+
+        public float ZFar
+        {
+            get { return zfar; }
+            set { Perspective(this.fovx, this.aspectRatio, this.znear, value); }
+        }
+
         /// <summary>
         /// Property to get and set the camera orientation.
         /// </summary>
@@ -951,14 +956,118 @@ namespace GameLibrary.Component.Camera
             {
                 if (frustumDirty)
                 {
-                    frustumDirty = false;
-                    boundingFrustum = new BoundingFrustum(ViewProjectionMatrix);
+                    xxx();
                 }
                 return boundingFrustum;
             }
         }
 
+        public SceneGraph.Bounding.BoundingSphere BoundingSphere
+        {
+            get
+            {
+                if (frustumDirty)
+                {
+                    xxx();
+                }
+                return boundingSphere;
+            }
+        }
+
         #endregion
+
+        private void xxx()
+        {
+            // FIXME: garbage
+            boundingFrustum = new BoundingFrustum(ViewProjectionMatrix);
+
+            boundingFrustum.GetCorners(frustumCorners);
+
+            Vector3 center;
+            float radius;
+            if (false)
+            {
+                // method 1
+                // - center = view frustrum centroid
+                // - radius = maximum distance between center and (all?) view frustrum corners
+                // works but bounding sphere is not optimal
+                // all computations can be done in WS as the computed BS is rotation invariant
+
+                // compute frustrum centroid
+                // TODO do we really need to use all 8 corners?
+                center = frustumCorners[0];
+                for (int i = 1; i < frustumCorners.Length; i++)
+                {
+                    center += frustumCorners[i];
+                }
+                center /= 8.0f;
+
+                // find maximum distance from centroid to (all?) 
+                // the resulting bounding sphere surrounds the frustum corners
+                // TODO do we need to check all 8 corners? two antagonist corners should suffice?
+                radius = 0.0f;
+                for (int i = 0; i < frustumCorners.Length; i++)
+                {
+                    Vector3 v = frustumCorners[i] - center;
+                    float dist = v.Length();
+                    radius = Math.Max(dist, radius);
+                }
+            }
+            else if (true)
+            {
+                // method 2
+                // The basic idea is to pick four points that form a maximal cross section
+                // (two opposite corners from the near plane, the corresponding corners from the far plane).
+                // Then find the minimal circle that encloses those four points in 2D, and finally extrude that into a sphere in 3D.
+                // Sample code for the minimal enclosing circle (in 2D) is much easier to find than the corresponding 3D problems.
+
+                // see https://lxjk.github.io/2017/04/15/Calculate-Minimal-Bounding-Sphere-of-Frustum.html
+
+                //double w = 1280;
+                //double h = 720;
+
+                //double w2 = w * w;
+                //double h2 = h * h;
+                double h2w2 = (1 / (aspectRatio * aspectRatio));
+
+                double n = znear; //0.1;
+                double f = zfar; //500;
+
+                double fovX = fovx; //MathHelper.Pi / 3.0f;
+
+                double k = Math.Sqrt(1.0f + h2w2) * Math.Tan(fovX / 2.0);
+                double k2 = k * k;
+
+                double z;
+                double r;
+                if (k2 >= ((f - n) / (f + n)))
+                {
+                    z = -f;
+                    r = f * k;
+                }
+                else
+                {
+                    z = -(f + n) * (1.0f + k2) / 2;
+                    r = Math.Sqrt((f - n) * (f - n) + 2 * (f * f + n * n) * k2 + (f + n) * (f + n) * k2 * k2) / 2;
+                }
+
+                Vector3 nearFaceCenter = (frustumCorners[0] + frustumCorners[2]) / 2;
+                Vector3 farFaceCenter = (frustumCorners[4] + frustumCorners[6]) / 2;
+
+                center = nearFaceCenter - Vector3.Normalize(farFaceCenter - nearFaceCenter) * (float)z;
+                radius = (float)r;
+            }
+            else
+            {
+                // see http://gsteph.blogspot.com/2010/11/minimum-bounding-sphere-for-frustum.html
+            }
+            // sphere from 4 points: http://www.ambrsoft.com/TrigoCalc/Sphere/Spher3D_.htm
+
+            boundingSphere.Center = center;
+            boundingSphere.Radius = radius;
+
+            frustumDirty = false;
+        }
     }
 
 }

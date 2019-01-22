@@ -16,6 +16,18 @@ namespace GameLibrary.SceneGraph
     {
         #region Properties
 
+        [Category("Camera")]
+        public Camera Camera
+        {
+            get { return camera; }
+        }
+
+        [Category("Camera")]
+        public Camera RenderCamera
+        {
+            get { return renderCamera; }
+        }
+
         // Frustum culling
         [Category("Culling")]
         public bool FrustumCullingEnabled
@@ -77,10 +89,6 @@ namespace GameLibrary.SceneGraph
             set { showCollisionVolumes = value; RequestRedraw(); }
         }
 
-        [Category("State")]
-        [ReadOnly(true), Browsable(true)]
-        public int VisitOrder { get; set; }
-
         // stats
         [Category("Stats")]
         [ReadOnly(true), Browsable(true)]
@@ -98,7 +106,6 @@ namespace GameLibrary.SceneGraph
 
         private bool frustumCullingEnabled;
         internal ulong frustumCullingOwner;
-        public BoundingFrustum BoundingFrustum;
 
         private bool distanceCullingEnabled;
         internal ulong distanceCullingOwner;
@@ -121,11 +128,11 @@ namespace GameLibrary.SceneGraph
 
         public readonly GraphicsDevice GraphicsDevice;
 
-        public readonly Camera Camera;
+        private Camera camera;
+        private readonly Camera renderCamera;
 
         // camera
-        public Matrix ViewProjectionMatrix;
-        public Vector3 CameraPosition;
+        public int VisitOrder;
 
         public Vector3 sceneMax;
         public Vector3 sceneMin;
@@ -154,7 +161,9 @@ namespace GameLibrary.SceneGraph
         public RenderContext(GraphicsDevice graphicsDevice, Camera camera, RenderTarget2D renderTarget)
         {
             GraphicsDevice = graphicsDevice;
-            Camera = camera;
+
+            this.camera = camera;
+            this.renderCamera = camera;
 
             RenderTarget = renderTarget;
 
@@ -247,83 +256,43 @@ namespace GameLibrary.SceneGraph
             }
         }
 
+        private float savedZFar = 0;
+        private bool cameraFrozen = false;
+
+        public bool IsCameraFrozen => cameraFrozen;
+
+        public void FreezeCamera()
+        {
+            if (cameraFrozen) return;
+            cameraFrozen = true;
+
+            camera = new DebugCamera(camera);
+
+            // tweak camera zfar...
+            // TODO restore zfar later...
+            savedZFar = renderCamera.ZFar;
+            renderCamera.ZFar = 2000;
+        }
+
+        public void UnfreezeCamera()
+        {
+            if (!cameraFrozen) return;
+            cameraFrozen = false;
+
+            camera = renderCamera;
+            // TODO restore zfar!
+            renderCamera.ZFar = savedZFar;
+        }
+
+        // TODO move elsewhere...
         public void UpdateCamera()
         {
-            ViewProjectionMatrix = Camera.ViewProjectionMatrix;
-
-            // TODO performance: don't do both Matrix inverse and transpose
+            if (cameraFrozen) return;
 
             // compute visit order based on view direction
-            Matrix viewMatrix = Camera.ViewMatrix;
-
-            /*
-            Matrix vt = Matrix.Transpose(viewMatrix);
-            Vector3 dir = vt.Forward;
-            */
             Vector3 dir = Camera.ViewDirection;
             VisitOrder = VectorUtil.visitOrder(dir);
-            //if (Debug) Console.WriteLine(dir + " : " + VisitOrder);
-
-            // Frustum culling
-            //if (FrustumCullingEnabled)
-            //{
-                BoundingFrustum = Camera.BoundingFrustum;
-            //}
-
-            //if (DistanceCullingEnabled || ScreenSizeCullingEnabled)
-            //{
-                /*
-                Matrix vi = Matrix.Invert(viewMatrix);
-                CameraPosition = vi.Translation;
-                */
-                CameraPosition = Camera.Position;
-            //}
         }
-        /*
-                public void LightMatrices(Bounding.BoundingBox sceneBoundingBox, out Matrix view, out Matrix projection)
-                {
-                    // Think of light's orthographic frustum as a bounding box that encloses all objects visible by the camera,
-                    // plus objects not visible but potentially casting shadows. For the simplicity let's disregard the latter.
-                    // So to find this frustum:
-                    // - find all objects that are inside the current camera frustum
-                    // - find minimal aa bounding box that encloses them all
-                    // - transform corners of that bounding box to the light's space (using light's view matrix)
-                    // - find aa bounding box in light's space of the transformed (now obb) bounding box
-                    // - this aa bounding box is your directional light's orthographic frustum.
-                    //
-                    // Note that actual translation component in light view matrix doesn't really matter as you'll
-                    // only get different Z values for the frustum but the boundaries will be the same in world space.
-                    // For the convenience, when building light view matrix, you can assume the light "position" is at
-                    // the center of the bounding box enclosing all visible objects.
-
-                    Vector3 lightPosition = sceneBoundingBox.Center;
-                    Vector3 lightDirection = Vector3.Normalize(new Vector3(-1, -1, -1));
-
-                    Matrix lightView = Matrix.CreateLookAt(lightPosition, lightPosition + lightDirection, Vector3.Up);
-
-                    // transform bounding box
-                    Matrix matrix = lightView;
-
-                    //Vector3 newCenter;
-                    //Vector3 v = sceneBoundingBox.Center;
-                    //newCenter.X = (v.X * matrix.M11) + (v.Y * matrix.M21) + (v.Z * matrix.M31) + matrix.M41;
-                    //newCenter.Y = (v.X * matrix.M12) + (v.Y * matrix.M22) + (v.Z * matrix.M32) + matrix.M42;
-                    //newCenter.Z = (v.X * matrix.M13) + (v.Y * matrix.M23) + (v.Z * matrix.M33) + matrix.M43;
-
-                    Vector3 newHalfSize;
-                    Vector3 v = sceneBoundingBox.HalfSize;
-                    newHalfSize.X = (v.X * Math.Abs(matrix.M11)) + (v.Y * Math.Abs(matrix.M21)) + (v.Z * Math.Abs(matrix.M31));
-                    newHalfSize.Y = (v.X * Math.Abs(matrix.M12)) + (v.Y * Math.Abs(matrix.M22)) + (v.Z * Math.Abs(matrix.M32));
-                    newHalfSize.Z = (v.X * Math.Abs(matrix.M13)) + (v.Y * Math.Abs(matrix.M23)) + (v.Z * Math.Abs(matrix.M33));
-
-                    //Bounding.BoundingBox bb = new Bounding.BoundingBox(newCenter, newHalfSize);
-
-                    Matrix lightProjection = Matrix.CreateOrthographic(newHalfSize.X * 2, newHalfSize.Y * 2, -newHalfSize.Z, newHalfSize.Z);
-
-                    view = lightView;
-                    projection = lightProjection;
-                }
-        */
 
         public void ResetStats()
         {
@@ -344,7 +313,7 @@ namespace GameLibrary.SceneGraph
 
         public void ShowStats(String name)
         {
-            Console.WriteLine(name + ": " + DrawCount + " " + VertexCount);
+            Console.WriteLine(name + ": " + DrawCount + " (" + VertexCount + ")");
             int i = 1;
             foreach (RenderContext context in lightRenderContextes)
             {
@@ -362,7 +331,7 @@ namespace GameLibrary.SceneGraph
         {
             // http://www.scratchapixel.com/lessons/3d-basic-rendering/perspective-and-orthographic-projection-matrix/projection-matrices-what-you-need-to-know-first
 
-            ref Matrix matrix = ref ViewProjectionMatrix;
+            Matrix matrix = camera.ViewProjectionMatrix;
 
             Vector2 v;
             v.X = (vector.X * matrix.M11) + (vector.Y * matrix.M21) + (vector.Z * matrix.M31) + matrix.M41;
@@ -424,7 +393,7 @@ namespace GameLibrary.SceneGraph
                 DrawableCount += list.Count;
                 return;
             }
-            foreach(Drawable drawable in drawableList)
+            foreach (Drawable drawable in drawableList)
             {
                 // FIXME SLOW !!!
                 if (!list.Contains(drawable))

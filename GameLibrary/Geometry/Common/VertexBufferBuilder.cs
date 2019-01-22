@@ -12,32 +12,37 @@ namespace GameLibrary.Geometry.Common
         protected GraphicsDevice gd;
 
         private T[] vertices;
-        protected int vIndex;
+        protected int vertexCount;
 
         protected int[] indices;
-        protected int iIndex;
+        protected int indexCount;
+
+        private bool fixedSize;
 
         public int VertexCount
         {
-            get { return vIndex; }
+            get { return vertexCount; }
         }
 
         public VertexBufferBuilder(GraphicsDevice gd) : this(gd, 0, 0)
         {
+            fixedSize = false;
         }
 
-        public VertexBufferBuilder(GraphicsDevice gd, int vertexCount, int indexCount)
+        public VertexBufferBuilder(GraphicsDevice gd, int expectedVertexCount, int expectedIndexCount)
         {
             this.gd = gd;
-            vIndex = 0;
-            iIndex = 0;
-            if (vertexCount > 0)
+            vertexCount = 0;
+            indexCount = 0;
+            if (expectedVertexCount > 0)
             {
-                vertices = createVertexArray(vertexCount);
+                fixedSize = true;
+                vertices = createVertexArray(expectedVertexCount);
             }
-            if (indexCount > 0)
+            if (expectedIndexCount > 0)
             {
-                indices = createIndexArray(indexCount);
+                fixedSize = true;
+                indices = createIndexArray(expectedIndexCount);
             }
         }
 
@@ -59,9 +64,9 @@ namespace GameLibrary.Geometry.Common
         public int AddVertex(Vector3 position, Vector3 normal, Color color, Vector2 textureCoordinate, int textureIndex, int lightTextureIndex)
         {
             ensureVertexCapacity();
-            int index = vIndex;
+            int index = vertexCount;
             vertices[index] = createVertex(position, normal, color, textureCoordinate, textureIndex, lightTextureIndex);
-            vIndex++;
+            vertexCount++;
             return index;
         }
 
@@ -72,27 +77,60 @@ namespace GameLibrary.Geometry.Common
         public void AddIndex(int index)
         {
             ensureIndexCapacity();
-            indices[iIndex++] = index;
+            indices[indexCount++] = index;
         }
 
         public void Reset()
         {
-            vIndex = 0;
-            iIndex = 0;
+            vertexCount = 0;
+            indexCount = 0;
         }
 
         public virtual void SetToMesh(Mesh mesh)
         {
-            if (vertices != null && vIndex > 0)
+            if (vertexCount > 0 && vertices != null)
             {
-                //mesh.VertexDeclaration = getVertexDeclaration();
-                mesh.VertexBuffer = new VertexBuffer(gd, typeof(T), vIndex, BufferUsage.WriteOnly);
-                mesh.VertexBuffer.SetData(vertices, 0, vIndex);
+                if (mesh.IsDynamic)
+                {
+                    DynamicVertexBuffer dynamicBuffer = mesh.VertexBuffer as DynamicVertexBuffer;
+                    if (dynamicBuffer == null)
+                    {
+                        dynamicBuffer = new DynamicVertexBuffer(gd, typeof(T), vertexCount, BufferUsage.WriteOnly);
+                        mesh.VertexBuffer = dynamicBuffer;
+                    }
+                    dynamicBuffer.SetData(vertices, 0, vertexCount, SetDataOptions.Discard);
+                }
+                else
+                {
+                    if (mesh.VertexBuffer != null)
+                    {
+                        throw new InvalidOperationException();
+                    }
+                    mesh.VertexBuffer = new VertexBuffer(gd, typeof(T), vertexCount, BufferUsage.WriteOnly);
+                    mesh.VertexBuffer.SetData(vertices, 0, vertexCount);
+                }
             }
-            if (indices != null && iIndex > 0)
+            if (indexCount > 0 && indices != null)
             {
-                mesh.IndexBuffer = new IndexBuffer(gd, typeof(int), iIndex, BufferUsage.WriteOnly);
-                mesh.IndexBuffer.SetData(indices);
+                if (mesh.IsDynamic)
+                {
+                    DynamicIndexBuffer dynamicBuffer = mesh.IndexBuffer as DynamicIndexBuffer;
+                    if (dynamicBuffer == null)
+                    {
+                        dynamicBuffer = new DynamicIndexBuffer(gd, typeof(int), indexCount, BufferUsage.WriteOnly);
+                        mesh.IndexBuffer = dynamicBuffer;
+                    }
+                    dynamicBuffer.SetData(indices, 0, indexCount, SetDataOptions.Discard);
+                }
+                else
+                {
+                    if (mesh.IndexBuffer != null)
+                    {
+                        throw new InvalidOperationException();
+                    }
+                    mesh.IndexBuffer = new IndexBuffer(gd, typeof(int), indexCount, BufferUsage.WriteOnly);
+                    mesh.IndexBuffer.SetData(indices, 0, indexCount);
+                }
             }
         }
 
@@ -102,10 +140,15 @@ namespace GameLibrary.Geometry.Common
             {
                 vertices = createVertexArray(512);
             }
-            if (vIndex == vertices.Count())
+            if (vertexCount == vertices.Count())
             {
-                Console.WriteLine("Resizing vertex array... {0}", vertices.Count());
-                Array.Resize(ref vertices, 2 * vertices.Count());
+                if (fixedSize)
+                {
+                    throw new InvalidOperationException();
+                }
+                int newSize = 2 * vertices.Count();
+                Console.WriteLine("Resizing vertex array... {0}", newSize);
+                Array.Resize(ref vertices, newSize);
             }
         }
 
@@ -120,10 +163,15 @@ namespace GameLibrary.Geometry.Common
             {
                 indices = createIndexArray(512);
             }
-            if (iIndex == indices.Count())
+            if (indexCount == indices.Count())
             {
-                Console.WriteLine("Resizing index array... {0}", vertices.Count());
-                Array.Resize(ref indices, 2 * indices.Count());
+                if (fixedSize)
+                {
+                    throw new InvalidOperationException();
+                }
+                int newSize = 2 * indices.Count();
+                Console.WriteLine("Resizing index array... {0}", newSize);
+                Array.Resize(ref indices, newSize);
             }
         }
 
@@ -287,5 +335,6 @@ namespace GameLibrary.Geometry.Common
 
     }
 }
+
 
 

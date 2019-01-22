@@ -96,8 +96,8 @@ namespace GameLibrary.SceneGraph
 
             if (effectMatrices != null)
             {
-                effectMatrices.Projection = rc.Camera.ProjectionMatrix;
-                effectMatrices.View = rc.Camera.ViewMatrix;
+                effectMatrices.Projection = rc.RenderCamera.ProjectionMatrix;
+                effectMatrices.View = rc.RenderCamera.ViewMatrix;
             }
 
             foreach (EffectPass pass in effect.CurrentTechnique.Passes)
@@ -173,8 +173,8 @@ namespace GameLibrary.SceneGraph
 
             if (effectMatrices != null)
             {
-                effectMatrices.Projection = rc.Camera.ProjectionMatrix;
-                effectMatrices.View = rc.Camera.ViewMatrix;
+                effectMatrices.Projection = rc.RenderCamera.ProjectionMatrix;
+                effectMatrices.View = rc.RenderCamera.ViewMatrix;
             }
 
             Matrix worldMatrix;
@@ -389,8 +389,8 @@ namespace GameLibrary.SceneGraph
 
             if (effectMatrices != null)
             {
-                effectMatrices.Projection = rc.Camera.ProjectionMatrix;
-                effectMatrices.View = rc.Camera.ViewMatrix;
+                effectMatrices.Projection = rc.RenderCamera.ProjectionMatrix;
+                effectMatrices.View = rc.RenderCamera.ViewMatrix;
                 effectMatrices.World = Matrix.Identity;
             }
 
@@ -454,8 +454,8 @@ namespace GameLibrary.SceneGraph
 
             if (effectMatrices != null)
             {
-                effectMatrices.Projection = rc.Camera.ProjectionMatrix;
-                effectMatrices.View = rc.Camera.ViewMatrix;
+                effectMatrices.Projection = rc.RenderCamera.ProjectionMatrix;
+                effectMatrices.View = rc.RenderCamera.ViewMatrix;
                 effectMatrices.World = Matrix.Identity;
             }
 

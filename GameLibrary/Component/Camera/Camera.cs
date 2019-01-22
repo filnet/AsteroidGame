@@ -55,10 +55,6 @@ namespace GameLibrary.Component.Camera
         /// <param name="zfar">The distance to the far clip plane.</param>
         void Perspective(float fovx, float aspect, float znear, float zfar);
 
-        void SetAspect(float aspect);
-
-        void SetZFar(float zfar);
-
         /// <summary>
         /// Rotates the camera. Positive angles specify counter clockwise
         /// rotations when looking down the axis of rotation towards the
@@ -98,6 +94,18 @@ namespace GameLibrary.Component.Camera
         #endregion
 
         #region Properties
+
+        float AspectRatio
+        {
+            get;
+            set;
+        }
+
+        float ZFar
+        {
+            get;
+            set;
+        }
 
         /// <summary>
         /// Property to get and set the camera's orientation.
@@ -183,6 +191,12 @@ namespace GameLibrary.Component.Camera
         }
 
         BoundingFrustum BoundingFrustum
+        {
+            get;
+        }
+
+
+        SceneGraph.Bounding.BoundingSphere BoundingSphere
         {
             get;
         }

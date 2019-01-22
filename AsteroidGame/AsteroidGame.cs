@@ -101,7 +101,7 @@ namespace AsteroidGame
             Scene = new Scene();
             Scene.GraphicsDevice = GraphicsDevice;
 
-            DefaultCameraCamera cam = CameraComponent as DefaultCameraCamera;
+            DefaultCameraComponent cam = CameraComponent as DefaultCameraComponent;
             if (cam != null)
             {
                 cam.CurrentBehavior = DefaultCamera.Behavior.Orbit;

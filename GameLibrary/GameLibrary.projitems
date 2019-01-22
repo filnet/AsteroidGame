@@ -36,6 +36,7 @@
     <Compile Include="$(MSBuildThisFileDirectory)SceneGraph\Common\LightNode.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)SceneGraph\Common\Physical.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)SceneGraph\Common\Transform.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)SceneGraph\DebugCamera.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)SceneGraph\LightCamera.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)SceneGraph\RenderContext.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)System\UI\KeyboardInput.cs" />

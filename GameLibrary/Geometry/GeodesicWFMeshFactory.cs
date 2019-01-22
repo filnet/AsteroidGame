@@ -11,7 +11,7 @@ namespace GameLibrary.Geometry
 {
     public class GeodesicWFMeshFactory : GeodesicMeshFactory
     {
-        Dictionary<Int64, int> edgeCache;
+        private Dictionary<Int64, int> edgeCache;
 
         public GeodesicWFMeshFactory(int depth)
             : base(depth)

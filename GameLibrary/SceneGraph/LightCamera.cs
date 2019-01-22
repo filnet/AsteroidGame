@@ -132,7 +132,7 @@ namespace GameLibrary.SceneGraph
         }
 
         // see https://www.gamedev.net/forums/topic/591684-xna-40---shimmering-shadow-maps/
-        public void FitToViewStable(BoundingFrustum cameraBoundingFrustum, Bounding.BoundingBox sceneBoundingBox, float nearClipOffset)
+        public void FitToViewStable(RenderContext renderContext, float nearClipOffset)
         {
             int shadowMapSize = 2048;
 
@@ -143,90 +143,6 @@ namespace GameLibrary.SceneGraph
             {
                 lightUpVector = Vector3.Forward;
             }*/
-
-            // get camera frustum corners
-            Vector3[] frustumCornersWS = new Vector3[BoundingFrustum.CornerCount];
-            cameraBoundingFrustum.GetCorners(frustumCornersWS);
-
-            Vector3 center;
-            float radius;
-            if (false)
-            {
-                // method 1
-                // - center = view frustrum centroid
-                // - radius = maximum distance between center and (all?) view frustrum corners
-                // works but bounding sphere is not optimal
-                // all computations can be done in WS as the computed BS is rotation invariant
-
-                // compute frustrum centroid
-                // TODO do we really need to use a 8 corners?
-                center = frustumCornersWS[0];
-                for (int i = 1; i < frustumCornersWS.Length; i++)
-                {
-                    center += frustumCornersWS[i];
-                }
-                center /= 8.0f;
-
-                // find maximum distance from centroid to (all?) 
-                // the resulting bounding sphere surrounds the frustum corners
-                // TODO do we need to check all 8 corners? two antagonist corners should suffice?
-                radius = 0.0f;
-                for (int i = 0; i < frustumCornersWS.Length; i++)
-                {
-                    Vector3 v = frustumCornersWS[i] - center;
-                    float dist = v.Length();
-                    radius = Math.Max(dist, radius);
-                }
-            }
-            else if (true)
-            {
-                // method 2
-                // The basic idea is to pick four points that form a maximal cross section
-                // (two opposite corners from the near plane, the corresponding corners from the far plane).
-                // Then find the minimal circle that encloses those four points in 2D, and finally extrude that into a sphere in 3D.
-                // Sample code for the minimal enclosing circle (in 2D) is much easier to find than the corresponding 3D problems.
-
-                // see https://lxjk.github.io/2017/04/15/Calculate-Minimal-Bounding-Sphere-of-Frustum.html
-
-                double w = 1280;
-                double h = 720;
-
-                double w2 = w * w;
-                double h2 = h * h;
-
-                double n = 0.1;
-                double f = 100;
-
-                double fovX = MathHelper.Pi / 3.0f; // TODO do not hardcode fov...
-
-                double k = Math.Sqrt(1.0f + h2 / w2) * Math.Tan(fovX / 2.0);
-                double k2 = k * k;
-
-                double z;
-                double r;
-                if (k2 >= ((f - n) / (f + n)))
-                {
-                    z = -f;
-                    r = f * k;
-                }
-                else
-                {
-                    z = -(f + n) * (1.0f + k2) / 2;
-                    r = Math.Sqrt((f - n) * (f - n) + 2 * (f * f + n * n) * k2 + (f + n) * (f + n) * k2 * k2) / 2;
-                }
-
-                Vector3 nearFaceCenter = (frustumCornersWS[0] + frustumCornersWS[2]) / 2;
-                Vector3 farFaceCenter = (frustumCornersWS[4] + frustumCornersWS[6]) / 2;
-
-                center = nearFaceCenter - Vector3.Normalize(farFaceCenter - nearFaceCenter) * (float)z;
-                radius = (float)r;
-            }
-            else
-            {
-                // see http://gsteph.blogspot.com/2010/11/minimum-bounding-sphere-for-frustum.html
-            }
-
-            // sphere from 4 points: http://www.ambrsoft.com/TrigoCalc/Sphere/Spher3D_.htm
 
             // TODO
             // 
@@ -245,6 +161,11 @@ namespace GameLibrary.SceneGraph
 
             // TODO frustrum/bounds/etc... rendering : use RasterizerState.DepthClipEnable = false; in renderer
             // so we see them even if should be Z clipped (ok for far, but what about near...)
+
+            Bounding.BoundingSphere frustrumBoundingSphere = renderContext.Camera.BoundingSphere;
+
+            Vector3 center = frustrumBoundingSphere.Center;
+            float radius = frustrumBoundingSphere.Radius;
 
             float bounds = 2 * radius;
             bool stable = true;
@@ -282,6 +203,11 @@ namespace GameLibrary.SceneGraph
             bool fitToScene = false;
             if (fitToView)
             {
+                // get camera frustum corners
+                // FIXME : garbage...
+                Vector3[] frustumCornersWS = new Vector3[BoundingFrustum.CornerCount];
+                renderContext.Camera.BoundingFrustum.GetCorners(frustumCornersWS);
+
                 // transform view frustum corners to light space
                 // FIXME we are only interested in the Z component
                 Vector3[] frustumCornersLS = new Vector3[BoundingFrustum.CornerCount];
@@ -301,7 +227,7 @@ namespace GameLibrary.SceneGraph
                     // transform scene bounding box to light space
                     // FIXME we are only interested in the Z component
                     Bounding.BoundingBox sceneBoundingBoxLS = new Bounding.BoundingBox();
-                    sceneBoundingBox.Transform(viewMatrix, sceneBoundingBoxLS);
+                    //sceneBoundingBox.Transform(viewMatrix, sceneBoundingBoxLS);
 
                     minZ = Math.Max(minZ, sceneBoundingBoxLS.Center.Z - sceneBoundingBoxLS.HalfSize.Z);
                     maxZ = Math.Min(maxZ, sceneBoundingBoxLS.Center.Z + sceneBoundingBoxLS.HalfSize.Z);

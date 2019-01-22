@@ -26,6 +26,7 @@ namespace GameLibrary.SceneGraph.Common
             this.meshFactory = meshFactory;
         }
 
+        // not used...
         public MeshNode(String name, Mesh mesh) : base(name)
         {
             this.mesh = mesh;
@@ -60,13 +61,20 @@ namespace GameLibrary.SceneGraph.Common
                 }
                 BoundingVolume = mesh.BoundingVolume;
                 owned = true;
+
+                if (!mesh.IsDynamic)
+                {
+                    // mesh factory is not needed anymore
+                    // and might hold onto quite a lot of data...
+                    meshFactory = null;
+                }
             }
             base.Initialize(graphicsDevice);
         }
 
         public override void Dispose()
         {
-            if (owned && (mesh != null))
+            if ((mesh != null) && owned)
             {
                 mesh.Dispose();
                 mesh = null;
@@ -77,14 +85,10 @@ namespace GameLibrary.SceneGraph.Common
 
         public override void PreDraw(GraphicsDevice gd)
         {
+            gd.SetVertexBuffer(mesh.VertexBuffer);
             if (mesh.IndexBuffer != null)
             {
-                gd.SetVertexBuffer(mesh.VertexBuffer);
                 gd.Indices = mesh.IndexBuffer;
-            }
-            else
-            {
-                gd.SetVertexBuffer(mesh.VertexBuffer);
             }
         }
 
@@ -96,7 +100,7 @@ namespace GameLibrary.SceneGraph.Common
             {
                 gd.DrawIndexedPrimitives(mesh.PrimitiveType, 0, 0, mesh.PrimitiveCount);
             }
-            else if (mesh.PrimitiveCount > 0)
+            else
             {
                 gd.DrawPrimitives(mesh.PrimitiveType, 0, mesh.PrimitiveCount);
             }

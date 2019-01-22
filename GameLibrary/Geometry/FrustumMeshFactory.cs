@@ -14,6 +14,8 @@ namespace GameLibrary.Geometry
 
         //private BoundingFrustum boundingFrustum;
 
+        private VertexBufferBuilder<VertexPositionColor> builder;
+
         public FrustumMeshFactory(Vector3[] vertices)
         {
             this.vertices = vertices;
@@ -28,14 +30,21 @@ namespace GameLibrary.Geometry
         public Mesh CreateMesh(GraphicsDevice gd)
         {
             //vertices = boundingFrustum.GetCorners();
-            Mesh mesh = generateMesh(gd);
+
+            int lineCount = 12;
+            builder = VertexBufferBuilder<VertexPositionColor>.createVertexPositionColorBufferBuilder(gd, vertices.Count(), 2 * lineCount);
+
+            generate();
+
+            Mesh mesh = new Mesh(PrimitiveType.LineList, lineCount);
+            //mesh.BoundingVolume = new GameLibrary.SceneGraph.Bounding.BoundingSphere(new Vector3(0, 0, 0), (float) Math.Sqrt(2) / 2);
+            builder.SetToMesh(mesh);
+
             return mesh;
         }
 
-        protected virtual Mesh generateMesh(GraphicsDevice gd)
+        protected virtual void generate()
         {
-            int lineCount = 12;
-            VertexBufferBuilder<VertexPositionColor> builder = VertexBufferBuilder<VertexPositionColor>.createVertexPositionColorBufferBuilder(gd, vertices.Count(), 2 * lineCount);
             foreach (Vector3 vertex in vertices)
             {
                 builder.AddVertex(vertex, Vector3.Zero, Color.White, Vector2.Zero);
@@ -70,11 +79,6 @@ namespace GameLibrary.Geometry
             // ???
             builder.AddIndex(3);
             builder.AddIndex(7);
-
-            Mesh mesh = new Mesh(PrimitiveType.LineList, lineCount);
-            //mesh.BoundingVolume = new GameLibrary.SceneGraph.Bounding.BoundingSphere(new Vector3(0, 0, 0), (float) Math.Sqrt(2) / 2);
-            builder.SetToMesh(mesh);
-            return mesh;
         }
 
     }

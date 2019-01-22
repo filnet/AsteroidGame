@@ -135,15 +135,15 @@ namespace GameLibrary
             controlComponent = new CustomControlComponent(this);
             //Components.Add(controlComponent);
 
-            cameraComponent = new DefaultCameraCamera(this);
+            cameraComponent = new DefaultCameraComponent(this);
             cameraComponent.Initialize();
             //Components.Add(cameraComponent);
 
             fpsComponent = new FPSComponent(this);
             //Components.Add(fpsComponent);
 
-            float aspectRatio = (float)graphics.PreferredBackBufferWidth / (float)graphics.PreferredBackBufferHeight;
-            CameraComponent.SetAspect(aspectRatio);
+            //float aspectRatio = (float)graphics.PreferredBackBufferWidth / (float)graphics.PreferredBackBufferHeight;
+            //CameraComponent.SetAspect(aspectRatio);
 
             createScene(mode);
             Scene.CameraComponent = CameraComponent;
@@ -528,7 +528,7 @@ namespace GameLibrary
             graphics.ApplyChanges();
 
             float aspectRatio = (float)newWidth / (float)newHeight;
-            game.CameraComponent.SetAspect(aspectRatio);
+            game.CameraComponent.AspectRatio = aspectRatio;
         }
 
     }
