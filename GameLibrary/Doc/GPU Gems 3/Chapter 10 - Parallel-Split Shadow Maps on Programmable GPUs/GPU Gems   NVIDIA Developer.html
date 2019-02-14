@@ -1,0 +1,1590 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML+RDFa 1.0//EN" "http://www.w3.org/MarkUp/DTD/xhtml-rdfa-1.dtd">
+<html dir="ltr" xmlns:og="http://ogp.me/ns#" xmlns:article="http://ogp.me/ns/article#" xmlns:book="http://ogp.me/ns/book#" xmlns:profile="http://ogp.me/ns/profile#" xmlns:video="http://ogp.me/ns/video#" xmlns:product="http://ogp.me/ns/product#" class="js csstransforms csstransforms3d csstransitions" lang="en"><head profile="http://www.w3.org/1999/xhtml/vocab">
+  <meta http-equiv="X-UA-Compatible" content="IE=edge">
+  <meta charset="utf-8"><script src="GPU%20Gems%20%20%20NVIDIA%20Developer_fichiers/626218844182568.js" async=""></script><script async="" src="GPU%20Gems%20%20%20NVIDIA%20Developer_fichiers/fbevents.js"></script><script type="text/javascript" src="GPU%20Gems%20%20%20NVIDIA%20Developer_fichiers/9557dbf16c"></script><script src="GPU%20Gems%20%20%20NVIDIA%20Developer_fichiers/nr-1118.js"></script><script type="text/javascript">(window.NREUM||(NREUM={})).loader_config={xpid:"VQYOUF9SCxAJVFRQAAcF"};window.NREUM||(NREUM={}),__nr_require=function(t,n,e){function r(e){if(!n[e]){var o=n[e]={exports:{}};t[e][0].call(o.exports,function(n){var o=t[e][1][n];return r(o||n)},o,o.exports)}return n[e].exports}if("function"==typeof __nr_require)return __nr_require;for(var o=0;o<e.length;o++)r(e[o]);return r}({1:[function(t,n,e){function r(t){try{s.console&&console.log(t)}catch(n){}}var o,i=t("ee"),a=t(16),s={};try{o=localStorage.getItem("__nr_flags").split(","),console&&"function"==typeof console.log&&(s.console=!0,o.indexOf("dev")!==-1&&(s.dev=!0),o.indexOf("nr_dev")!==-1&&(s.nrDev=!0))}catch(c){}s.nrDev&&i.on("internal-error",function(t){r(t.stack)}),s.dev&&i.on("fn-err",function(t,n,e){r(e.stack)}),s.dev&&(r("NR AGENT IN DEVELOPMENT MODE"),r("flags: "+a(s,function(t,n){return t}).join(", ")))},{}],2:[function(t,n,e){function r(t,n,e,r,s){try{p?p-=1:o(s||new UncaughtException(t,n,e),!0)}catch(f){try{i("ierr",[f,c.now(),!0])}catch(d){}}return"function"==typeof u&&u.apply(this,a(arguments))}function UncaughtException(t,n,e){this.message=t||"Uncaught error with no additional information",this.sourceURL=n,this.line=e}function o(t,n){var e=n?null:c.now();i("err",[t,e])}var i=t("handle"),a=t(17),s=t("ee"),c=t("loader"),f=t("gos"),u=window.onerror,d=!1,l="nr@seenError",p=0;c.features.err=!0,t(1),window.onerror=r;try{throw new Error}catch(h){"stack"in h&&(t(8),t(7),"addEventListener"in window&&t(5),c.xhrWrappable&&t(9),d=!0)}s.on("fn-start",function(t,n,e){d&&(p+=1)}),s.on("fn-err",function(t,n,e){d&&!e[l]&&(f(e,l,function(){return!0}),this.thrown=!0,o(e))}),s.on("fn-end",function(){d&&!this.thrown&&p>0&&(p-=1)}),s.on("internal-error",function(t){i("ierr",[t,c.now(),!0])})},{}],3:[function(t,n,e){t("loader").features.ins=!0},{}],4:[function(t,n,e){function r(t){}if(window.performance&&window.performance.timing&&window.performance.getEntriesByType){var o=t("ee"),i=t("handle"),a=t(8),s=t(7),c="learResourceTimings",f="addEventListener",u="resourcetimingbufferfull",d="bstResource",l="resource",p="-start",h="-end",m="fn"+p,v="fn"+h,w="bstTimer",y="pushState",g=t("loader");g.features.stn=!0,t(6);var b=NREUM.o.EV;o.on(m,function(t,n){var e=t[0];e instanceof b&&(this.bstStart=g.now())}),o.on(v,function(t,n){var e=t[0];e instanceof b&&i("bst",[e,n,this.bstStart,g.now()])}),a.on(m,function(t,n,e){this.bstStart=g.now(),this.bstType=e}),a.on(v,function(t,n){i(w,[n,this.bstStart,g.now(),this.bstType])}),s.on(m,function(){this.bstStart=g.now()}),s.on(v,function(t,n){i(w,[n,this.bstStart,g.now(),"requestAnimationFrame"])}),o.on(y+p,function(t){this.time=g.now(),this.startPath=location.pathname+location.hash}),o.on(y+h,function(t){i("bstHist",[location.pathname+location.hash,this.startPath,this.time])}),f in window.performance&&(window.performance["c"+c]?window.performance[f](u,function(t){i(d,[window.performance.getEntriesByType(l)]),window.performance["c"+c]()},!1):window.performance[f]("webkit"+u,function(t){i(d,[window.performance.getEntriesByType(l)]),window.performance["webkitC"+c]()},!1)),document[f]("scroll",r,{passive:!0}),document[f]("keypress",r,!1),document[f]("click",r,!1)}},{}],5:[function(t,n,e){function r(t){for(var n=t;n&&!n.hasOwnProperty(u);)n=Object.getPrototypeOf(n);n&&o(n)}function o(t){s.inPlace(t,[u,d],"-",i)}function i(t,n){return t[1]}var a=t("ee").get("events"),s=t(19)(a,!0),c=t("gos"),f=XMLHttpRequest,u="addEventListener",d="removeEventListener";n.exports=a,"getPrototypeOf"in Object?(r(document),r(window),r(f.prototype)):f.prototype.hasOwnProperty(u)&&(o(window),o(f.prototype)),a.on(u+"-start",function(t,n){var e=t[1],r=c(e,"nr@wrapped",function(){function t(){if("function"==typeof e.handleEvent)return e.handleEvent.apply(e,arguments)}var n={object:t,"function":e}[typeof e];return n?s(n,"fn-",null,n.name||"anonymous"):e});this.wrapped=t[1]=r}),a.on(d+"-start",function(t){t[1]=this.wrapped||t[1]})},{}],6:[function(t,n,e){var r=t("ee").get("history"),o=t(19)(r);n.exports=r,o.inPlace(window.history,["pushState","replaceState"],"-")},{}],7:[function(t,n,e){var r=t("ee").get("raf"),o=t(19)(r),i="equestAnimationFrame";n.exports=r,o.inPlace(window,["r"+i,"mozR"+i,"webkitR"+i,"msR"+i],"raf-"),r.on("raf-start",function(t){t[0]=o(t[0],"fn-")})},{}],8:[function(t,n,e){function r(t,n,e){t[0]=a(t[0],"fn-",null,e)}function o(t,n,e){this.method=e,this.timerDuration=isNaN(t[1])?0:+t[1],t[0]=a(t[0],"fn-",this,e)}var i=t("ee").get("timer"),a=t(19)(i),s="setTimeout",c="setInterval",f="clearTimeout",u="-start",d="-";n.exports=i,a.inPlace(window,[s,"setImmediate"],s+d),a.inPlace(window,[c],c+d),a.inPlace(window,[f,"clearImmediate"],f+d),i.on(c+u,r),i.on(s+u,o)},{}],9:[function(t,n,e){function r(t,n){d.inPlace(n,["onreadystatechange"],"fn-",s)}function o(){var t=this,n=u.context(t);t.readyState>3&&!n.resolved&&(n.resolved=!0,u.emit("xhr-resolved",[],t)),d.inPlace(t,y,"fn-",s)}function i(t){g.push(t),h&&(x?x.then(a):v?v(a):(E=-E,O.data=E))}function a(){for(var t=0;t<g.length;t++)r([],g[t]);g.length&&(g=[])}function s(t,n){return n}function c(t,n){for(var e in t)n[e]=t[e];return n}t(5);var f=t("ee"),u=f.get("xhr"),d=t(19)(u),l=NREUM.o,p=l.XHR,h=l.MO,m=l.PR,v=l.SI,w="readystatechange",y=["onload","onerror","onabort","onloadstart","onloadend","onprogress","ontimeout"],g=[];n.exports=u;var b=window.XMLHttpRequest=function(t){var n=new p(t);try{u.emit("new-xhr",[n],n),n.addEventListener(w,o,!1)}catch(e){try{u.emit("internal-error",[e])}catch(r){}}return n};if(c(p,b),b.prototype=p.prototype,d.inPlace(b.prototype,["open","send"],"-xhr-",s),u.on("send-xhr-start",function(t,n){r(t,n),i(n)}),u.on("open-xhr-start",r),h){var x=m&&m.resolve();if(!v&&!m){var E=1,O=document.createTextNode(E);new h(a).observe(O,{characterData:!0})}}else f.on("fn-end",function(t){t[0]&&t[0].type===w||a()})},{}],10:[function(t,n,e){function r(t){var n=this.params,e=this.metrics;if(!this.ended){this.ended=!0;for(var r=0;r<d;r++)t.removeEventListener(u[r],this.listener,!1);if(!n.aborted){if(e.duration=a.now()-this.startTime,4===t.readyState){n.status=t.status;var i=o(t,this.lastSize);if(i&&(e.rxSize=i),this.sameOrigin){var c=t.getResponseHeader("X-NewRelic-App-Data");c&&(n.cat=c.split(", ").pop())}}else n.status=0;e.cbTime=this.cbTime,f.emit("xhr-done",[t],t),s("xhr",[n,e,this.startTime])}}}function o(t,n){var e=t.responseType;if("json"===e&&null!==n)return n;var r="arraybuffer"===e||"blob"===e||"json"===e?t.response:t.responseText;return h(r)}function i(t,n){var e=c(n),r=t.params;r.host=e.hostname+":"+e.port,r.pathname=e.pathname,t.sameOrigin=e.sameOrigin}var a=t("loader");if(a.xhrWrappable){var s=t("handle"),c=t(11),f=t("ee"),u=["load","error","abort","timeout"],d=u.length,l=t("id"),p=t(14),h=t(13),m=window.XMLHttpRequest;a.features.xhr=!0,t(9),f.on("new-xhr",function(t){var n=this;n.totalCbs=0,n.called=0,n.cbTime=0,n.end=r,n.ended=!1,n.xhrGuids={},n.lastSize=null,p&&(p>34||p<10)||window.opera||t.addEventListener("progress",function(t){n.lastSize=t.loaded},!1)}),f.on("open-xhr-start",function(t){this.params={method:t[0]},i(this,t[1]),this.metrics={}}),f.on("open-xhr-end",function(t,n){"loader_config"in NREUM&&"xpid"in NREUM.loader_config&&this.sameOrigin&&n.setRequestHeader("X-NewRelic-ID",NREUM.loader_config.xpid)}),f.on("send-xhr-start",function(t,n){var e=this.metrics,r=t[0],o=this;if(e&&r){var i=h(r);i&&(e.txSize=i)}this.startTime=a.now(),this.listener=function(t){try{"abort"===t.type&&(o.params.aborted=!0),("load"!==t.type||o.called===o.totalCbs&&(o.onloadCalled||"function"!=typeof n.onload))&&o.end(n)}catch(e){try{f.emit("internal-error",[e])}catch(r){}}};for(var s=0;s<d;s++)n.addEventListener(u[s],this.listener,!1)}),f.on("xhr-cb-time",function(t,n,e){this.cbTime+=t,n?this.onloadCalled=!0:this.called+=1,this.called!==this.totalCbs||!this.onloadCalled&&"function"==typeof e.onload||this.end(e)}),f.on("xhr-load-added",function(t,n){var e=""+l(t)+!!n;this.xhrGuids&&!this.xhrGuids[e]&&(this.xhrGuids[e]=!0,this.totalCbs+=1)}),f.on("xhr-load-removed",function(t,n){var e=""+l(t)+!!n;this.xhrGuids&&this.xhrGuids[e]&&(delete this.xhrGuids[e],this.totalCbs-=1)}),f.on("addEventListener-end",function(t,n){n instanceof m&&"load"===t[0]&&f.emit("xhr-load-added",[t[1],t[2]],n)}),f.on("removeEventListener-end",function(t,n){n instanceof m&&"load"===t[0]&&f.emit("xhr-load-removed",[t[1],t[2]],n)}),f.on("fn-start",function(t,n,e){n instanceof m&&("onload"===e&&(this.onload=!0),("load"===(t[0]&&t[0].type)||this.onload)&&(this.xhrCbStart=a.now()))}),f.on("fn-end",function(t,n){this.xhrCbStart&&f.emit("xhr-cb-time",[a.now()-this.xhrCbStart,this.onload,n],n)})}},{}],11:[function(t,n,e){n.exports=function(t){var n=document.createElement("a"),e=window.location,r={};n.href=t,r.port=n.port;var o=n.href.split("://");!r.port&&o[1]&&(r.port=o[1].split("/")[0].split("@").pop().split(":")[1]),r.port&&"0"!==r.port||(r.port="https"===o[0]?"443":"80"),r.hostname=n.hostname||e.hostname,r.pathname=n.pathname,r.protocol=o[0],"/"!==r.pathname.charAt(0)&&(r.pathname="/"+r.pathname);var i=!n.protocol||":"===n.protocol||n.protocol===e.protocol,a=n.hostname===document.domain&&n.port===e.port;return r.sameOrigin=i&&(!n.hostname||a),r}},{}],12:[function(t,n,e){function r(){}function o(t,n,e){return function(){return i(t,[f.now()].concat(s(arguments)),n?null:this,e),n?void 0:this}}var i=t("handle"),a=t(16),s=t(17),c=t("ee").get("tracer"),f=t("loader"),u=NREUM;"undefined"==typeof window.newrelic&&(newrelic=u);var d=["setPageViewName","setCustomAttribute","setErrorHandler","finished","addToTrace","inlineHit","addRelease"],l="api-",p=l+"ixn-";a(d,function(t,n){u[n]=o(l+n,!0,"api")}),u.addPageAction=o(l+"addPageAction",!0),u.setCurrentRouteName=o(l+"routeName",!0),n.exports=newrelic,u.interaction=function(){return(new r).get()};var h=r.prototype={createTracer:function(t,n){var e={},r=this,o="function"==typeof n;return i(p+"tracer",[f.now(),t,e],r),function(){if(c.emit((o?"":"no-")+"fn-start",[f.now(),r,o],e),o)try{return n.apply(this,arguments)}catch(t){throw c.emit("fn-err",[arguments,this,t],e),t}finally{c.emit("fn-end",[f.now()],e)}}}};a("actionText,setName,setAttribute,save,ignore,onEnd,getContext,end,get".split(","),function(t,n){h[n]=o(p+n)}),newrelic.noticeError=function(t,n){"string"==typeof t&&(t=new Error(t)),i("err",[t,f.now(),!1,n])}},{}],13:[function(t,n,e){n.exports=function(t){if("string"==typeof t&&t.length)return t.length;if("object"==typeof t){if("undefined"!=typeof ArrayBuffer&&t instanceof ArrayBuffer&&t.byteLength)return t.byteLength;if("undefined"!=typeof Blob&&t instanceof Blob&&t.size)return t.size;if(!("undefined"!=typeof FormData&&t instanceof FormData))try{return JSON.stringify(t).length}catch(n){return}}}},{}],14:[function(t,n,e){var r=0,o=navigator.userAgent.match(/Firefox[\/\s](\d+\.\d+)/);o&&(r=+o[1]),n.exports=r},{}],15:[function(t,n,e){function r(t,n){if(!o)return!1;if(t!==o)return!1;if(!n)return!0;if(!i)return!1;for(var e=i.split("."),r=n.split("."),a=0;a<r.length;a++)if(r[a]!==e[a])return!1;return!0}var o=null,i=null,a=/Version\/(\S+)\s+Safari/;if(navigator.userAgent){var s=navigator.userAgent,c=s.match(a);c&&s.indexOf("Chrome")===-1&&s.indexOf("Chromium")===-1&&(o="Safari",i=c[1])}n.exports={agent:o,version:i,match:r}},{}],16:[function(t,n,e){function r(t,n){var e=[],r="",i=0;for(r in t)o.call(t,r)&&(e[i]=n(r,t[r]),i+=1);return e}var o=Object.prototype.hasOwnProperty;n.exports=r},{}],17:[function(t,n,e){function r(t,n,e){n||(n=0),"undefined"==typeof e&&(e=t?t.length:0);for(var r=-1,o=e-n||0,i=Array(o<0?0:o);++r<o;)i[r]=t[n+r];return i}n.exports=r},{}],18:[function(t,n,e){n.exports={exists:"undefined"!=typeof window.performance&&window.performance.timing&&"undefined"!=typeof window.performance.timing.navigationStart}},{}],19:[function(t,n,e){function r(t){return!(t&&t instanceof Function&&t.apply&&!t[a])}var o=t("ee"),i=t(17),a="nr@original",s=Object.prototype.hasOwnProperty,c=!1;n.exports=function(t,n){function e(t,n,e,o){function nrWrapper(){var r,a,s,c;try{a=this,r=i(arguments),s="function"==typeof e?e(r,a):e||{}}catch(f){l([f,"",[r,a,o],s])}u(n+"start",[r,a,o],s);try{return c=t.apply(a,r)}catch(d){throw u(n+"err",[r,a,d],s),d}finally{u(n+"end",[r,a,c],s)}}return r(t)?t:(n||(n=""),nrWrapper[a]=t,d(t,nrWrapper),nrWrapper)}function f(t,n,o,i){o||(o="");var a,s,c,f="-"===o.charAt(0);for(c=0;c<n.length;c++)s=n[c],a=t[s],r(a)||(t[s]=e(a,f?s+o:o,i,s))}function u(e,r,o){if(!c||n){var i=c;c=!0;try{t.emit(e,r,o,n)}catch(a){l([a,e,r,o])}c=i}}function d(t,n){if(Object.defineProperty&&Object.keys)try{var e=Object.keys(t);return e.forEach(function(e){Object.defineProperty(n,e,{get:function(){return t[e]},set:function(n){return t[e]=n,n}})}),n}catch(r){l([r])}for(var o in t)s.call(t,o)&&(n[o]=t[o]);return n}function l(n){try{t.emit("internal-error",n)}catch(e){}}return t||(t=o),e.inPlace=f,e.flag=a,e}},{}],ee:[function(t,n,e){function r(){}function o(t){function n(t){return t&&t instanceof r?t:t?c(t,s,i):i()}function e(e,r,o,i){if(!l.aborted||i){t&&t(e,r,o);for(var a=n(o),s=m(e),c=s.length,f=0;f<c;f++)s[f].apply(a,r);var d=u[g[e]];return d&&d.push([b,e,r,a]),a}}function p(t,n){y[t]=m(t).concat(n)}function h(t,n){var e=y[t];if(e)for(var r=0;r<e.length;r++)e[r]===n&&e.splice(r,1)}function m(t){return y[t]||[]}function v(t){return d[t]=d[t]||o(e)}function w(t,n){f(t,function(t,e){n=n||"feature",g[e]=n,n in u||(u[n]=[])})}var y={},g={},b={on:p,addEventListener:p,removeEventListener:h,emit:e,get:v,listeners:m,context:n,buffer:w,abort:a,aborted:!1};return b}function i(){return new r}function a(){(u.api||u.feature)&&(l.aborted=!0,u=l.backlog={})}var s="nr@context",c=t("gos"),f=t(16),u={},d={},l=n.exports=o();l.backlog=u},{}],gos:[function(t,n,e){function r(t,n,e){if(o.call(t,n))return t[n];var r=e();if(Object.defineProperty&&Object.keys)try{return Object.defineProperty(t,n,{value:r,writable:!0,enumerable:!1}),r}catch(i){}return t[n]=r,r}var o=Object.prototype.hasOwnProperty;n.exports=r},{}],handle:[function(t,n,e){function r(t,n,e,r){o.buffer([t],r),o.emit(t,n,e)}var o=t("ee").get("handle");n.exports=r,r.ee=o},{}],id:[function(t,n,e){function r(t){var n=typeof t;return!t||"object"!==n&&"function"!==n?-1:t===window?0:a(t,i,function(){return o++})}var o=1,i="nr@id",a=t("gos");n.exports=r},{}],loader:[function(t,n,e){function r(){if(!E++){var t=x.info=NREUM.info,n=p.getElementsByTagName("script")[0];if(setTimeout(u.abort,3e4),!(t&&t.licenseKey&&t.applicationID&&n))return u.abort();f(g,function(n,e){t[n]||(t[n]=e)}),c("mark",["onload",a()+x.offset],null,"api");var e=p.createElement("script");e.src="https://"+t.agent,n.parentNode.insertBefore(e,n)}}function o(){"complete"===p.readyState&&i()}function i(){c("mark",["domContent",a()+x.offset],null,"api")}function a(){return O.exists&&performance.now?Math.round(performance.now()):(s=Math.max((new Date).getTime(),s))-x.offset}var s=(new Date).getTime(),c=t("handle"),f=t(16),u=t("ee"),d=t(15),l=window,p=l.document,h="addEventListener",m="attachEvent",v=l.XMLHttpRequest,w=v&&v.prototype;NREUM.o={ST:setTimeout,SI:l.setImmediate,CT:clearTimeout,XHR:v,REQ:l.Request,EV:l.Event,PR:l.Promise,MO:l.MutationObserver};var y=""+location,g={beacon:"bam.nr-data.net",errorBeacon:"bam.nr-data.net",agent:"js-agent.newrelic.com/nr-1118.min.js"},b=v&&w&&w[h]&&!/CriOS/.test(navigator.userAgent),x=n.exports={offset:s,now:a,origin:y,features:{},xhrWrappable:b,userAgent:d};t(12),p[h]?(p[h]("DOMContentLoaded",i,!1),l[h]("load",r,!1)):(p[m]("onreadystatechange",o),l[m]("onload",r)),c("mark",["firstbyte",s],null,"api");var E=0,O=t(18)},{}]},{},["loader",2,10,4,3]);</script>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+<script src="GPU%20Gems%20%20%20NVIDIA%20Developer_fichiers/auth0.js"></script>
+<script src="GPU%20Gems%20%20%20NVIDIA%20Developer_fichiers/dz-auth.js"></script>
+<link rel="shortcut icon" href="https://developer.nvidia.com/sites/all/themes/devzone_base/favicon.ico" type="image/vnd.microsoft.icon">
+<meta name="generator" content="Drupal 7 (http://drupal.org)">
+<link rel="canonical" href="https://developer.nvidia.com/gpugems/GPUGems3/gpugems3_ch10.html">
+<link rel="shortlink" href="https://developer.nvidia.com/gpugems/GPUGems3/gpugems3_ch10.html">
+<meta property="og:site_name" content="NVIDIA Developer">
+<meta property="og:type" content="article">
+<meta property="og:url" content="https://developer.nvidia.com/gpugems/GPUGems3/gpugems3_ch10.html">
+<meta property="og:title" content="GPU Gems">
+  <title>GPU Gems | NVIDIA Developer</title>
+  <link type="text/css" rel="stylesheet" href="GPU%20Gems%20%20%20NVIDIA%20Developer_fichiers/css_lQaZfjVpwP_oGNqdtWCSpJT1EMqXdMiU84ekLLxQnc4.css" media="all">
+<link type="text/css" rel="stylesheet" href="GPU%20Gems%20%20%20NVIDIA%20Developer_fichiers/css_hTLrwzbU9bZhjvzx-j5entbJFEHkjJyd6RgHEla8FhA.css" media="all">
+<link type="text/css" rel="stylesheet" href="GPU%20Gems%20%20%20NVIDIA%20Developer_fichiers/css_VWGhZkkR4B4tMJA7PC_wov8dAxaI-MS03BCM3K8jjJA.css" media="screen">
+<link type="text/css" rel="stylesheet" href="GPU%20Gems%20%20%20NVIDIA%20Developer_fichiers/css_SszGAe6JK9B9hacWsnKVSEo-uYCROkU91NHCZszWJpU.css" media="all">
+<link type="text/css" rel="stylesheet" href="GPU%20Gems%20%20%20NVIDIA%20Developer_fichiers/css_jENQOQqZCRFGZK__DTefxYiXR2RUf03k1ugj3_Vg7vk.css" media="all">
+<link type="text/css" rel="stylesheet" href="GPU%20Gems%20%20%20NVIDIA%20Developer_fichiers/dz-auth.css" media="all">
+<link type="text/css" rel="stylesheet" href="GPU%20Gems%20%20%20NVIDIA%20Developer_fichiers/css_dxTC2SnbUQpi6ay7fqSk9MkxtE4JRKtOHqpCvu7mKNQ.css" media="all">
+<link type="text/css" rel="stylesheet" href="GPU%20Gems%20%20%20NVIDIA%20Developer_fichiers/css_B_NZa24anRJpwDA-OiKkHdf60CQeBMGVuFfr3kbAjlA.css" media="all">
+  <!-- HTML5 element support for IE6-8 -->
+  <!--[if lt IE 9]>
+    <script src="//html5shiv.googlecode.com/svn/trunk/html5.js"></script>
+  <![endif]-->
+  <script src="GPU%20Gems%20%20%20NVIDIA%20Developer_fichiers/js_WOGchOeZR2luOEnZVWbQ_qLVSzcOvQMIcgzquLO8-QU.js"></script>
+<script src="GPU%20Gems%20%20%20NVIDIA%20Developer_fichiers/js_oZD9-WvfiElJ5KPavqu9ZAQiZcfWlzNCzxFHpedR9dI.js"></script>
+<script src="GPU%20Gems%20%20%20NVIDIA%20Developer_fichiers/satelliteLib-7ba51e58dc61bcb0e9311aadd02a0108ab24cc6c.js"></script>
+<script src="GPU%20Gems%20%20%20NVIDIA%20Developer_fichiers/js_JP3TlCqKqiqPuAoTWfdvYhA4HjA1QSa33gLy1Yy6iPA.js"></script>
+<script src="GPU%20Gems%20%20%20NVIDIA%20Developer_fichiers/js_x9pZxgPLbCtErjlMNwLja_B6jBMZc3NmZA6K5f1z2vs.js"></script>
+<script src="GPU%20Gems%20%20%20NVIDIA%20Developer_fichiers/js_qoMmK0q_AjEZdf24SPQxGHYDy4d2mzXU_yewfRUIK5Y.js"></script>
+<script>jQuery.extend(Drupal.settings, {"basePath":"\/","pathPrefix":"","ajaxPageState":{"theme":"devzone_base","theme_token":"Ai6bTupALOE4zqb1Zw307Efror0jwbbtKu4XOCaG7KQ","js":{"0":1,"1":1,"sites\/all\/themes\/bootstrap\/js\/bootstrap.js":1,"sites\/all\/modules\/contrib\/jquery_update\/replace\/jquery\/1.10\/jquery.min.js":1,"misc\/jquery.once.js":1,"misc\/drupal.js":1,"sites\/all\/modules\/contrib\/jquery_update\/replace\/ui\/ui\/minified\/jquery.ui.core.min.js":1,"sites\/all\/modules\/contrib\/jquery_update\/replace\/ui\/ui\/minified\/jquery.ui.widget.min.js":1,"sites\/all\/modules\/contrib\/jquery_update\/replace\/ui\/ui\/minified\/jquery.ui.position.min.js":1,"sites\/all\/modules\/contrib\/jquery_update\/replace\/ui\/ui\/minified\/jquery.ui.menu.min.js":1,"sites\/all\/modules\/contrib\/jquery_update\/replace\/ui\/ui\/minified\/jquery.ui.autocomplete.min.js":1,"\/\/assets.adobedtm.com\/b92787824f2e0e9b68dc2e993f9bd995339fe417\/satelliteLib-7ba51e58dc61bcb0e9311aadd02a0108ab24cc6c.js":1,"sites\/all\/modules\/contrib\/codefilter\/codefilter.js":1,"sites\/all\/modules\/contrib\/gss\/scripts\/autocomplete.js":1,"sites\/all\/libraries\/colorbox\/jquery.colorbox-min.js":1,"sites\/all\/modules\/contrib\/colorbox\/js\/colorbox.js":1,"sites\/all\/modules\/contrib\/hint\/hint.js":1,"sites\/all\/modules\/custom\/gpugems\/gpugems.js":1,"sites\/all\/themes\/devzone_base\/js\/jquery.migrate.min.js":1,"sites\/all\/themes\/devzone_base\/js\/jquery.isotope.js":1,"sites\/all\/themes\/devzone_base\/js\/jquery.sidr.js":1,"sites\/all\/themes\/devzone_base\/js\/application.js":1,"sites\/all\/themes\/devzone_base\/js\/scripts.js":1,"sites\/all\/themes\/devzone_base\/js\/adroll.js":1,"sites\/all\/themes\/devzone_base\/bootstrap\/js\/affix.js":1,"sites\/all\/themes\/devzone_base\/bootstrap\/js\/alert.js":1,"sites\/all\/themes\/devzone_base\/bootstrap\/js\/button.js":1,"sites\/all\/themes\/devzone_base\/bootstrap\/js\/carousel.js":1,"sites\/all\/themes\/devzone_base\/bootstrap\/js\/collapse.js":1,"sites\/all\/themes\/devzone_base\/bootstrap\/js\/dropdown.js":1,"sites\/all\/themes\/devzone_base\/bootstrap\/js\/modal.js":1,"sites\/all\/themes\/devzone_base\/bootstrap\/js\/tooltip.js":1,"sites\/all\/themes\/devzone_base\/bootstrap\/js\/popover.js":1,"sites\/all\/themes\/devzone_base\/bootstrap\/js\/scrollspy.js":1,"sites\/all\/themes\/devzone_base\/bootstrap\/js\/tab.js":1,"sites\/all\/themes\/devzone_base\/bootstrap\/js\/transition.js":1},"css":{"modules\/system\/system.base.css":1,"misc\/ui\/jquery.ui.core.css":1,"misc\/ui\/jquery.ui.theme.css":1,"misc\/ui\/jquery.ui.menu.css":1,"misc\/ui\/jquery.ui.autocomplete.css":1,"sites\/all\/modules\/contrib\/codefilter\/codefilter.css":1,"sites\/all\/modules\/contrib\/date\/date_api\/date.css":1,"sites\/all\/modules\/contrib\/date\/date_popup\/themes\/datepicker.1.7.css":1,"sites\/all\/modules\/contrib\/date\/date_repeat_field\/date_repeat_field.css":1,"modules\/field\/theme\/field.css":1,"modules\/node\/node.css":1,"sites\/all\/modules\/contrib\/views\/css\/views.css":1,"sites\/all\/modules\/contrib\/ctools\/css\/ctools.css":1,"https:\/\/developer.nvidia.com\/register\/dz-auth.css?v=3.2.5c":1,"sites\/all\/modules\/contrib\/addtoany\/addtoany.css":1,"sites\/all\/themes\/bootstrap\/css\/overrides.css":1,"sites\/all\/themes\/devzone_base\/css\/application.css":1}},"colorbox":{"opacity":"0.85","current":"{current} of {total}","previous":"\u00ab Prev","next":"Next \u00bb","close":"Close","maxWidth":"98%","maxHeight":"98%","fixed":true,"mobiledetect":true,"mobiledevicewidth":"480px"},"gss":{"key":"000841979776854404513:41w2zzjvamy"},"gpugems":{"base":"\/sites\/all\/modules\/custom\/gpugems\/books"},"urlIsAjaxTrusted":{"\/gpugems\/GPUGems3\/gpugems3_ch10.html":true},"bootstrap":{"anchorsFix":1,"anchorsSmoothScrolling":1,"formHasError":1,"popoverEnabled":1,"popoverOptions":{"animation":1,"html":0,"placement":"right","selector":"","trigger":"click","triggerAutoclose":1,"title":"","content":"","delay":0,"container":"body"},"tooltipEnabled":1,"tooltipOptions":{"animation":1,"html":0,"placement":"auto left","selector":"","trigger":"hover focus","delay":0,"container":"body"}}});</script>
+<script src="GPU%20Gems%20%20%20NVIDIA%20Developer_fichiers/satellite-5b9b547a64746d6c84000d75.js"></script><script src="GPU%20Gems%20%20%20NVIDIA%20Developer_fichiers/satellite-5a2a191764746d7d40012cac.js"></script><script src="GPU%20Gems%20%20%20NVIDIA%20Developer_fichiers/satellite-598bf07e64746d066f0018eb.js"></script><script src="GPU%20Gems%20%20%20NVIDIA%20Developer_fichiers/satellite-599197ca64746d2c22002eb4.js"></script><script src="GPU%20Gems%20%20%20NVIDIA%20Developer_fichiers/satellite-594a6ce764746d506700c2a3.js"></script><script src="GPU%20Gems%20%20%20NVIDIA%20Developer_fichiers/satellite-5991afef64746d6deb010d48.js"></script><script src="GPU%20Gems%20%20%20NVIDIA%20Developer_fichiers/satellite-5991b02f64746d63240018f2.js"></script><script src="GPU%20Gems%20%20%20NVIDIA%20Developer_fichiers/s-code-contents-72887b31a9638f8b3cff7981a426c38c354f6412.js"></script><script async="true" type="text/javascript" src="GPU%20Gems%20%20%20NVIDIA%20Developer_fichiers/roundtrip.js"></script><script type="text/javascript" src="GPU%20Gems%20%20%20NVIDIA%20Developer_fichiers/OYZWQRQDRZCBLGX5QLLXRG"></script><script async="true" type="text/javascript" src="GPU%20Gems%20%20%20NVIDIA%20Developer_fichiers/XDTCNQ3C2NF3DKOAMKYLNF"></script><div style="width: 1px; height: 1px; display: inline; position: absolute;"><img style="border-style:none;" alt="" src="GPU%20Gems%20%20%20NVIDIA%20Developer_fichiers/out.txt" width="1" height="1"><img style="border-style:none;" alt="" src="GPU%20Gems%20%20%20NVIDIA%20Developer_fichiers/out_007.gif" width="1" height="1"><img style="border-style:none;" alt="" src="GPU%20Gems%20%20%20NVIDIA%20Developer_fichiers/out_004.gif" width="1" height="1"><img style="border-style:none;" alt="" src="GPU%20Gems%20%20%20NVIDIA%20Developer_fichiers/out_002.txt" width="1" height="1"><img style="border-style:none;" alt="" src="GPU%20Gems%20%20%20NVIDIA%20Developer_fichiers/out.html" width="1" height="1"><img style="border-style:none;" alt="" src="GPU%20Gems%20%20%20NVIDIA%20Developer_fichiers/out_003.txt" width="1" height="1"><img style="border-style:none;" alt="" src="GPU%20Gems%20%20%20NVIDIA%20Developer_fichiers/out_006.gif" width="1" height="1"></div><div style="width: 1px; height: 1px; display: inline; position: absolute;"><img style="border-style:none;" alt="" src="GPU%20Gems%20%20%20NVIDIA%20Developer_fichiers/out_008.gif" width="1" height="1">
+<img style="border-style:none;" alt="" src="GPU%20Gems%20%20%20NVIDIA%20Developer_fichiers/out_003.gif" width="1" height="1">
+<img style="border-style:none;" alt="" src="GPU%20Gems%20%20%20NVIDIA%20Developer_fichiers/out_002.gif" width="1" height="1">
+<img style="border-style:none;" alt="" src="GPU%20Gems%20%20%20NVIDIA%20Developer_fichiers/out_005.gif" width="1" height="1">
+<img style="border-style:none;" alt="" src="GPU%20Gems%20%20%20NVIDIA%20Developer_fichiers/out_002.html" width="1" height="1">
+<img style="border-style:none;" alt="" src="GPU%20Gems%20%20%20NVIDIA%20Developer_fichiers/out.gif" width="1" height="1">
+</div></head>
+<body class="html not-front not-logged-in no-sidebars page-gpugems page-gpugems-gpugems3 page-gpugems-gpugems3-gpugems3-ch10html">
+  <div id="skip-link">
+    <a href="#main-content" class="element-invisible element-focusable">Skip to main content</a>
+  </div>
+    
+
+<!--Navbar-->
+<nav class="navbar navbar-inverse navbar-static-top" role="navigation" id="nvidia-dropdown">
+  <div class="container">
+    <div class="navbar-header">
+      <button class="navbar-toggle" type="button"><span class="icon-bar"></span><span class="icon-bar"></span><span class="icon-bar"></span></button>
+      <div class="logo-header">
+        <a class="navbar-brand first-logo" href="https://developer.nvidia.com/" title="Home">
+          <img alt="Home" src="GPU%20Gems%20%20%20NVIDIA%20Developer_fichiers/nvidia.png">
+        </a>
+        <a class="navbar-brand second-logo" href="https://developer.nvidia.com/" title="Home">
+          <img alt="Home" src="GPU%20Gems%20%20%20NVIDIA%20Developer_fichiers/logo.png">
+        </a>
+      </div>
+    </div>
+    <div class="collapse navbar-collapse" id="navbar-collapse">
+
+              <ul class="menu nav navbar-nav"><li class="first leaf"><a href="http://news.developer.nvidia.com/" title="">NEWS</a></li>
+<li class="leaf"><a href="https://devblogs.nvidia.com/" title="">BLOG</a></li>
+<li class="last leaf"><a href="https://devtalk.nvidia.com/" title="">FORUMS</a></li>
+</ul>            <ul class="nav navbar-nav navbar-margin navbar-right navbar-margin-media login-nav">
+                  <li class="search" id="search-top">
+            <div class="search-form" id="search-top-form">
+              <form class="gss form-search content-search" action="/gpugems/GPUGems3/gpugems3_ch10.html" method="post" id="search-block-form" accept-charset="UTF-8"><div><div>
+      <h2 class="element-invisible">Search form</h2>
+    <div class="input-group"><input title="Enter the terms you wish to search for." placeholder="Search..." class="form-control form-text" type="text" id="edit-search-block-form--2" name="search_block_form" size="15" maxlength="128"><span class="input-group-btn"><button type="submit" class="btn btn-default"><span class="icon glyphicon glyphicon-search" aria-hidden="true"></span>
+</button></span></div><div class="form-actions form-wrapper form-group" id="edit-actions"><button class="element-invisible btn btn-primary form-submit" type="submit" id="edit-submit" name="op" value="Search">Search</button>
+</div><input type="hidden" name="form_build_id" value="form-7H27X6eoWbHh1JvNnan2XejSl30_2Xqa4pIMWEEswas">
+<input type="hidden" name="form_id" value="search_block_form">
+</div>
+</div></form>            </div>
+          </li>
+        
+        
+          
+                        <li class="leaf join-link" id="dzauth_register_link"><a href="javascript:jQuery.sidr('close');javascript:showDzAuth('register');">Join</a></li>
+<li class="leaf last" id="dzauth_login_link"><a href="javascript:jQuery.sidr('close');javascript:showDzAuth('login');">Login</a></li>          
+      </ul>
+  </div>
+</div>
+</nav>
+<nav class="navbar navbar-inverse second-navbar hidden-xs" role="navigation" id="nvidia-secondary-dropdown">
+      <div class="container">
+        <div class="collapse navbar-collapse">
+          <ul class="menu nav navbar-nav secondary"><li class="first leaf"><a href="https://developer.nvidia.com/rtx" title="">RTX</a></li>
+<li class="leaf"><a href="https://developer.nvidia.com/gameworks" title="">GAMEWORKS</a></li>
+<li class="leaf"><a href="https://developer.nvidia.com/designworks" title="">DESIGNWORKS</a></li>
+<li class="leaf"><a href="https://developer.nvidia.com/vrworks" title="">VRWORKS</a></li>
+<li class="leaf"><a href="https://developer.nvidia.com/computeworks" title="">COMPUTEWORKS</a></li>
+<li class="leaf"><a href="https://developer.nvidia.com/embedded-computing" title="">JETPACK</a></li>
+<li class="leaf"><a href="https://developer.nvidia.com/drive" title="">DRIVE</a></li>
+<li class="leaf"><a href="https://developer.nvidia.com/clara" title="">CLARA</a></li>
+<li class="last leaf"><a href="https://developer.nvidia.com/open-source" title="">OPEN SOURCE</a></li>
+</ul>                  </div>
+      </div>
+    </nav>
+
+<div id="wrapper">
+          
+  <div id="content-background" class="white-background">
+        <div id="console">
+      <div class="container">
+                      </div>
+    </div>
+    
+    <div class="separator"></div>
+    <div id="content" class="container">
+              <ol class="breadcrumb hidden-xs"><li class="active"><a href="https://developer.nvidia.com/">Home</a></li></ol>      
+                      <div class="separator"></div>
+      
+      
+      <div class="row">
+
+        
+        <section class="col-sm-12">
+                    <div class="page-header ">
+            <h1 class="title">
+              GPU Gems            </h1>
+          </div>
+          
+                    <a id="main-content"></a>
+
+            <div class="region region-content">
+    <section id="block-system-main" class="block block-system clearfix">
+
+      
+  <div id="book_switch">
+	<a class="btn btn-primary" href="https://developer.nvidia.com/gpugems/GPUGems/gpugems_pref01.html">GPU Gems</a>
+	<a class="btn btn-primary" href="https://developer.nvidia.com/gpugems/GPUGems2/gpugems2_inside_front_cover.html">GPU Gems 2</a>
+	<a class="btn btn-primary" href="https://developer.nvidia.com/gpugems/GPUGems3/gpugems3_pref01.html">GPU Gems 3</a>	
+</div>
+<div id="book_page">
+
+     
+          <div class="row">
+               <div class="col-md-8">
+      <a href="http://developer.nvidia.com/object/gpu-gems-3.html"><img src="GPU%20Gems%20%20%20NVIDIA%20Developer_fichiers/gpu_gems_3_icon.jpg" hspace="5" border="0" align="left"></a>
+
+      <h1><a href="http://developer.nvidia.com/object/gpu-gems-3.html">GPU Gems 3</a></h1>
+<b>GPU Gems 3</b> is now available for free online!<br>
+      <br>
+      Please visit our <a href="http://developer.nvidia.com/object/all_documents.html">Recent Documents</a> page to see all the latest whitepapers and conference presentations that can help you with your projects.<br>
+      <br>
+      You can also subscribe to our <a href="http://news.developer.nvidia.com/rss.xml">Developer News Feed</a> to get notifications of new material on the site.<br>
+      <br>
+      <br>
+      <hr>
+
+      <h2>Chapter 10. Parallel-Split Shadow Maps on Programmable GPUs</h2>
+
+      <p><em>Fan Zhang<br>
+      The Chinese University of Hong Kong</em></p>
+
+      <p><em>Hanqiu Sun<br>
+      The Chinese University of Hong Kong</em></p>
+
+      <p><em>Oskari Nyman<br>
+      Helsinki University of Technology</em></p>
+
+      <p>Shadow mapping (Williams 1978) has been used extensively in 3D 
+games and applications for producing shadowing effects. However, shadow 
+mapping has inherent aliasing problems, so using standard shadow mapping
+ is not enough to produce
+      high-quality shadow rendering in complex and large-scale scenes. 
+In this chapter we present an advanced shadow-mapping technique that 
+produces antialiased and real-time shadows for large-scale environments.
+ We also show the implementation
+      details of our technique on modern programmable GPUs.</p>
+
+      <h2>10.1 Introduction</h2>
+
+      <p>The technique we present is called <em>parallel-split shadow maps</em>
+ (PSSMs) (Zhang et al. 2007 and Zhang et al. 2006). In this technique 
+the view frustum is split into multiple depth layers using clip planes 
+parallel to the view plane,
+      and an independent shadow map is rendered for each layer, as shown
+ in <a href="javascript:popUp('elementLinks/10fig01.jpg')">Figure 10-1</a>.</p>
+
+      <div class="figure">
+        <a href="javascript:popUp('elementLinks/10fig01.jpg')"><img src="GPU%20Gems%20%20%20NVIDIA%20Developer_fichiers/10fig01.jpg" alt="10fig01.jpg"></a>
+
+        <p><a href="javascript:popUp('elementLinks/10fig01.jpg')">Figure 10-1</a> Parallel-Split Shadow Maps in</p>
+      </div>
+
+      <p>The split scheme is motivated by the observation that points at
+ different distances from the viewer need different shadow-map sampling 
+densities. By splitting the view frustum into parts, we allow each 
+shadow map to sample a smaller area,
+      so that the sampling frequency in texture space is increased. With
+ a better matching of sampling frequencies in view space and texture 
+space, shadow aliasing errors are significantly reduced.</p>
+
+      <p>In comparison with other popular shadow-mapping techniques, such as <em>perspective shadow maps</em> (PSMs) (Stamminger and Drettakis 2002), <em>light-space perspective shadow maps</em> (LiSPSMs) (Wimmer et al. 2004) and <em>trapezoidal
+      shadow maps</em> (TSMs) (Martin and Tan 2004), PSSMs provide an 
+intuitive way to discretely approximate the warped distribution of the 
+shadow-map texels, but without mapping singularities and special 
+treatments.</p>
+
+      <p>The idea of using multiple shadow maps was introduced in 
+Tadamura et al. 2001. It was further studied in Lloyd et al. 2006 and 
+implemented as cascaded shadow mapping in Futuremark's benchmark 
+application 3DMark 2006.</p>
+
+      <p>The two major problems with all these algorithms, including our PSSMs, are the following:</p>
+
+      <ul>
+        <li>How do we determine the split positions?</li>
+
+        <li>How do we alleviate the performance drop caused by multiple 
+rendering passes when generating shadow maps and rendering the scene 
+shadows?</li>
+      </ul>
+
+      <p>These two problems are handled well in PSSMs. We use a fast and
+ robust scene-independent split strategy to adapt the view-driven 
+resolution requirement, and we show how to take advantage of DirectX 
+9-level and DirectX 10-level hardware to
+      improve performance.</p>
+
+      <h2>10.2 The Algorithm</h2>
+
+      <p>In this chapter we use a directional light to illustrate the 
+PSSMs technique for clarity, but the implementation details are valid 
+for point lights as well. The notation PSSM(<em>m</em>, <em>res</em>) denotes the split scheme that splits
+      the view frustum into <em>m</em> parts; <em>res</em> is the resolution for each shadow map. <a href="javascript:popUp('elementLinks/10fig02.jpg')">Figure 10-2</a> shows the general configuration for the split scheme with an overhead light, in
+      which the view frustum <em>V</em> is split into {<em>V<sub>i</sub></em> | 0 <img src="GPU%20Gems%20%20%20NVIDIA%20Developer_fichiers/U2264.GIF" class="articleIcon" alt="U2264.GIF"> <em>i</em> <img src="GPU%20Gems%20%20%20NVIDIA%20Developer_fichiers/U2264.GIF" class="articleIcon" alt="U2264.GIF"> <em>m</em>
+      - 1} using clip planes at {<em>C<sub>i</sub></em> | 0 <img src="GPU%20Gems%20%20%20NVIDIA%20Developer_fichiers/U2264.GIF" class="articleIcon" alt="U2264.GIF"> <em>i</em> <img src="GPU%20Gems%20%20%20NVIDIA%20Developer_fichiers/U2264.GIF" class="articleIcon" alt="U2264.GIF"> <em>m</em>} along the <em>z</em>
+      axis. In particular, <em>C</em> <sub>0</sub> = <em>n</em> (near plane position) and C <em><sub>m</sub></em> = <em>f</em>(far plane position).</p>
+
+      <div class="figure">
+        <a href="javascript:popUp('elementLinks/10fig02.jpg')"><img src="GPU%20Gems%20%20%20NVIDIA%20Developer_fichiers/10fig02.jpg" alt="10fig02.jpg"></a>
+
+        <p><a href="javascript:popUp('elementLinks/10fig02.jpg')">Figure 10-2</a> The Configuration for the Split Scheme with an Overhead Light</p>
+      </div>
+
+      <p>We apply the split-scheme PSSM(<em>m</em>, <em>res</em>) in the following steps:</p>
+
+      <ol>
+        <li>Split the view frustum <em>V</em> into <em>m</em> parts {<em>V<sub>i</sub></em> } using split planes at {<em>C<sub>i</sub></em> }.</li>
+
+        <li>Calculate the light's view-projection transformation matrix for each split part <em>V<sub>i</sub></em> .</li>
+
+        <li>Generate PSSMs {<em>T<sub>i</sub></em> } with the resolution <em>res</em> for all split parts {<em>V<sub>i</sub></em> }.</li>
+
+        <li>Synthesize shadows for the scene.</li>
+      </ol>
+
+      <h4>10.2.1 Step 1: Splitting the View Frustum</h4>
+
+      <p>The main problem in step 1 is determining where the split 
+planes are placed. Although users can adjust the split positions 
+according to an application-specific requirement, our implementations 
+use the <em>practical split scheme</em>
+      proposed in Zhang et al. 2006.</p>
+
+      <p>Before we introduce this split scheme, we briefly review the 
+aliasing problem in shadow mapping, which has been extensively discussed
+ in Stamminger and Drettakis 2002, Wimmer et al. 2004, and Lloyd et al. 
+2006.</p>
+
+      <p>In <a href="javascript:popUp('elementLinks/10fig03.jpg')">Figure 10-3</a>, the light beams passing through a texel (with the size <em>ds</em>) fall on a surface of the object with the length <em>dz</em> in world space. From the standard
+      projection matrix in Direct3D, we know that the size of view beams <em>dp</em> (on the normalized screen) projected from the surface is <em>dy</em>(<em>z</em> tan <em></em>)<sup>-1</sup>, where 2<em></em> is the field-of-view of the view frustum. From the local view of the surface in <a href="javascript:popUp('elementLinks/10fig03.jpg')">Figure 10-3</a>, we get the approximation <em>dy</em> <img src="GPU%20Gems%20%20%20NVIDIA%20Developer_fichiers/U2248.GIF" class="articleIcon" alt="U2248.GIF"> <em>dz</em> cos <em>f</em>/cos <em></em>, where <em></em> and <em></em> stand for the angles
+      between the surface normal and vector to the screen, and the shadow-map plane, respectively.</p>
+
+      <div class="figure">
+        <a href="javascript:popUp('elementLinks/10fig03.jpg')"><img src="GPU%20Gems%20%20%20NVIDIA%20Developer_fichiers/10fig03.jpg" alt="10fig03.jpg"></a>
+
+        <p><a href="javascript:popUp('elementLinks/10fig03.jpg')">Figure 10-3</a> Shadow Map Aliasing</p>
+      </div>
+
+      <h4>Shadow-Map Aliasing</h4>
+
+      <p>The aliasing error for the small surface is then defined as</p>
+
+      <p><img src="GPU%20Gems%20%20%20NVIDIA%20Developer_fichiers/0207equ01.jpg" alt="0207equ01.jpg"></p>
+
+      <p>We usually decompose this aliasing representation <em>dp</em>/<em>ds</em> into two parts: <em>perspective aliasing dz</em>/<em>zds</em> and <em>projection aliasing</em> cos <em></em>/cos <em></em> (note that <em></em>
+ is a constant for a given view matrix). Shadow-map undersampling can 
+occur when perspective aliasing or projection aliasing becomes large.</p>
+
+      <p>Projection aliasing depends on local geometry details, so the 
+reduction of this kind of aliasing requires an expensive scene analysis 
+at each frame. On the other hand, perspective aliasing comes from the 
+perspective foreshortening effect
+      and can be reduced by warping the shadow plane, using a 
+perspective projection transformation. More important, perspective 
+aliasing is scene independent, so the reduction of perspective aliasing 
+doesn't require complicated scene analysis.</p>
+
+      <p>The practical split scheme is based on the analysis of perspective aliasing.</p>
+
+      <h4>The Practical Split Scheme</h4>
+
+      <p>In the practical split scheme, the split positions are determined by this equation:</p>
+
+      <p><img src="GPU%20Gems%20%20%20NVIDIA%20Developer_fichiers/0207equ02.jpg" alt="0207equ02.jpg"></p>
+
+      <p>where { <a href="javascript:popUp('elementLinks/clog.jpg')"><img src="GPU%20Gems%20%20%20NVIDIA%20Developer_fichiers/clog.jpg" alt="clog.jpg" hspace="5" border="0"></a> } and { <a href="javascript:popUp('elementLinks/cuni.jpg')"><img src="GPU%20Gems%20%20%20NVIDIA%20Developer_fichiers/cuni.jpg" alt="cuni.jpg" hspace="5" border="0"></a> } are the split positions in the <em>logarithmic split scheme</em> and the <em>uniform split scheme</em>,
+ respectively. Theoretically, the logarithmic split scheme is designed 
+to produce optimal
+      distribution of perspective aliasing over the whole depth range. 
+On the other hand, the aliasing distribution in the uniform split scheme
+ is the same as in standard shadow maps. <a href="javascript:popUp('elementLinks/10fig04.jpg')">Figure
+      10-4</a> visualizes the three split schemes in the shadow-map space.</p>
+
+      <div class="figure">
+        <a href="javascript:popUp('elementLinks/10fig04.jpg')"><img src="GPU%20Gems%20%20%20NVIDIA%20Developer_fichiers/10fig04.jpg" alt="10fig04.jpg"></a>
+
+        <p><a href="javascript:popUp('elementLinks/10fig04.jpg')">Figure 10-4</a> Visualization of the Practical Split Scheme in Shadow-Map Space</p>
+      </div>
+
+      <p>The theoretically optimal distribution of perspective aliasing makes <em>dz</em>/<em>zds</em>
+ constant over the entire depth range. As shown in Wimmer et al. 2004, 
+the following simple derivation gives the optimal shadow-map
+      parameterization <em>s</em>(<em>z</em>):</p>
+
+      <p><img src="GPU%20Gems%20%20%20NVIDIA%20Developer_fichiers/0207equ03.jpg" alt="0207equ03.jpg"></p>
+
+      <p>where <em></em> is a constant. From <em>s</em>(<em>f</em>) = 1, we have <em></em> = ln(<em>f</em>/<em>n</em>). The only nonlinear transform supported by current hardware is the
+      perspective-projection transformation (<em>s</em> = <em>A</em>/<em>z</em> + <em>B</em>), so in order to approximate the previous logarithmic mapping from <em>z</em> to <em>s</em>, the logarithmic split scheme discretizes it at several depth
+      layers z = <a href="javascript:popUp('elementLinks/clog.jpg')"><img src="GPU%20Gems%20%20%20NVIDIA%20Developer_fichiers/clog.jpg" alt="clog.jpg" hspace="5" border="0"></a> as in the following equation:</p>
+
+      <p><img src="GPU%20Gems%20%20%20NVIDIA%20Developer_fichiers/0208equ01.jpg" alt="0208equ01.jpg"></p>
+
+      <p>Because the logarithmic split scheme is designed to produce the
+ theoretically even distribution of perspective aliasing, the resolution
+ allocated for each split should be 1/<em>m</em> of the overall texture resolution. Substituting
+      <em>s<sub>i</sub></em> = <em>i</em>/<em>m</em> into the preceding equation gives</p>
+
+      <p><img src="GPU%20Gems%20%20%20NVIDIA%20Developer_fichiers/0208equ02.jpg" alt="0208equ02.jpg"></p>
+
+      <p>The main drawback of the logarithmic split scheme is that, in 
+practice, the lengths of split parts near the viewer are too small, so 
+few objects can be included in these split parts. Imagine the situation 
+in the split-scheme
+      PSSM(3)—that is, the view frustum is split into three parts. With <em>f</em> = 1000 and <em>n</em> = 1, the first split <em>V</em> <sub>0</sub> and second split <em>V</em> <sub>1</sub>
+ occupy only 1 percent and 10 percent of the view
+      distance. Oversampling usually occurs for parts near the viewer, 
+and undersampling occurs for parts farther from the viewer. As a result,
+ in practice, the logarithmic split scheme is hard to use directly.</p>
+
+      <p>The uniform split scheme simply places the split planes evenly along the view direction:</p>
+
+      <p><img src="GPU%20Gems%20%20%20NVIDIA%20Developer_fichiers/0209equ01.jpg" alt="0209equ01.jpg"></p>
+
+      <p>The aliasing distribution in the uniform split scheme is the same as that in standard shadow maps. Because <em>s</em> = (<em>z</em>- <em>n</em>)/(<em>f</em> - <em>n</em>) in standard shadow maps, by ignoring the projection aliasing, we
+      have</p>
+
+      <p><img src="GPU%20Gems%20%20%20NVIDIA%20Developer_fichiers/0209equ02.jpg" alt="0209equ02.jpg"></p>
+
+      <p>This means the aliasing error in standard shadow maps increases
+ hyperbolically as the object moves near the view plane. Like standard 
+shadow mapping, the uniform split scheme results in undersampling for 
+objects near the viewer and
+      oversampling for distant objects.</p>
+
+      <p>Because the logarithmic and uniform split schemes can't produce
+ appropriate sampling densities for the near and far depth layers 
+simultaneously, the practical split scheme integrates logarithmic and 
+uniform schemes to produce moderate
+      sampling densities over the whole depth range. The weight <em></em> adjusts the split positions according to practical requirements of the application. <em></em> = 0.5 is the default
+      setting in our current implementation. In <a href="javascript:popUp('elementLinks/10fig04.jpg')">Figure 10-4</a>, the practical split scheme produces moderate sampling densities for the near and far split parts. An important note for <a href="javascript:popUp('elementLinks/10fig04.jpg')">Figure 10-4</a>:
+ the colorized sampling frequency in each split scheme is for schematic 
+illustration only, not for precisely visualizing the aliasing 
+distribution in theory. Readers interested in
+      the (perspective) aliasing distributions in multiple depth layers 
+can refer to Lloyd et al. 2006.</p>
+
+      <h4>Preprocessing</h4>
+
+      <p>Before splitting the view frustum, we might adjust the camera's
+ near and far planes so that the view frustum contains the visible 
+objects as tightly as possible. This will minimize the amount of empty 
+space in the view frustum, increasing
+      the available shadow-map resolution.</p>
+
+      <h4>10.2.2 Step 2: Calculating Light's Transformation Matrices</h4>
+
+      <p>As in standard shadow mapping, we need to know the light's view
+ and projection matrices when generating the shadow map. As we split the
+ light's frustum <em>W</em> into multiple subfrusta {<em>W<sub>i</sub></em> }, we will need to construct
+      an independent projection matrix for each <em>W <sub>i</sub></em> separately.</p>
+
+      <p>We present two methods to calculate these matrices:</p>
+
+      <ul>
+        <li>The scene-independent method simply bounds the light's frustum <em>W<sub>i</sub></em> to the split frustum <em>V<sub>i</sub></em> , as seen in <a href="javascript:popUp('elementLinks/10fig05.jpg')">Figure 10-5</a>. Because information
+        about the scene is not used, the usage of shadow-map resolution might not be optimal.
+
+          <div class="figure">
+            <a href="javascript:popUp('elementLinks/10fig05.jpg')"><img src="GPU%20Gems%20%20%20NVIDIA%20Developer_fichiers/10fig05.jpg" alt="10fig05.jpg"></a>
+
+            <p><a href="javascript:popUp('elementLinks/10fig05.jpg')">Figure 10-5</a> Calculation of the Light's Projection Matrix for the Split Part .</p>
+          </div>
+        </li>
+
+        <li>The scene-dependent method increases the available texture resolution by focusing the light's frustum <em>W<sub>i</sub></em> on the objects that potentially cast shadows to the split frustum <em>V<sub>i</sub></em> , as seen later in
+        <a href="javascript:popUp('elementLinks/10fig06.jpg')">Figure 10-6</a>.
+
+          <div class="figure">
+            <a href="javascript:popUp('elementLinks/10fig06.jpg')"><img src="GPU%20Gems%20%20%20NVIDIA%20Developer_fichiers/10fig06.jpg" alt="10fig06.jpg"></a>
+
+            <p><a href="javascript:popUp('elementLinks/10fig06.jpg')">Figure 10-6</a> Comparing Projection Methods</p>
+          </div>
+        </li>
+      </ul>
+
+      <h4>Scene-Independent Projection</h4>
+
+      <p>Before calculating the projection matrix for the subfrustum <em>W<sub>i</sub></em> , we must find the <em>axisaligned bounding box</em> (AABB) of the split frustum <em>V<sub>i</sub></em> with respect to the light's coordinates frame. The
+      class BoundingBox is represented in <a href="javascript:popUp('elementLinks/10fig05.jpg')">Figure 10-5</a> using two vectors—a minimum vector and a maximum vector—to store the smallest and largest coordinates, respectively.</p>
+
+      <p>To simplify the computations, we determine the axis-aligned 
+bounding box of the split frustum in the light's clip space, using the 
+function <tt>CreateAABB()</tt>. Note that we set the bounding box's 
+minimum z-value to 0 because we want the
+      near plane position to remain unchanged. We want this position 
+unchanged because we might have shadow casters between the near plane of
+ the split's bounding box and the light's near plane. This case is 
+illustrated by the "caster" object in
+      <a href="javascript:popUp('elementLinks/10fig05.jpg')">Figure 10-5</a>.</p>
+
+      <p>Afterward, we build a <em>crop</em> matrix to effectively "zoom in" the light's frustum <em>W<sub>i</sub></em> to the bounding box computed by <tt>CreateAABB()</tt>. The crop matrix is an off-center orthogonal projection matrix, computed as
+      shown in Listing 10-1.</p>
+
+      <h4>Example 10-1. Pseudocode for Constructing a Crop Matrix from Clip-Space Bounding Values</h4>
+      <pre name="code" class="cpp:nocontrols">   // Build a matrix for cropping light's projection
+   // Given vectors are in light's clip space
+Matrix Light::CalculateCropMatrix(Frustum splitFrustum)
+{
+  Matrix lightViewProjMatrix = viewMatrix * projMatrix;
+  // Find boundaries in light's clip space
+  BoundingBox cropBB = CreateAABB(splitFrustum.AABB,
+                                  lightViewProjMatrix);
+  // Use default near-plane value
+  cropBB.min.z = 0.0f;
+  // Create the crop matrix
+  float scaleX, scaleY, scaleZ;
+  float offsetX, offsetY, offsetZ;
+  scaleX = 2.0f / (cropBB.max.x - cropBB.min.x);
+  scaleY = 2.0f / (cropBB.max.y - cropBB.min.y);
+  offsetX = -0.5f * (cropBB.max.x + cropBB.min.x) * scaleX;
+  offsetY = -0.5f * (cropBB.max.y + cropBB.min.y) * scaleY;
+  scaleZ = 1.0f / (cropBB.max.z - cropBB.min.z);
+  offsetZ = -cropBB.min.z * scaleZ;
+  return Matrix( scaleX,     0.0f,     0.0f,  0.0f,
+                   0.0f,   scaleY,     0.0f,  0.0f,
+                   0.0f,     0.0f,   scaleZ,  0.0f,
+                offsetX,  offsetY,  offsetZ,  1.0f);
+}
+</pre>
+
+      <p>Finally, we use the light's view-projection transformation <tt>lightViewMatrix * lightProjMatrix * cropMatrix</tt> when generating the shadow map texture <em>T<sub>i</sub></em> .</p>
+
+      <p>Note that instead of computing a crop matrix in the light's 
+clip space, we can calculate the split-specific projection matrix in 
+other spaces, such as the light's view space. However, because both 
+point and directional lights are converted
+      into directional lights in the light's clip space, our method 
+works the same way for directional and point lights. Furthermore, 
+calculating the bounding box in the light's clip space is more 
+intuitive.</p>
+
+      <h4>Scene-Dependent Projection</h4>
+
+      <p>Although using a scene-independent projection works well in 
+most cases, we can further optimize the usage of the texture resolution 
+by taking the scene geometries into account.</p>
+
+      <p>As we can see in <a href="javascript:popUp('elementLinks/10fig06.jpg')">Figure 10-6</a>, a scene-independent <em>W<sub>i</sub></em> may contain a large amount of empty space. Each <em>W<sub>i</sub></em> only needs to contain the objects
+      potentially casting shadows into <em>V<sub>i</sub></em> , termed <em>shadow casters</em>, exemplified by <em>B<sub>C</sub></em> . Because the invisible parts of objects don't need to be rendered into the final image, we separately store the
+      shadow-related objects inside (or partially inside) <em>V<sub>i</sub></em> as <em>shadow receivers</em>, exemplified by <em>B<sub>R</sub></em>
+ . When synthesizing the shadowed image of the whole scene, we render 
+only shadow receivers to
+      improve rendering performance. Note that objects that never cast 
+shadows (such as the terrain) should be included in receivers only.</p>
+
+      <p>In the scene-dependent method, the near plane of <em>W<sub>i</sub></em> is moved to bound either <em>V<sub>i</sub></em> or any shadow caster, and the far plane of <em>W<sub>i</sub></em> is moved to touch either <em>V<sub>i</sub></em>
+ or any
+      shadow receiver. The optimized near and far planes improve the 
+precision of discrete depth quantization. Furthermore, because only 
+shadow receivers need to do depth comparison during shadow 
+determination, we adjust the x- and y-boundaries of
+      <em>W<sub>i</sub></em> to bound <em>V<sub>i</sub></em> or any 
+shadow receiver. The pseudocode for the scene-dependent method is shown 
+in Listing 10-2. Pay special attention to how the depth boundaries (<tt>min.z</tt> and <tt>max.z</tt>) are
+      chosen.</p>
+
+      <p>The final light's view-projection transformation matrix for the current split is still <tt>lightViewMatrix * lightProjMatrix * cropMatrix</tt>.</p>
+
+      <h4>Example 10-2. Pseudocode for Computing Scene-Dependent Bounds</h4>
+      <pre name="code" class="cpp:nocontrols">Matrix Light::CalculateCropMatrix(ObjectList casters,
+                                  ObjectList receivers,
+                                  Frustum frustum)
+{
+  // Bounding boxes
+  BoundingBox receiverBB, casterBB, splitBB;
+  Matrix lightViewProjMatrix = viewMatrix * projMatrix;
+  // Merge all bounding boxes of casters into a bigger "casterBB".
+  for(int i = 0; i &lt; casters.size(); i++){
+    BoundingBox bb = CreateAABB(casters[i]-&gt;AABB,
+                                lightViewProjMatrix);
+    casterBB.Union(bb);
+  }
+  // Merge all bounding boxes of receivers into a bigger "receiverBB".
+  for(int i = 0; i &lt; receivers.size(); i++){
+      bb = CreateAABB(receivers[i]-&gt;AABB,
+                      lightViewProjMatrix);
+    receiverBB.Union(bb);
+  }
+  // Find the bounding box of the current split
+   // in the light's clip space.
+  splitBB = CreateAABB(splitFrustum.AABB, lightViewProjMatrix);
+  // Scene-dependent bounding volume
+  BoundingBox cropBB;
+  cropBB.min.x = Max(Max(casterBB.min.x, receiverBB.min.x),
+                     splitBB.min.x);
+  cropBB.max.x = Min(Min(casterBB.max.x, receiverBB.max.x),
+                     splitBB.max.x);
+  cropBB.min.y = Max(Max(casterBB.min.y, receiverBB.min.y),
+                     splitBB.min.y);
+  cropBB.max.y = Min(Min(casterBB.max.y, receiverBB.max.y),
+                     splitBB.max.y);
+  cropBB.min.z = Min(casterBB.min.z, splitBB.min.z);
+  cropBB.max.z = Min(receiverBB.max.z, splitBB.max.z);
+  // Create the crop matrix.
+  float scaleX, scaleY, scaleZ;
+  float offsetX, offsetY, offsetZ;
+  scaleX = 2.0f / (cropBB.max.x - cropBB.min.x);
+  scaleY = 2.0f / (cropBB.max.y - cropBB.min.y);
+  offsetX = -0.5f * (cropBB.max.x + cropBB.min.x) * scaleX;
+  offsetY = -0.5f * (cropBB.max.y + cropBB.min.y) * scaleY;
+  scaleZ = 1.0f / (cropBB.max.z – cropBB.min.z);
+  offsetZ = -cropBB.min.z * scaleZ;
+  return Matrix(scaleX, 0.0f, 0.0f, 0.0f,
+                0.0f, scaleY, 0.0f, 0.0f,
+                0.0f, 0.0f, scaleZ, 0.0f,
+                offsetX, offsetY, offsetZ, 1.0f);
+}
+</pre>
+
+      <h4>10.2.3 Steps 3 and 4: Generating PSSMs and Synthesizing Shadows</h4>
+
+      <p>Steps 3 and 4 can be implemented differently, depending on your
+ system hardware. Because we use multiple shadow maps in PSSMs, extra 
+rendering passes may be needed when we generate shadow maps and 
+synthesize shadows.</p>
+
+      <p>To reduce this burden on rendering performance, we could use a 
+hardware-specific approach. In the next section we present three 
+hardware-specific methods for generating PSSMs and synthesizing shadows:</p>
+
+      <ul>
+        <li>The multipass method (without hardware acceleration): This 
+method doesn't use hardware acceleration; multiple rendering passes are 
+required for generating shadow maps (step 3) and for synthesizing 
+shadows (step 4).</li>
+
+        <li>Partially accelerated on DirectX 9-level hardware (for 
+example, Windows XP and an NVIDIA GeForce 6800 GPU): In this method, we 
+remove extra rendering passes for synthesizing scene shadows.</li>
+
+        <li>Fully accelerated on DirectX 10-level hardware (for example,
+ Windows Vista and a GeForce 8800 GPU): Here we alleviate the burden of 
+extra rendering passes for generating shadow maps. To achieve this goal,
+ we describe two different
+        approaches: geometry shader cloning and instancing.</li>
+      </ul>
+
+      <p>In all three methods, the implementations for splitting the 
+view frustum and calculating the light's transformation matrices are the
+ same as described earlier.</p>
+
+      <h2>10.3 Hardware-Specific Implementations</h2>
+
+      <p>To make it easier to understand our three hardware-specific 
+implementations, we visualize the rendering pipelines of different 
+implementations, as in <a href="javascript:popUp('elementLinks/10fig07.jpg')">Figure 10-7</a>.</p>
+
+      <div class="figure">
+        <a href="javascript:popUp('elementLinks/10fig07.jpg')"><img src="GPU%20Gems%20%20%20NVIDIA%20Developer_fichiers/10fig07.jpg" alt="10fig07.jpg"></a>
+
+        <p><a href="javascript:popUp('elementLinks/10fig07.jpg')">Figure 10-7</a> Visualization of Rendering Pipelines</p>
+      </div>
+
+      <h4>10.3.1 The Multipass Method</h4>
+
+      <p>In the first implementation of PSSMs, we simply render each shadow map, with shadows in each split part, sequentially.</p>
+
+      <h4>Generating Shadow Maps</h4>
+
+      <p>Once we have the light's view-projection transformation matrix <tt>lightViewMatrix * lightProjMatrix * cropMatrix</tt>
+ for the current split part, we can render the associated shadow-map 
+texture. The procedure is the same as for standard
+      shadow mapping: we render all shadow casters to the depth buffer. 
+Our implementation uses a 32-bit floating-point (R32F) texture format.</p>
+
+      <p>In our multipass implementation, instead of storing PSSMs in 
+several independent shadow-map textures, we reuse a single shadow-map 
+texture in each rendering pass, as shown in Listing 10-3.</p>
+
+      <h4>Example 10-3. Pseudocode for the Rendering Pipeline of the Multipass Method</h4>
+      <pre name="code" class="cpp:nocontrols">for(int i = 0; i &lt; numSplits; i++)
+{
+  // Compute frustum of current split part.
+  splitFrustum = camera-&gt;CalculateFrustum(splitPos[i], splitPos[i+1]);
+  casters = light-&gt;FindCasters(splitFrustum);
+  // Compute light's transformation matrix for current split part.
+  cropMatrix = light-&gt;CalculateCropMatrix(receivers, casters,
+                                          splitFrustum);
+  splitViewProjMatrix = light-&gt;viewMatrix * light-&gt;projMatrix *
+                        cropMatrix;
+  // Texture matrix for current split part
+  textureMatrix = splitViewProjMatrix * texScaleBiasMatrix;
+  // Render current shadow map.
+  ActivateShadowMap();
+  RenderObjects(casters, splitViewProjMatrix);
+  DeactivateShadowMap();
+  // Render shadows for current split part.
+  SetDepthRange(splitPos[i], splitPos[i+1]);
+  SetShaderParam(textureMatrix);
+  RenderObjects(receivers, camera-&gt;viewMatrix * camera-&gt;projMatrix);
+}
+</pre>
+
+      <h4>Synthesizing Shadows</h4>
+
+      <p>With PSSMs generated in the preceding step, shadows can now be 
+synthesized into the scene. In the multipass method, we need to 
+synthesize the shadows immediately after rendering the shadow map.</p>
+
+      <p>For optimal performance, we should render the splits from front
+ to back. However, some special considerations are needed. We need to 
+adjust the camera's near and far planes to the respective split 
+positions to provide clipping, because the
+      objects in one split may also overlap other splits. However, as we
+ modify the near and far planes, we are also changing the range of 
+values written to the depth buffer. This would make the depth tests 
+function incorrectly, but we can avoid
+      this problem by using a different depth range in the viewport. 
+Simply convert the split-plane positions from view space to clip space 
+and use them as the new depth minimum and maximum.</p>
+
+      <p>After this we can render the shadow receivers of the scene 
+while sampling the shadow map in the standard manner. This means that 
+implementing the multipass method doesn't require the use of shaders. <a href="javascript:popUp('elementLinks/10fig08.jpg')">Figure 10-8</a>
+ compares SSM(2Kx2K) and multipass PSSM(3; 1Kx1K). However, as the 
+method's name implies, multiple rendering passes will always be 
+performed for both generating shadow maps and
+      rendering scene shadows.</p>
+
+      <div class="figure">
+        <a href="javascript:popUp('elementLinks/10fig08.jpg')"><img src="GPU%20Gems%20%20%20NVIDIA%20Developer_fichiers/10fig08.jpg" alt="10fig08.jpg"></a>
+
+        <p><a href="javascript:popUp('elementLinks/10fig08.jpg')">Figure 10-8</a> Comparison of SSM and Multipass PSSM</p>
+      </div>
+
+      <h4>10.3.2 DirectX 9-Level Acceleration</h4>
+
+      <p>When implementing the simple multipass method as presented, we 
+need to use multiple rendering passes to synthesize shadows in the 
+scene. However, with programmable GPUs, we can perform this step in a 
+single rendering pass.</p>
+
+      <p>We can create a pixel shader to find and sample the correct 
+shadow map for each fragment. The operation for determining which split a
+ fragment is contained in is simple because the split planes are 
+parallel to the view plane. We can simply
+      use the depth value—or, as in our implementation, use the view 
+space <em>z</em> coordinate of a fragment—to determine the correct shadow map.</p>
+
+      <h4>The Setup</h4>
+
+      <p>Because we render the scene shadows in a single pass, we need 
+to have access to all the shadow maps simultaneously. Unlike our 
+previous implementation, this method requires that shadow maps be stored
+ separately, so we create an independent
+      texture for each shadow map.</p>
+
+      <p>Note that the number of texture samplers supported by the 
+hardware will limit the number of shadow maps we can use. We could, 
+alternatively, pack multiple shadow maps in a single texture; however, 
+most DirectX 9-level hardware supports
+      eight texture samplers, which should be more than enough.</p>
+
+      <p>Also note that we need to use the "border color" texture 
+address mode, because sometimes shadow maps are sampled outside the 
+texture-coordinate range. This could occur when we use a scene-dependent
+ projection, because the light's subfrustum
+      <em>W<sub>i</sub></em> does not necessarily cover all the receivers.</p>
+
+      <h4>Synthesizing Shadows</h4>
+
+      <p>When we render the scene shadows, we use a custom vertex and 
+pixel shader, as shown in Listing 10-4. In the vertex shader, we 
+transform each vertex as usual. However, we also calculate (1) the 
+view-space position of the vertex, because we
+      will use it for determining the shadow maps associated with 
+fragments; and (2) the position of the vertex in the texture space of 
+each shadow map. We determine the position of the vertex by multiplying 
+the vertex with a textureMatrix. It is
+      the same approach we use for standard shadow mapping, only now we 
+use it for all shadow maps. We output all the transformed coordinates 
+into texture-coordinate registers for the pixel shader to use.</p>
+
+      <p>In the pixel shader, we loop through all splits and test 
+whether the view-space distance of the fragment is less than the end 
+position of the split. After determining the split index, we sample the 
+associated shadow map with the associated
+      texture coordinates and perform a standard shadow-map depth test.</p>
+
+      <h4>Example 10-4. Vertex and Pixel Shaders for Synthesizing Shadows in DirectX 9</h4>
+      <pre name="code" class="cpp:nocontrols">   sampler2D shadowMapSampler[numSplits];
+void VS_RenderShadows(
+  in float4 pos : POSITION, // Object-space coordinates
+   out float4 posOut : POSITION, // Clip-space coordinates
+   out float4 texCoord[numSplits+1] : TEXCOORD) // Texture coordinates
+{
+  // Calculate world position.
+   float4 posWorld = mul(pos, worldMatrix);
+  // Transform vertex.
+  posOut = mul(posWorld, viewProjMatrix);
+  // Store view-space position in the first texture
+   // coordinate register.
+  texCoord[0] = mul(posWorld, viewMatrix)
+  // Store shadow-map coordinates in the remaining
+   // texture coordinate registers.
+   for(int i = 0; i &lt; numSplits; i++)
+  {
+    texCoord[i+1] = mul(posWorld, textureMatrix[i]);
+  }
+}
+float4 PS_RenderShadows(
+  float4 texCoord[numSplits+1] : TEXCOORD): COLOR
+{
+  float light = 1.0f;
+  // Fetch view-space distance from first texture coordinate register.
+   float distance = texCoord[0].z;
+  for(int i = 0; i &lt; numSplits; i++)
+  {
+    if(distance &lt; splitPlane[i])
+    {
+      float depth = texCoord[i+1].z/ texCoord[i+1].w;
+      float depthSM = tex2Dproj(shadowMapSampler[i], texCoord[i+1]);
+      // Standard depth comparison
+      light = (depth &lt; depthSM) ? 1.0f : 0.0f;
+      break;
+    }
+  }
+  return light;
+}
+</pre>
+
+      <h4>Performance</h4>
+
+      <p>We implemented this partially accelerated method in both DirectX 9 and OpenGL. In DirectX 9, we implemented <em>percentage-closer filtering</em>
+ (PCF) (Reeves et al. 1987) in the pixel shader (approximately 25 
+instructions), and in OpenGL
+      we used hardware-accelerated PCF (one instruction). We compared 
+the performance to the multipass method when we increased the number of 
+objects in the scene. In all tests, the number of splits was four.</p>
+
+      <p>From the results shown in <a href="javascript:popUp('elementLinks/10fig09.jpg')">Figure 10-9</a>,
+ we can see that the DirectX 9-level acceleration increases performance.
+ But when PCF is implemented in the pixel shader, the shaders become
+      more complex. This increase in the shader complexity causes 
+performance to decrease, but this becomes less significant as the scene 
+complexity increases.</p>
+
+      <div class="figure">
+        <a href="javascript:popUp('elementLinks/10fig09.jpg')"><img src="GPU%20Gems%20%20%20NVIDIA%20Developer_fichiers/10fig09.jpg" alt="10fig09.jpg"></a>
+
+        <p><a href="javascript:popUp('elementLinks/10fig09.jpg')">Figure 10-9</a> Performance Results with GeForce 6800 Ultra () and GeForce 8800 GTS ()</p>
+      </div>
+
+      <h4>10.3.3 DirectX 10-Level Acceleration</h4>
+
+      <p>Although rendering scene shadows is accelerated on DirectX 
+9-level hardware, multiple rendering passes are still required for 
+generating PSSMs. In other words, DirectX 9 provides us a partial 
+acceleration of PSSMs. On the other hand, we can
+      accelerate both generating PSSMs and rendering scene shadows on 
+DirectX 10-level hardware.</p>
+
+      <h4>Features in Direct3D 10</h4>
+
+      <p>The Direct3D 10 pipeline introduces the <em>geometry shader</em>
+ (GS) as a new shader stage between vertex and pixel shaders. Geometry 
+shaders are executed once for each primitive, taking the vertices of the
+ primitive as input and
+      outputting a number of new primitives. They also provide access to
+ primitive adjacency information and have an instruction set similar to 
+that of vertex shaders (including support for texture sampling).</p>
+
+      <p>Another new feature in Direct3D 10 is the render target array, 
+which is similar to Direct3D 9's multiple render targets (MRTs). But 
+while MRTs only enable separate pixel shader output for each render 
+target, the render target arrays (with
+      the help of geometry shaders) can output entirely different 
+geometries to each render target. This is done in the GS output, where 
+we can specify a render target index for each primitive separately.</p>
+
+      <p>These features enable us to dynamically "clone" the geometry 
+into different render targets with different transformations. We can now
+ improve the performance of generating PSSMs because each shadow caster 
+needs to be submitted only
+      once.</p>
+
+      <h4>The Setup</h4>
+
+      <p>First we need to create a texture array for the shadow maps. As
+ shown in Listing 10-5, we use a 32-bit floating-point texel format as 
+usual, but we define it as "typeless" because it will need to work both 
+as a depth buffer and as a
+      texture. The <tt>ArraySize</tt> parameter is set to the number of splits, so we have one texture for each. Also, we must set the <tt>BindFlags</tt> to allow us to bind the texture array to both a depth-stencil view and a shader resource
+      view.</p>
+
+      <p>Resource views, another new feature in Direct3D 10, allow a 
+single resource to be interpreted in different ways. In our case, we 
+need to access the texture array both as a renderable depth-stencil 
+surface and as a shader-accessible texture,
+      so we must create views for both.</p>
+
+      <p>As shown in Listing 10-6, creating the shader resource view is 
+simple. We set the view dimension to a texture 2D array and set the 
+texel format to a single-channel floating-point color. Otherwise, we use
+ the same settings as when we create
+      the texture array.</p>
+
+      <p>The depth-stencil view is created in a similar manner, but the 
+texel format must be set to a depth-buffer-compatible format, as shown 
+in Listing 10-7.</p>
+
+      <p>Now we have an array of shadow maps that we can set as 
+depth-stencil targets and bind as sampleable textures. Note that we 
+don't need to create a render target, because we are interested in 
+rendering only depth values, not color
+      information.</p>
+
+      <p>We still have to create the needed shaders, which will be explained in the next two sub-sections.</p>
+
+      <h4>Example 10-5. Creating a Texture Array</h4>
+      <pre name="code" class="cpp:nocontrols">D3D10_TEXTURE2D_DESC DescTex = {};
+DescTex.Width = shadowMapSize;
+DescTex.Height = shadowMapSize;
+DescTex.ArraySize = numSplits;
+DescTex.Format = DXGI_FORMAT_R32_TYPELESS;
+DescTex.Usage = D3D10_USAGE_DEFAULT;
+DescTex.BindFlags = D3D10_BIND_DEPTH_STENCIL |
+D3D10_BIND_SHADER_RESOURCE;
+DescTex.MipLevels = 1;
+DescTex.SampleDesc.Count = 1;
+device-&gt;CreateTexture2D(...)
+</pre>
+
+      <h4>Example 10-6. Creating a Shader Resource View</h4>
+      <pre name="code" class="cpp:nocontrols">D3D10_SHADER_RESOURCE_VIEW_DESC DescSRV = {};
+DescSRV.Format = DXGI_FORMAT_R32_FLOAT;
+DescSRV.ViewDimension = D3D10_SRV_DIMENSION_TEXTURE2DARRAY;
+DescSRV.Texture2DArray.ArraySize = numSplits;
+DescSRV.Texture2DArray.MipLevels = 1;
+device-&gt;CreateShaderResourceView(...)
+</pre>
+
+      <h4>Example 10-7. Creating a Depth-Stencil Resource View</h4>
+      <pre name="code" class="cpp:nocontrols">D3D10_DEPTH_STENCIL_VIEW_DESC DescDSV = {};
+DescDSV.Format = DXGI_FORMAT_D32_FLOAT;
+DescDSV.ViewDimension = D3D10_DSV_DIMENSION_TEXTURE2DARRAY;
+DescDSV.Texture2DArray.ArraySize = numSplits;
+device-&gt;CreateDepthStencilView(...);
+</pre>
+
+      <h4>Generating Shadow Maps</h4>
+
+      <p>The rendering pipeline looks similar to the DirectX 9 version. 
+The major difference is that we render shadow maps only once. Also, we 
+now need to store the crop matrices of each split into an array, because
+ we will need them all in the
+      shaders.</p>
+
+      <p>More important, after finding the potential shadow casters for a split, we need each caster to keep track of two variables: <tt>firstSplit</tt> and <tt>lastSplit</tt>. These variables determine the range of the split indices into which the
+      shadow caster needs to be rendered, as shown in <a href="javascript:popUp('elementLinks/10fig10.jpg')">Figure 10-10</a>. Note that we need to store only the first and last indices, because a continuous bounding shape will always overlap a
+      continuous range of split parts.</p>
+
+      <div class="figure">
+        <a href="javascript:popUp('elementLinks/10fig10.jpg')"><img src="GPU%20Gems%20%20%20NVIDIA%20Developer_fichiers/10fig10.jpg" alt="10fig10.jpg"></a>
+
+        <p><a href="javascript:popUp('elementLinks/10fig10.jpg')">Figure 10-10</a> The Shadow Caster Straddles the Split Parts from to</p>
+      </div>
+
+      <p>As we begin rendering the shadow maps, we need to set a new 
+viewport and change the render targets. This is shown in Listing 10-8, 
+where the variable pDSV points to the previously created depth-stencil 
+view. Because we will only render
+      depth information, we must set the number of render targets to 0 
+and the render target pointer to <tt>NULL</tt>.</p>
+
+      <h4>Example 10-8. Activating Shadow-Map Rendering</h4>
+      <pre name="code" class="cpp:nocontrols">D3D10_VIEWPORT vp;
+vp.Width = shadowMapSize;
+vp.Height = shadowMapSize;
+vp.MinDepth = 0; vp.MaxDepth = 1;
+vp.TopLeftX = 0; vp.TopLeftY = 0;
+device-&gt;RSSetViewports(1, &amp;vp);
+device-&gt;OMSetRenderTargets(0, NULL, pDSV);
+</pre>
+
+      <p>Then we draw each shadow caster once, but in a special rendering loop. In this loop, we must update the shader constants <tt>firstSplit</tt> and <tt>lastSplit</tt> with corresponding values from the shadow caster. Because these variables
+      are "perinstance" data, they should be handled like, for example, an object's world matrix.</p>
+
+      <p>In the following, we present two different approaches for dynamically cloning the geometry for different splits.</p>
+
+      <h4>Using Geometry Shader Cloning</h4>
+
+      <p>In this first method, we use the geometry shader to clone 
+submitted triangles into different render targets. This technique is 
+similar to the single-pass cube map technique presented in the Microsoft
+ DirectX SDK. We first explain the
+      details here, and then we discuss the performance advantages.</p>
+
+      <p>With this technique, the vertex shader simply transforms each 
+vertex with the world matrix, the light's view matrix, and the light's 
+projection matrix. This transformation is common for all shadow casters,
+ regardless of which shadow maps
+      they must be rendered into. The split-specific transformations 
+will be applied in the geometry shader instead, as visualized in <a href="javascript:popUp('elementLinks/10fig11.jpg')">Figure 10-11</a>.</p>
+
+      <div class="figure">
+        <a href="javascript:popUp('elementLinks/10fig11.jpg')"><img src="GPU%20Gems%20%20%20NVIDIA%20Developer_fichiers/10fig11.jpg" alt="10fig11.jpg"></a>
+
+        <p><a href="javascript:popUp('elementLinks/10fig11.jpg')">Figure 10-11</a> The GPU Rendering Pipeline in the Geometry Shader Cloning Method</p>
+      </div>
+
+      <p>In other words, we now use the geometry shader to clone 
+triangles into the split-specific render targets and then transform 
+these triangles with the corresponding crop matrices as well.</p>
+
+      <p>The geometry shader code is shown in Listing 10-9, where we loop through each split to be rendered—that is, from <tt>firstSplit</tt> to <tt>lastSplit</tt>.
+ Inside this loop, we transform each vertex with the split's 
+corresponding crop
+      matrix. We also set a render target index, and then finally we 
+output the transformed vertices as a new triangle. Note that the render 
+target index is in fact specified per vertex, but only the value in the 
+leading (first) vertex is
+      relevant.</p>
+
+      <h4>Example 10-9. Geometry Shader Code for Rendering Shadow Maps</h4>
+      <pre name="code" class="cpp:nocontrols">   // Geometry shader output structure
+   struct GS_OUT
+{
+  float4 pos : SV_POSITION;
+  uint RTIndex : SV_RenderTargetArrayIndex;
+};
+// Geometry shader
+[maxvertexcount(NUMSPLITS * 3)]
+void GS_RenderShadowMap(triangle VS_OUT In[3],
+                        inout TriangleStream&lt;GS_OUT&gt; triStream)
+{
+  // For each split to render
+   for(int split = firstSplit; split &lt;= lastSplit; split++)
+  {
+    GS_OUT Out;
+    // Set render target index.
+    Out.RTIndex = split;
+    // For each vertex of triangle
+   for(int vertex = 0; vertex &lt; 3; vertex++)
+    {
+      // Transform vertex with split-specific crop matrix.
+      Out.pos = mul(In[vertex].pos, cropMatrix[split]);
+      // Append vertex to stream
+      triStream.Append(Out);
+    }
+    // Mark end of triangle
+    triStream.RestartStrip();
+  }
+}
+</pre>
+
+      <p>A pixel shader is not needed at this stage because we aren't 
+interested in drawing color information. So, it can simply be set to <tt>NULL</tt>.</p>
+
+      <p>For the sake of clarity, the implementation we presented uses 
+separate transformations for all matrices. By premultiplying 
+view/projection/crop matrices together, we can implement the 
+split-scheme PSSM(<em>m</em>) using this method such
+      that the number of transformations is (1 + <em>m</em>) per vertex.
+ That is, every vertex is transformed with the world matrix (one time) 
+and then with the view/projection/crop matrices (<em>m</em> times). Standard shadow-map rendering with a
+      similar setup would use (<em>m</em> + <em>m</em>) transformations. However, if we premultiply the world matrices as well, the number of transformations is the same (<em>m</em>)
+ for both methods. The advantage of the geometry shader cloning
+      method is that it reduces the API overhead—the overhead of extra 
+draw calls, render target switches, and so on is removed because we 
+submit each shadow caster only once.</p>
+
+      <h4>Using Instancing</h4>
+
+      <p>The second approach for generating shadow maps is possible with
+ the improved instancing support in Direct3D 10. Vertex shaders can now 
+acquire the index of an instance being rendered through the semantic <tt>SV_InstanceID</tt>.</p>
+
+      <p>This means we can use instancing to clone our geometry for each
+ split, and determine the split index from the instance index. We can 
+then perform the crop matrix transformation in the vertex shader, so 
+that the only task left for the
+      geometry shader is setting the render target index, as shown in 
+Listing 10-10 and visualized in <a href="javascript:popUp('elementLinks/10fig12.jpg')">Figure 10-12</a>.</p>
+
+      <div class="figure">
+        <a href="javascript:popUp('elementLinks/10fig12.jpg')"><img src="GPU%20Gems%20%20%20NVIDIA%20Developer_fichiers/10fig12.jpg" alt="10fig12.jpg"></a>
+
+        <p><a href="javascript:popUp('elementLinks/10fig12.jpg')">Figure 10-12</a> The GPU Rendering Pipeline in the Instancing Method</p>
+      </div>
+
+      <p>To render with instancing, we need to call the function <tt>DrawIndexedInstanced()</tt> with the number of instances set to <tt>lastSplit</tt> - <tt>firstSplit</tt> + 1. This is the only change needed on the CPU side; it is not necessary to
+      set up any extra vertex streams.</p>
+
+      <h4>Example 10-10. Vertex and Geometry Shaders for Generating Shadow Maps with Instancing</h4>
+      <pre name="code" class="cpp:nocontrols">   struct VS_IN
+{
+  float4 pos : POSITION;
+  uint instance : SV_InstanceID;
+};
+struct VS_OUT
+{
+  float4 pos : POSITION;
+  uint split : TEXTURE0;
+};
+VS_OUT VS_RenderShadowMap(VS_IN In)
+{
+  VS_OUT Out;
+  // Transform with world/view/projection.
+  Out.pos = mul(In.pos, ...);
+  // Determine split index from instance ID.
+  Out.split = firstSplit + In.instance;
+  // Transform with split-specific crop matrix.
+  Out.pos = mul(Out.pos, cropMatrix[Out.split]);
+  return Out;
+}
+[maxvertexcount(3)]
+void GS_RenderShadowMap(triangle VS_OUT In[3],
+                        inout TriangleStream&lt;GS_OUT&gt; triStream)
+{
+  GS_OUT Out;
+  // Set render target index.
+  Out.RTIndex = In[0].split;
+  // Pass triangle through.
+  Out.pos = In[0].pos;
+  triStream.Append(Out);
+  Out.pos = In[1].pos;
+  triStream.Append(Out);
+  Out.pos = In[2].pos;
+  triStream.Append(Out);
+  triStream.RestartStrip();
+}
+</pre>
+
+      <p>Using this method, we again remove the extra API overhead. 
+However, the number of transformations is the same as with standard 
+shadow-map rendering. Still, the instancing method may be faster than 
+using geometry shader cloning because
+      expanding large amounts of data with the geometry shader may be 
+expensive.</p>
+
+      <p>We can also use the cloning and instancing methods together, so
+ that both are used to generate geometry for a portion of the splits. 
+For example, in the split-scheme PSSM(4), instancing could be used for 
+two splits and geometry shader
+      cloning for another two splits.</p>
+
+      <h4>Synthesizing Shadows</h4>
+
+      <p>The process of rendering shadows is nearly the same as in 
+DirectX 9. The main difference is in the sampling of the texture array. 
+To do things the traditional way, we can use the function <tt>SampleLevel()</tt> to sample from a given
+      texture of the array.</p>
+
+      <p>Using this function is straightforward, but note that the second parameter is a <tt>float3</tt>,
+ where the first two floats are for the UV coordinates and the third 
+float is for the texture index. The mipmap level is defined in the
+      function's third parameter.</p>
+
+      <p>After sampling the correct texture with this function, we would
+ perform the depth comparison as usual. However, this is not the optimal
+ method, especially if we wish to use PCF. We present a better approach 
+next, which uses cube maps.</p>
+
+      <h4>Using Cube Maps</h4>
+
+      <p>HLSL 4 introduces a new function called <tt>SampleCmpLevelZero()</tt>,
+ which performs sampling and comparison simultaneously. It can also be 
+used with a linear comparison filter to get PCF, which means the 
+function will take four samples,
+      compare each separately, and then bilinearly filter the results.</p>
+
+      <p>Unfortunately, <tt>SampleCmpLevelZero()</tt> cannot currently 
+be used with Texture2DArrays. It can, however, be used with 
+TextureCubes. TextureCubes are normally used for cube maps, but they are
+ essentially a texture array with six
+      textures, one for each face of the cube.</p>
+
+      <p>This means we can use a TextureCube for up to six splits. Using
+ a TextureCube requires only a few changes in the setup, as shown in 
+Listing 10-11. Rendering shadow maps works the same way as before.</p>
+
+      <p>Sampling is slightly complicated by the fact that a cube map is
+ not accessed with standard texture coordinates, but instead with a 
+vector pointing to a face of the cube. This cube is a unit cube, and it 
+is centered in the origin. The faces
+      are ordered so that from array index 0 to 5, the faces are located
+ at +<em>x</em>, -<em>x</em>, +<em>y</em>, -<em>y</em>, +<em>z</em>, and -<em>z</em>, respectively. From this we can determine the correct direction vector for accessing each
+      face, as shown in Listing 10-12.</p>
+
+      <p>However, the approach shown in Listing 10-12 is not necessary, 
+because we can separate the different cases into three lookup arrays, as
+ shown in Listing 10-13, which slightly increases the pixel shader's 
+performance.</p>
+
+      <p>Another issue is that border color addressing mode cannot be 
+used, because the borders are simply mapped onto another face of the 
+cube map. However, we can simulate the border color addressing mode by 
+avoiding sampling altogether if the
+      coordinates are outside the valid range of texture coordinates. 
+This is also shown in Listing 10-13.</p>
+
+      <p>In our tests, using <tt>SampleCmpLevelZero()</tt> with a 
+TextureCube slightly improved our performance compared to using a 
+Texture2DArray with four-tap PCF implemented in the pixel shader 
+(approximately 25 instructions). However, with a
+      TextureCube, six textures will always be allocated even if fewer 
+are needed, often resulting in wasted memory.</p>
+
+      <h4>Example 10-11. Changes Needed for Creating a TextureCube</h4>
+      <pre name="code" class="cpp:nocontrols">   // When creating the texture array
+DescTex.ArraySize = 6;
+DescTex.MiscFlags = D3D10_RESOURCE_MISC_TEXTURECUBE;
+. . .
+// When creating the shader resource view
+DescSRV.ViewDimension = D3D10_SRV_DIMENSION_TEXTURECUBE;
+DescSRV.TextureCube.MipLevels = 1;
+</pre>
+
+      <h4>Example 10-12. Choosing Faces from a TextureCube</h4>
+      <pre name="code" class="cpp:nocontrols">   float3 cubeCoord;
+if(split == 0)
+  cubeCoord = float3(0.5, 0.5 - pos.y, 0.5 - pos.x);
+else if(split == 1)
+  cubeCoord = float3(-0.5, 0.5 - pos.y, pos.x - 0.5);
+else if(split == 2)
+  cubeCoord = float3(pos.x - 0.5, 0.5, pos.y - 0.5);
+else if(split == 3)
+  cubeCoord = float3(pos.x - 0.5, -0.5, 0.5 - pos.y);
+else if(split == 4)
+  cubeCoord = float3(pos.x - 0.5, 0.5 - pos.y, 0.5);
+else if(split == 5)
+  cubeCoord = float3(0.5 - pos.x, 0.5 - pos.y, -0.5);
+</pre>
+
+      <h4>Example 10-13. Pixel Shader Code for Synthesizing Shadows with a TextureCube</h4>
+      <pre name="code" class="cpp:nocontrols">   static const float3 offset[6] = {
+  float3(0.5, 0.5, 0.5), float3(-0.5, 0.5, -0.5),
+  float3(-0.5, 0.5, -0.5), float3(-0.5, -0.5, 0.5),
+  float3(-0.5, 0.5, 0.5), float3(0.5, 0.5, -0.5)};
+static const float3 mulX[6] = {
+  float3(0, 0, -1), float3(0, 0, 1), float3(1, 0, 0),
+  float3(1, 0, 0), float3(1, 0, 0), float3(-1, 0, 0)};
+static const float3 mulY[6] = {
+  float3(0, -1, 0), float3(0, -1, 0), float3(0, 0, 1),
+  float3(0, 0, -1), float3(0, -1, 0), float3(0, -1, 0)};
+SamplerComparisonState shadowMapSampler
+{
+  ComparisonFunc = Less;
+  Filter = COMPARISON_MIN_MAG_LINEAR_MIP_POINT;
+};
+float4 PS_RenderShadows(PS_INPUT In) : SV_Target
+{
+  float light = 1.0f;
+  for(int split = 0; split &lt; numSplits; split++)
+  {
+    if(In.distance &gt; splitEnd[split])
+    {
+      float4 texpos = In.texturePos[split];
+      texpos.xyz /= texpos.w;
+      // Cube map vector lookup
+   float3 cubeCoord = offset[split] +
+                          mulX[split] * texpos.x +
+                          mulY[split] * texpos.y;
+      // Don't sample outside the border.
+   if(min(pos.x, pos.y) &gt; 0 &amp;&amp; max(pos.x, pos.y) &lt; 1)
+      {
+        light = shadowMapCube.SampleCmpLevelZero(shadowMapSampler,
+                                                 cubeCoord, texpos.z);
+      }
+      break;
+    }
+  }
+  return light;
+}
+</pre>
+
+      <h2>10.4 Further Optimizations</h2>
+
+      <p>To improve the shadow quality with PSSMs, use the following optimizations:</p>
+
+      <ul>
+        <li>
+<strong>Filtering Techniques.</strong> <em>Percentage-closer filtering</em>
+ (PCF) helps antialiasing in shadow mapping by performing multiple depth
+ tests for each pixel, which makes the shadow boundaries look 
+considerably smoother.
+        <em>Variance shadow maps</em> (VSMs) (Donnelly and Lauritzen 
+2006) treat shadow map texels as a distribution of depths and represent 
+this distribution in a way that can be linearly filtered. Chebyshev's 
+inequality is used to approximate the
+        occlusion over an arbitrary filter region.</li>
+
+        <li>
+<strong>Packing of Textures.</strong> Instead of storing PSSMs into 
+multiple textures in hardware-accelerated implementations, users may 
+pack them into a single texture. This is a possible solution when few 
+texture samplers are
+        available. In DirectX 10, texture arrays can be utilized 
+instead.</li>
+
+        <li>
+<strong>Warping Algorithms.</strong> An interesting application of the 
+split scheme is applying warping algorithms (for example, PSMs, LiSPSMs,
+ and TSMs) separately in split parts.</li>
+
+        <li>
+<strong>Varying Texture Resolution.</strong> All shadow maps in our 
+current implementation of PSSMs have the same resolution. To reduce the 
+required consumption of textures, users can adjust the size of each 
+shadow map at different split
+        layers.</li>
+
+        <li>
+<strong>Linearized Depth Distribution</strong> (Brabec et al. 2002). Using a linear depth metric instead of standard projected <em>z</em> increases the precision of discrete depth quantization for point lights.</li>
+      </ul>
+
+      <h2>10.5 Results</h2>
+
+      <p>The screen shots in <a href="javascript:popUp('elementLinks/10fig13.jpg')">Figures 10-13</a> through <a href="javascript:popUp('elementLinks/10fig16.jpg')">10-16</a> from <em>Dawnspire: Prelude</em>—displayed
+ throughout the remainder
+      of the chapter—were rendered using the PSSM(3; 1Kx1K) scheme 
+(multipass method) at an image size of 1280x1024. The performance is 
+measured on a PC configured with an AMD Athlon64 X2 3800 CPU, 1 GB DDR 
+RAM, and a GeForce 7800 GTX GPU. The
+      number of visible triangles processed in these figures ranges from
+ 165 K to 319 K. In our experiments, both PSSM(3) and PSSM(4) achieve a 
+good trade-off between the performance and visual qualities (more than 
+31 frames/sec and 27 frames/sec in
+      the two schemes, respectively).</p>
+
+      <div class="figure">
+        <a href="javascript:popUp('elementLinks/10fig13.jpg')"><img src="GPU%20Gems%20%20%20NVIDIA%20Developer_fichiers/10fig13.jpg" alt="10fig13.jpg"></a>
+
+        <p><a href="javascript:popUp('elementLinks/10fig13.jpg')">Figure 10-13</a> Screen Shot from</p>
+      </div>
+
+      <div class="figure">
+        <a href="javascript:popUp('elementLinks/10fig14.jpg')"><img src="GPU%20Gems%20%20%20NVIDIA%20Developer_fichiers/10fig14.jpg" alt="10fig14.jpg"></a>
+
+        <p><a href="javascript:popUp('elementLinks/10fig14.jpg')">Figure 10-14</a> From</p>
+      </div>
+
+      <div class="figure">
+        <a href="javascript:popUp('elementLinks/10fig15.jpg')"><img src="GPU%20Gems%20%20%20NVIDIA%20Developer_fichiers/10fig15.jpg" alt="10fig15.jpg"></a>
+
+        <p><a href="javascript:popUp('elementLinks/10fig15.jpg')">Figure 10-15</a> From</p>
+      </div>
+
+      <div class="figure">
+        <a href="javascript:popUp('elementLinks/10fig16.jpg')"><img src="GPU%20Gems%20%20%20NVIDIA%20Developer_fichiers/10fig16.jpg" alt="10fig16.jpg"></a>
+
+        <p><a href="javascript:popUp('elementLinks/10fig16.jpg')">Figure 10-16</a> From</p>
+      </div>
+
+      <p>In many applications, especially for complex and large-scale 
+scenes, rendering high-quality shadows is crucial for the users' 
+perception of realism. Even without hardware acceleration, it is worth 
+the cost of multipass rendering to
+      dramatically improve shadow quality.</p>
+
+      <h2>10.6 Conclusion</h2>
+
+      <p>The basic idea of parallel-split shadow maps is intuitive and 
+simple to implement, as with our multipass method. We can quickly 
+determine the split positions using the practical split scheme without 
+complicated scene analysis. However,
+      without using hardware acceleration, the performance drop caused 
+by multiple rendering passes prevents this technique from being 
+extensively used in mass-market applications.</p>
+
+      <p>In this chapter, we present two hardware-accelerated methods: 
+partially accelerated implementation on DirectX 9-level GPUs and fully 
+accelerated implementation on DirectX 10-level GPUs. The extra rendering
+ passes required for synthesizing
+      shadows are avoided in the partially accelerated implementation. 
+In the DirectX 10 rendering pipeline, our fully accelerated 
+implementation reduces the cost of extra rendering passes for rendering 
+both shadow maps and scene shadows.</p>
+
+      <p>There are many other ways to improve performance and shadow 
+quality in our PSSMs technique, but one thing is certain: With the rapid
+ evolution of GPUs, PSSMs are a promising approach for high-quality 
+shadow rendering.</p>
+
+      <p>Demos with full source code can be found on the book's 
+accompanying DVD. All three implementation methods presented in this 
+chapter are included.</p>
+
+      <h2>10.7 References</h2>
+
+      <p>Brabec, Stefan, Thomas Annen, and Hans-Peter Seidel. 2002. "Practical Shadow Mapping." <em>Journal of Graphical Tools</em> 7(4), pp. 9–18.</p>
+
+      <p>Donnelly, William, and Andrew Lauritzen. 2006. "Variance Shadow Maps." In <em>Proceedings of the Symposium on Interactive 3D Graphics and Games 2006</em>, pp. 161–165.</p>
+
+      <p>Lloyd, Brandon, David Tuft, Sung-Eui Yoon, and Dinesh Manocha. 2006. "Warping and Partitioning for Low Error Shadow Maps." In <em>Proceedings of the Eurographics Symposium on Rendering 2006</em>, pp. 215–226.</p>
+
+      <p>Martin, Tobias, and Tiow-Seng Tan. 2004. "Anti-aliasing and Continuity with Trapezoidal Shadow Maps." In <em>Proceedings of the Eurographics Symposium on Rendering 2004</em>, pp. 153–160.</p>
+
+      <p>Reeves, William, David Salesin, and Robert Cook. 1987. "Rendering Antialiased Shadows with Depth Maps." In <em>Computer Graphics (Proceedings of SIGGRAPH 1987)</em> 21(3), pp. 283–291.</p>
+
+      <p>Stamminger, Marc, and George Drettakis. 2002. "Perspective Shadow Maps." In <em>ACM Transactions on Graphics (Proceedings of SIGGRAPH 2002)</em> 21(3), pp. 557–562.</p>
+
+      <p>Tadamura, Katsumi, Xueying Qin, Guofang Jiao, and Eihachiro 
+Nakamae. 2001. "Rendering Optimal Solar Shadows with Plural Sunlight 
+Depth Buffers." <em>The Visual Computer</em> 17(2), pp. 76–90.</p>
+
+      <p>Williams, Lance. 1978. "Casting Curved Shadows on Curved Surfaces." In <em>Computer Graphics (Proceedings of SIGGRAPH 1978)</em> 12(3), pp. 270–274.</p>
+
+      <p>Wimmer, Michael, Daniel Scherzer, and Werner Purgathofer. 2004. "Light Space Perspective Shadow Maps." In <em>Proceedings of the Eurographics Symposium on Rendering 2004</em>, pp. 143–152.</p>
+
+      <p>Zhang, Fan, Hanqiu Sun, Leilei Xu, and Kit-Lun Lee. 2006. "Parallel-Split Shadow Maps for Large-Scale Virtual Environments." In <em>Proceedings of ACM International Conference on Virtual Reality Continuum and Its Applications 2006</em>, pp.
+      311–318.</p>
+
+      <p>Zhang, Fan, Hanqiu Sun, Leilei Xu, and Kit-Lun Lee. 2007. "Hardware-Accelerated Parallel-Split Shadow Maps." <em>International Journal of Image and Graphics</em>. In press.</p>
+
+      <p><em>All screen shots are from</em> Dawnspire: Prelude <em>(<a onclick="newwindow(this)" href="http://www.dawnspire.com/">http://www.dawnspire.com</a>), courtesy of Silent Grove Studios. Thanks to Anders Hammervald (<a href="mailto:anders@hammervald.com">anders@hammervald.com</a>) for his sincere help with preparing the images. The models used in the illustrative figures are downloaded from <a onclick="newwindow(this)" href="http://www.planetquake.com/">http://www.planetquake.com</a>.</em></p>
+<!-- generated html end -->
+      <!-- <div align="right" style=" color:#999999;">Last Update: 12:39 07/17/2009</div> -->
+    </div>
+               <div class="col-md-4">
+      <ul>
+        <li><a href="https://developer.nvidia.com/gpugems/GPUGems3/gpugems3_pref01.html">Foreword</a></li>
+
+        <li><a href="https://developer.nvidia.com/gpugems/GPUGems3/gpugems3_pref02.html">Preface</a></li>
+
+        <li><a href="https://developer.nvidia.com/gpugems/GPUGems3/gpugems3_pref03.html">Contributors</a></li>
+
+        <li><a href="https://developer.nvidia.com/gpugems/GPUGems3/gpugems3_copyrightpg.html">Copyright</a></li>
+
+        <li><a href="https://developer.nvidia.com/gpugems/GPUGems3/gpugems3_part01.html"><i>Part I: Geometry</i></a></li>
+
+        <li style="list-style: none; display: inline">
+          <ul>
+            <li><a href="https://developer.nvidia.com/gpugems/GPUGems3/gpugems3_ch01.html">Chapter 1. Generating Complex Procedural Terrains Using the GPU</a></li>
+
+            <li><a href="https://developer.nvidia.com/gpugems/GPUGems3/gpugems3_ch02.html">Chapter 2. Animated Crowd Rendering</a></li>
+
+            <li><a href="https://developer.nvidia.com/gpugems/GPUGems3/gpugems3_ch03.html">Chapter 3. DirectX 10 Blend Shapes: Breaking the Limits</a></li>
+
+            <li><a href="https://developer.nvidia.com/gpugems/GPUGems3/gpugems3_ch04.html">Chapter 4. Next-Generation SpeedTree Rendering</a></li>
+
+            <li><a href="https://developer.nvidia.com/gpugems/GPUGems3/gpugems3_ch05.html">Chapter 5. Generic Adaptive Mesh Refinement</a></li>
+
+            <li><a href="https://developer.nvidia.com/gpugems/GPUGems3/gpugems3_ch06.html">Chapter 6. GPU-Generated Procedural Wind Animations for Trees</a></li>
+
+            <li><a href="https://developer.nvidia.com/gpugems/GPUGems3/gpugems3_ch07.html">Chapter 7. Point-Based Visualization of Metaballs on a GPU</a></li>
+          </ul>
+        </li>
+
+        <li><a href="https://developer.nvidia.com/gpugems/GPUGems3/gpugems3_part02.html"><i>Part II: Light and Shadows</i></a></li>
+
+        <li style="list-style: none; display: inline">
+          <ul>
+            <li><a href="https://developer.nvidia.com/gpugems/GPUGems3/gpugems3_ch08.html">Chapter 8. Summed-Area Variance Shadow Maps</a></li>
+
+            <li><a href="https://developer.nvidia.com/gpugems/GPUGems3/gpugems3_ch09.html">Chapter 9. Interactive Cinematic Relighting with Global Illumination</a></li>
+
+            <li><a href="https://developer.nvidia.com/gpugems/GPUGems3/gpugems3_ch10.html"><font color="#45b900;"><b><i>Chapter 10. Parallel-Split Shadow Maps on Programmable GPUs</i></b></font></a></li>
+
+            <li><a href="https://developer.nvidia.com/gpugems/GPUGems3/gpugems3_ch11.html">Chapter 11. Efficient and Robust Shadow Volumes Using Hierarchical Occlusion Culling and Geometry Shaders</a></li>
+
+            <li><a href="https://developer.nvidia.com/gpugems/GPUGems3/gpugems3_ch12.html">Chapter 12. High-Quality Ambient Occlusion</a></li>
+
+            <li><a href="https://developer.nvidia.com/gpugems/GPUGems3/gpugems3_ch13.html">Chapter 13. Volumetric Light Scattering as a Post-Process</a></li>
+          </ul>
+        </li>
+
+        <li><a href="https://developer.nvidia.com/gpugems/GPUGems3/gpugems3_part03.html"><i>Part III: Rendering</i></a></li>
+
+        <li style="list-style: none; display: inline">
+          <ul>
+            <li><a href="https://developer.nvidia.com/gpugems/GPUGems3/gpugems3_ch14.html">Chapter 14. Advanced Techniques for Realistic Real-Time Skin Rendering</a></li>
+
+            <li><a href="https://developer.nvidia.com/gpugems/GPUGems3/gpugems3_ch15.html">Chapter 15. Playable Universal Capture</a></li>
+
+            <li><a href="https://developer.nvidia.com/gpugems/GPUGems3/gpugems3_ch16.html">Chapter 16. Vegetation Procedural Animation and Shading in Crysis</a></li>
+
+            <li><a href="https://developer.nvidia.com/gpugems/GPUGems3/gpugems3_ch17.html">Chapter 17. Robust Multiple Specular Reflections and Refractions</a></li>
+
+            <li><a href="https://developer.nvidia.com/gpugems/GPUGems3/gpugems3_ch18.html">Chapter 18. Relaxed Cone Stepping for Relief Mapping</a></li>
+
+            <li><a href="https://developer.nvidia.com/gpugems/GPUGems3/gpugems3_ch19.html">Chapter 19. Deferred Shading in Tabula Rasa</a></li>
+
+            <li><a href="https://developer.nvidia.com/gpugems/GPUGems3/gpugems3_ch20.html">Chapter 20. GPU-Based Importance Sampling</a></li>
+          </ul>
+        </li>
+
+        <li><a href="https://developer.nvidia.com/gpugems/GPUGems3/gpugems3_part04.html"><i>Part IV: Image Effects</i></a></li>
+
+        <li style="list-style: none; display: inline">
+          <ul>
+            <li><a href="https://developer.nvidia.com/gpugems/GPUGems3/gpugems3_ch21.html">Chapter 21. True Impostors</a></li>
+
+            <li><a href="https://developer.nvidia.com/gpugems/GPUGems3/gpugems3_ch22.html">Chapter 22. Baking Normal Maps on the GPU</a></li>
+
+            <li><a href="https://developer.nvidia.com/gpugems/GPUGems3/gpugems3_ch23.html">Chapter 23. High-Speed, Off-Screen Particles</a></li>
+
+            <li><a href="https://developer.nvidia.com/gpugems/GPUGems3/gpugems3_ch24.html">Chapter 24. The Importance of Being Linear</a></li>
+
+            <li><a href="https://developer.nvidia.com/gpugems/GPUGems3/gpugems3_ch25.html">Chapter 25. Rendering Vector Art on the GPU</a></li>
+
+            <li><a href="https://developer.nvidia.com/gpugems/GPUGems3/gpugems3_ch26.html">Chapter 26. Object Detection by Color: Using the GPU for Real-Time Video Image Processing</a></li>
+
+            <li><a href="https://developer.nvidia.com/gpugems/GPUGems3/gpugems3_ch27.html">Chapter 27. Motion Blur as a Post-Processing Effect</a></li>
+
+            <li><a href="https://developer.nvidia.com/gpugems/GPUGems3/gpugems3_ch28.html">Chapter 28. Practical Post-Process Depth of Field</a></li>
+          </ul>
+        </li>
+
+        <li><a href="https://developer.nvidia.com/gpugems/GPUGems3/gpugems3_part05.html"><i>Part V: Physics Simulation</i></a></li>
+
+        <li style="list-style: none; display: inline">
+          <ul>
+            <li><a href="https://developer.nvidia.com/gpugems/GPUGems3/gpugems3_ch29.html">Chapter 29. Real-Time Rigid Body Simulation on GPUs</a></li>
+
+            <li><a href="https://developer.nvidia.com/gpugems/GPUGems3/gpugems3_ch30.html">Chapter 30. Real-Time Simulation and Rendering of 3D Fluids</a></li>
+
+            <li><a href="https://developer.nvidia.com/gpugems/GPUGems3/gpugems3_ch31.html">Chapter 31. Fast N-Body Simulation with CUDA</a></li>
+
+            <li><a href="https://developer.nvidia.com/gpugems/GPUGems3/gpugems3_ch32.html">Chapter 32. Broad-Phase Collision Detection with CUDA</a></li>
+
+            <li><a href="https://developer.nvidia.com/gpugems/GPUGems3/gpugems3_ch33.html">Chapter 33. LCP Algorithms for Collision Detection Using CUDA</a></li>
+
+            <li><a href="https://developer.nvidia.com/gpugems/GPUGems3/gpugems3_ch34.html">Chapter 34. Signed Distance Fields Using Single-Pass GPU Scan Conversion of Tetrahedra</a></li>
+
+            <li><a href="https://developer.nvidia.com/gpugems/GPUGems3/gpugems3_ch35.html">Chapter 35. Fast Virus Signature Matching on the GPU</a></li>
+          </ul>
+        </li>
+
+        <li><a href="https://developer.nvidia.com/gpugems/GPUGems3/gpugems3_part06.html"><i>Part VI: GPU Computing</i></a></li>
+
+        <li style="list-style: none; display: inline">
+          <ul>
+            <li><a href="https://developer.nvidia.com/gpugems/GPUGems3/gpugems3_ch36.html">Chapter 36. AES Encryption and Decryption on the GPU</a></li>
+
+            <li><a href="https://developer.nvidia.com/gpugems/GPUGems3/gpugems3_ch37.html">Chapter 37. Efficient Random Number Generation and Application Using CUDA</a></li>
+
+            <li><a href="https://developer.nvidia.com/gpugems/GPUGems3/gpugems3_ch38.html">Chapter 38. Imaging Earth's Subsurface Using CUDA</a></li>
+
+            <li><a href="https://developer.nvidia.com/gpugems/GPUGems3/gpugems3_ch39.html">Chapter 39. Parallel Prefix Sum (Scan) with CUDA</a></li>
+
+            <li><a href="https://developer.nvidia.com/gpugems/GPUGems3/gpugems3_ch40.html">Chapter 40. Incremental Computation of the Gaussian</a></li>
+
+            <li><a href="https://developer.nvidia.com/gpugems/GPUGems3/gpugems3_ch41.html">Chapter 41. Using the Geometry Shader for Compact and Variable-Length GPU Feedback</a></li>
+          </ul>
+        </li>
+      </ul>
+    </div>
+          </div>
+     
+
+</div>
+</section>
+  </div>
+                  </section>
+
+        
+      </div>
+    </div>
+    <div class="separator"></div>
+  </div>
+  
+  <footer>
+    <div class="footer-links">
+      <div class="container">
+        <div class="row">
+          <div class="col-xs-12 col-sm-12 col-md-3 col-lg-3">
+            <div class="col-xs-12 col-sm-12 col-md-12 col-lg-12">
+              <div class="padding-md-footer">
+                <div class="logo-footer"></div>
+              </div>
+            </div>
+            <div class="col-xs-12 col-sm-12 col-md-9 col-lg-9 padding-section-footer">
+                <div class="region region-footer-menu">
+    <div class="block block-menu" id="block-menu-menu-footer-menu">
+  <div class="block-content zone-select">
+    <ul class="menu nav"><li class="first leaf"><a href="https://developer.nvidia.com/computeworks" title="">COMPUTEWORKS</a></li>
+<li class="leaf"><a href="https://developer.nvidia.com/gameworks" title="">GAMEWORKS</a></li>
+<li class="leaf"><a href="https://developer.nvidia.com/embedded-computing" title="">JETPACK</a></li>
+<li class="leaf"><a href="https://developer.nvidia.com/designworks" title="">DESIGNWORKS</a></li>
+<li class="last leaf"><a href="https://developer.nvidia.com/drive" title="">DRIVE</a></li>
+</ul>  </div>
+</div>
+  </div>
+            </div>
+          </div>
+          <div class="col-xs-12 col-sm-12 col-md-9 col-lg-9">
+                                                </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="footer-boilerplate">
+      <div class="container">
+        <div class="boilerplate">
+          <div class="col-xs-12 col-sm-12 col-lg-9 padding-sm-bottom">
+            Copyright © 2019 NVIDIA Corporation                          <ul class="legal_links"><li class="first leaf"><a href="http://www.nvidia.com/object/legal_info.html">Legal Information</a></li>
+<li class="last leaf"><a href="http://www.nvidia.com/object/privacy_policy.html">Privacy Policy</a></li>
+</ul>                      </div>
+        </div>
+      </div>
+    </div>
+  </footer>
+</div>
+  <script>var dzauth = {"settings":{"client_id":"4jljTejN7RMO9suL0S33gFrYgjHX0VcW","redirect_uri":"https:\/\/developer.nvidia.com\/auth0\/callback","custom_domain":"login.developer.nvidia.com","domain":"devzone.auth0.com","auto_login":true}};
+
+function nvidia_dzauth_register_and_redirect(redirect_destination) {
+  if(redirect_destination) {
+    history.pushState(null, '', redirect_destination);
+    showDzAuth('login');
+  }
+}
+
+function nvidia_dzauth_init() {
+  initDzAuth(dzauth);
+  if (typeof auth0 !== 'undefined') {
+    dzCheckSession(auth0);
+  }
+}
+nvidia_dzauth_init();
+</script>
+<script>_satellite.pageBottom();</script>
+<script src="GPU%20Gems%20%20%20NVIDIA%20Developer_fichiers/js_FbpwIZNwgzwEuuL4Q2HOM07BOSCY5LxL_gwSK4ohQBM.js"></script>
+<script type="text/javascript">window.NREUM||(NREUM={});NREUM.info={"beacon":"bam.nr-data.net","licenseKey":"9557dbf16c","applicationID":"9052762","transactionName":"ZFADMkRTVxcEARdRWl0aIAVCW1YKSj0ESEBUUAwVaUJYAwA=","queueTime":0,"applicationTime":167,"atts":"SBcARAxJRBk=","errorBeacon":"bam.nr-data.net","agent":""}</script>
+
+<div id="cboxOverlay" style="display: none;"></div><div id="colorbox" class="" role="dialog" tabindex="-1" style="display: none;"><div id="cboxWrapper"><div><div id="cboxTopLeft" style="float: left;"></div><div id="cboxTopCenter" style="float: left;"></div><div id="cboxTopRight" style="float: left;"></div></div><div style="clear: left;"><div id="cboxMiddleLeft" style="float: left;"></div><div id="cboxContent" style="float: left;"><div id="cboxTitle" style="float: left;"></div><div id="cboxCurrent" style="float: left;"></div><button type="button" id="cboxPrevious"></button><button type="button" id="cboxNext"></button><button id="cboxSlideshow"></button><div id="cboxLoadingOverlay" style="float: left;"></div><div id="cboxLoadingGraphic" style="float: left;"></div></div><div id="cboxMiddleRight" style="float: left;"></div></div><div style="clear: left;"><div id="cboxBottomLeft" style="float: left;"></div><div id="cboxBottomCenter" style="float: left;"></div><div id="cboxBottomRight" style="float: left;"></div></div></div><div style="position: absolute; width: 9999px; visibility: hidden; display: none; max-width: none;"></div></div><div id="sidr" class="sidr left"><div class="sidr-inner">
+
+              <ul class="menu nav navbar-nav"><li class="first leaf"><a href="http://news.developer.nvidia.com/" title="">NEWS</a></li>
+<li class="leaf"><a href="https://devblogs.nvidia.com/" title="">BLOG</a></li>
+<li class="last leaf"><a href="https://devtalk.nvidia.com/" title="">FORUMS</a></li>
+</ul>            <ul class="nav navbar-nav navbar-margin navbar-right navbar-margin-media login-nav">
+                  <li class="search" id="search-top">
+            <div class="search-form" id="search-top-form">
+              <form class="gss form-search content-search" action="/gpugems/GPUGems3/gpugems3_ch10.html" method="post" id="search-block-form" accept-charset="UTF-8"><div><div>
+      <h2 class="element-invisible">Search form</h2>
+    <div class="input-group"><input title="Enter the terms you wish to search for." placeholder="Search..." class="form-control form-text" type="text" id="edit-search-block-form--2" name="search_block_form" size="15" maxlength="128"><span class="input-group-btn"><button type="submit" class="btn btn-default"><span class="icon glyphicon glyphicon-search" aria-hidden="true"></span>
+</button></span></div><div class="form-actions form-wrapper form-group" id="edit-actions"><button class="element-invisible btn btn-primary form-submit" type="submit" id="edit-submit" name="op" value="Search">Search</button>
+</div><input type="hidden" name="form_build_id" value="form-7H27X6eoWbHh1JvNnan2XejSl30_2Xqa4pIMWEEswas">
+<input type="hidden" name="form_id" value="search_block_form">
+</div>
+</div></form>            </div>
+          </li>
+        
+        
+          
+                        <li class="leaf join-link" id="dzauth_register_link"><a href="javascript:jQuery.sidr('close');javascript:showDzAuth('register');">Join</a></li>
+<li class="leaf last" id="dzauth_login_link"><a href="javascript:jQuery.sidr('close');javascript:showDzAuth('login');">Login</a></li>          
+      </ul>
+  </div><div class="sidr-inner">
+          <ul class="menu nav navbar-nav secondary"><li class="first leaf"><a href="https://developer.nvidia.com/rtx" title="">RTX</a></li>
+<li class="leaf"><a href="https://developer.nvidia.com/gameworks" title="">GAMEWORKS</a></li>
+<li class="leaf"><a href="https://developer.nvidia.com/designworks" title="">DESIGNWORKS</a></li>
+<li class="leaf"><a href="https://developer.nvidia.com/vrworks" title="">VRWORKS</a></li>
+<li class="leaf"><a href="https://developer.nvidia.com/computeworks" title="">COMPUTEWORKS</a></li>
+<li class="leaf"><a href="https://developer.nvidia.com/embedded-computing" title="">JETPACK</a></li>
+<li class="leaf"><a href="https://developer.nvidia.com/drive" title="">DRIVE</a></li>
+<li class="leaf"><a href="https://developer.nvidia.com/clara" title="">CLARA</a></li>
+<li class="last leaf"><a href="https://developer.nvidia.com/open-source" title="">OPEN SOURCE</a></li>
+</ul>                  </div></div><iframe sandbox="allow-scripts allow-same-origin" title="Adobe ID Syncing iFrame" id="destination_publishing_iframe_nvidia_0" name="destination_publishing_iframe_nvidia_0_name" style="display: none; width: 0px; height: 0px;" src="GPU%20Gems%20%20%20NVIDIA%20Developer_fichiers/dest5.html" class="aamIframeLoaded"></iframe></body></html>
