@@ -1,5 +1,5 @@
 //-----------------------------------------------------------------------------
-// VoxelShadowEffect.fx
+// ShadowEffect.fx
 //
 // Microsoft XNA Community Game Platform
 // Copyright (C) Microsoft Corporation. All rights reserved.
@@ -31,18 +31,18 @@ struct VSOutput
 VSOutput VSShadow(VSInput vin)
 {
     VSOutput vout;
-    
+
 	vout.PositionPS = mul(vin.Position, WorldViewProj);
 	//vout.Depth = vout.PositionPS.zw;
-    
+
     return vout;
 }
 
 float PSShadow(VSOutput pin) : SV_Target0
-{ 
+{
     //float depth = pin.Depth.x / pin.Depth.y;
     //return depth;//float4(depth, depth, depth, depth);
     return pin.PositionPS.z / pin.PositionPS.w;
 }
 
-TECHNIQUE(ShadowEffect, VSShadow, PSShadow );
+TECHNIQUE(ShadowEffect, VSShadow, PSShadow);

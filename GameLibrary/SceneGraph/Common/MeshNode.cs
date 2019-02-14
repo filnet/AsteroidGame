@@ -106,6 +106,10 @@ namespace GameLibrary.SceneGraph.Common
             }
         }
 
+        public override void PostDraw(GraphicsDevice gd)
+        {
+        }
+
     }
 
 }

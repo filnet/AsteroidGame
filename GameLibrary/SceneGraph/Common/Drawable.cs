@@ -33,5 +33,9 @@ namespace GameLibrary.SceneGraph.Common
         void PreDraw(GraphicsDevice gd);
         void Draw(GraphicsDevice gd);
         void PostDraw(GraphicsDevice gd);
+
+        void PreDrawInstanced(GraphicsDevice gd);
+        void DrawInstanced(GraphicsDevice gd);
+        void PostDrawInstanced(GraphicsDevice gd);
     }
 }

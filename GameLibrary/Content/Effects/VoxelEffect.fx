@@ -14,9 +14,9 @@ DECLARE_TEXTURE_ARRAY(Texture, 0);
 
 DECLARE_TEXTURE(WireframeTexture, 1);
 
-DECLARE_TEXTURE(ShadowMapTexture, 2);
+DECLARE_TEXTURE_ARRAY(ShadowMapTexture, 2);
 
-//SamplerComparisonState ShadowSampler;
+SamplerComparisonState ShadowSampler : register(s2);
 
 BEGIN_CONSTANTS
 
@@ -527,12 +527,9 @@ float4 PSBasicVertexLightingTxNoFog(VSOutputTx pin) : SV_Target0
     float2 shadowTexCoord = mad(0.5f, PositionLS.xy / PositionLS.w, float2(0.5f, 0.5f));
     shadowTexCoord.y = 1.0f - shadowTexCoord.y;
 	
-    float depthBias = 0; //0.0008;
-
-    float lightDepth = SAMPLE_TEXTURE(ShadowMapTexture, shadowTexCoord).x;
+    //float lightDepth = SAMPLE_TEXTURE(ShadowMapTexture, shadowTexCoord).x;
     //float lightDistance = pin.ShadowPosition.z / pin.ShadowPosition.w;
     float lightDistance = PositionLS.z / PositionLS.w;
-    lightDistance -= depthBias;
 
     float4 cout = color * AmbientColor;
 
@@ -540,11 +537,11 @@ float4 PSBasicVertexLightingTxNoFog(VSOutputTx pin) : SV_Target0
     //float numSlices;
     //ShadowMapTexture.GetDimensions(shadowMapSize.x, shadowMapSize.y/*, numSlices*/);
 
-    //float shadowFactor = ShadowMapTexture.SampleCmpLevelZero(ShadowSampler, shadowTexCoord.xy, lightDistance);
-    if (lightDistance <= lightDepth)
-    //if (shadowFactor)
+    float shadowFactor = ShadowMapTexture.SampleCmpLevelZero(ShadowSampler, float3(shadowTexCoord.xy, 0), lightDistance);
+    if (shadowFactor)
+    //if (lightDistance <= lightDepth)
     {
-        cout += color * pin.Diffuse;// * shadowFactor;
+        cout += color * pin.Diffuse * shadowFactor;
         AddSpecular(cout, pin.Specular.rgb);
     }
 

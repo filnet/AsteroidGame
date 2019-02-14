@@ -265,6 +265,8 @@ namespace GameLibrary.SceneGraph.Bounding
         public override ContainmentType IsContained(BoundingFrustum boundingFrustum, bool fast)
         {
             var intersects = false;
+
+            // FIXME garbage
             Plane[] planes = new Plane[] {
                 boundingFrustum.Left, boundingFrustum.Right,
                 boundingFrustum.Bottom, boundingFrustum.Top,

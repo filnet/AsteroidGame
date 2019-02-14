@@ -83,17 +83,18 @@ namespace GameLibrary.SceneGraph
 
         public static Effect CreateBillboardEffect(GraphicsDevice gd)
         {
-            BasicEffect effect = new BasicEffect(gd);
+            //BasicEffect effect = new BasicEffect(gd);
+            StockEffects.ShadowMapEffect effect = new StockEffects.ShadowMapEffect(gd);
 
             // primitive color
             //effect.VertexColorEnabled = true;
-            effect.AmbientLightColor = new Vector3(1f, 1f, 1f);
-            effect.DiffuseColor = new Vector3(1.0f, 1.0f, 1.0f);
+            //effect.AmbientLightColor = new Vector3(1f, 1f, 1f);
+            //effect.DiffuseColor = new Vector3(1.0f, 1.0f, 1.0f);
             //effect.SpecularColor = new Vector3(0.25f, 0.25f, 0.25f);
             //effect.SpecularPower = 5.0f;
             //effect.Alpha = 1.0f;
 
-            effect.TextureEnabled = true;
+            //effect.TextureEnabled = true;
             //effect.Texture = createTileTextureArray(gd, getTiles());
 
             return effect;
@@ -229,5 +230,19 @@ namespace GameLibrary.SceneGraph
 
             return effect;
         }
+
+        public static StockEffects.ShadowEffect CreateShadowEffect(GraphicsDevice gd)
+        {
+            StockEffects.ShadowEffect effect = new StockEffects.ShadowEffect(gd);
+            return effect;
+        }
+
+        public static StockEffects.ShadowCascadeEffect CreateShadowCascadeEffect(GraphicsDevice gd)
+        {
+            StockEffects.ShadowCascadeEffect effect = new StockEffects.ShadowCascadeEffect(gd);
+            return effect;
+        }
+
     }
+
 }

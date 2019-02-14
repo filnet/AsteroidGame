@@ -162,7 +162,7 @@ namespace GameLibrary.SceneGraph
             // TODO frustrum/bounds/etc... rendering : use RasterizerState.DepthClipEnable = false; in renderer
             // so we see them even if should be Z clipped (ok for far, but what about near...)
 
-            Bounding.BoundingSphere frustrumBoundingSphere = renderContext.Camera.BoundingSphere;
+            Bounding.BoundingSphere frustrumBoundingSphere = renderContext.CullCamera.BoundingSphere;
 
             Vector3 center = frustrumBoundingSphere.Center;
             float radius = frustrumBoundingSphere.Radius;
@@ -206,7 +206,7 @@ namespace GameLibrary.SceneGraph
                 // get camera frustum corners
                 // FIXME : garbage...
                 Vector3[] frustumCornersWS = new Vector3[BoundingFrustum.CornerCount];
-                renderContext.Camera.BoundingFrustum.GetCorners(frustumCornersWS);
+                renderContext.CullCamera.BoundingFrustum.GetCorners(frustumCornersWS);
 
                 // transform view frustum corners to light space
                 // FIXME we are only interested in the Z component

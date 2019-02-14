@@ -128,17 +128,13 @@ namespace GameLibrary.SceneGraph.Common
 
         public abstract int VertexCount { get; }
 
-        public virtual void PreDraw(GraphicsDevice gd)
-        {
-        }
+        public virtual void PreDraw(GraphicsDevice gd) { throw new NotSupportedException(); }
+        public virtual void Draw(GraphicsDevice gd) { throw new NotSupportedException(); }
+        public virtual void PostDraw(GraphicsDevice gd) { throw new NotSupportedException(); }
 
-        public virtual void Draw(GraphicsDevice gd)
-        {
-        }
-
-        public virtual void PostDraw(GraphicsDevice gd)
-        {
-        }
+        public virtual void PreDrawInstanced(GraphicsDevice gd) { throw new NotSupportedException(); }
+        public virtual void DrawInstanced(GraphicsDevice gd) { throw new NotSupportedException(); }
+        public virtual void PostDrawInstanced(GraphicsDevice gd) { throw new NotSupportedException(); }
 
     }
 }

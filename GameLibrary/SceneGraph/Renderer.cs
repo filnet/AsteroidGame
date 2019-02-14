@@ -96,8 +96,8 @@ namespace GameLibrary.SceneGraph
 
             if (effectMatrices != null)
             {
-                effectMatrices.Projection = rc.RenderCamera.ProjectionMatrix;
-                effectMatrices.View = rc.RenderCamera.ViewMatrix;
+                effectMatrices.Projection = rc.Camera.ProjectionMatrix;
+                effectMatrices.View = rc.Camera.ViewMatrix;
             }
 
             foreach (EffectPass pass in effect.CurrentTechnique.Passes)
@@ -109,11 +109,13 @@ namespace GameLibrary.SceneGraph
                     {
                         break;
                     }
+
                     if ((effectMatrices != null) && (drawable is Transform transform))
                     {
                         effectMatrices.World = transform.WorldTransform;
                         pass.Apply();
                     }
+
                     drawable.PreDraw(rc.GraphicsDevice);
                     drawable.Draw(rc.GraphicsDevice);
                     drawable.PostDraw(rc.GraphicsDevice);
@@ -173,8 +175,8 @@ namespace GameLibrary.SceneGraph
 
             if (effectMatrices != null)
             {
-                effectMatrices.Projection = rc.RenderCamera.ProjectionMatrix;
-                effectMatrices.View = rc.RenderCamera.ViewMatrix;
+                effectMatrices.Projection = rc.Camera.ProjectionMatrix;
+                effectMatrices.View = rc.Camera.ViewMatrix;
             }
 
             Matrix worldMatrix;
@@ -325,7 +327,8 @@ namespace GameLibrary.SceneGraph
                     if (drawable is BillboardNode billboard)
                     {
                         // HACK
-                        ((BasicEffect)effect).Texture = billboard.Texture;
+                        //((BasicEffect)effect).Texture = billboard.Texture;
+                        ((StockEffects.ShadowMapEffect)effect).Texture = billboard.Texture;
                         //pass.Apply();
                         /*
                         if ((effectMatrices != null) && (drawable is Transform transform))
@@ -364,11 +367,12 @@ namespace GameLibrary.SceneGraph
             wireframeSamplerState.AddressU = TextureAddressMode.Mirror;
 
             // shadow texture sampler
-            shadowSamplerState.Filter = TextureFilter.Point;
+            shadowSamplerState.Filter = TextureFilter.Linear;
+            //shadowSamplerState.Filter = TextureFilter.Point;
             shadowSamplerState.AddressU = TextureAddressMode.Border;
             shadowSamplerState.AddressV = TextureAddressMode.Border;
-            //shadowSamplerState.ComparisonFunction = CompareFunction.LessEqual;
-            //shadowSamplerState.FilterMode = TextureFilterMode.Comparison;
+            shadowSamplerState.ComparisonFunction = CompareFunction.LessEqual;
+            shadowSamplerState.FilterMode = TextureFilterMode.Comparison;
             shadowSamplerState.BorderColor = Color.White;
         }
 
@@ -389,8 +393,8 @@ namespace GameLibrary.SceneGraph
 
             if (effectMatrices != null)
             {
-                effectMatrices.Projection = rc.RenderCamera.ProjectionMatrix;
-                effectMatrices.View = rc.RenderCamera.ViewMatrix;
+                effectMatrices.Projection = rc.Camera.ProjectionMatrix;
+                effectMatrices.View = rc.Camera.ViewMatrix;
                 effectMatrices.World = Matrix.Identity;
             }
 
@@ -428,9 +432,11 @@ namespace GameLibrary.SceneGraph
         }
     }
 
-    public class VoxelShadowRenderer : EffectRenderer<VoxelShadowEffect>
+    public abstract class AbstractShadowRenderer<E> : EffectRenderer<E> where E : Effect
     {
-        public VoxelShadowRenderer(VoxelShadowEffect effect) : base(effect)
+        internal bool instanced = false;
+
+        public AbstractShadowRenderer(E effect) : base(effect)
         {
             //RasterizerState = RasterizerState.CullNone;
             //RasterizerState = RasterizerState.CullCounterClockwise;
@@ -440,10 +446,20 @@ namespace GameLibrary.SceneGraph
             // occluders outside of near/far planes will have Z clamped to -1.0/1.0 instead of being clipped
             RasterizerState.DepthClipEnable = false;
 
-            RasterizerState.DepthBias = 0.001f;
-            RasterizerState.SlopeScaleDepthBias = 0.5f;
+            //RasterizerState.DepthBias = 0.001f;
+            //RasterizerState.SlopeScaleDepthBias = 0.5f;
 
             //RasterizerState.ScissorTestEnable;
+        }
+
+    }
+
+    public class ShadowRenderer : AbstractShadowRenderer<StockEffects.ShadowEffect>
+    {
+        public ShadowRenderer(StockEffects.ShadowEffect effect) : base(effect)
+        {
+            RasterizerState.DepthBias = 0.001f;
+            RasterizerState.SlopeScaleDepthBias = 0.5f;
         }
 
         public override void Render(RenderContext rc, List<Drawable> drawableList)
@@ -454,8 +470,52 @@ namespace GameLibrary.SceneGraph
 
             if (effectMatrices != null)
             {
-                effectMatrices.Projection = rc.RenderCamera.ProjectionMatrix;
-                effectMatrices.View = rc.RenderCamera.ViewMatrix;
+                effectMatrices.Projection = rc.Camera.ProjectionMatrix;
+                effectMatrices.View = rc.Camera.ViewMatrix;
+            }
+
+            foreach (EffectPass pass in effect.CurrentTechnique.Passes)
+            {
+                pass.Apply();
+                foreach (Drawable drawable in drawableList)
+                {
+                    if (!drawable.Enabled || !drawable.Visible)
+                    {
+                        break;
+                    }
+                    if ((effectMatrices != null) && (drawable is Transform transform))
+                    {
+                        effectMatrices.World = transform.WorldTransform;
+                        pass.Apply();
+                    }
+                    drawable.PreDraw(rc.GraphicsDevice);
+                    drawable.Draw(rc.GraphicsDevice);
+                    drawable.PostDraw(rc.GraphicsDevice);
+                    rc.DrawCount++;
+                    rc.VertexCount += drawable.VertexCount;
+                }
+            }
+        }
+    }
+
+    public class VoxelShadowRenderer : AbstractShadowRenderer<StockEffects.ShadowEffect>
+    {
+        public VoxelShadowRenderer(StockEffects.ShadowEffect effect) : base(effect)
+        {
+            RasterizerState.DepthBias = 0.001f;
+            RasterizerState.SlopeScaleDepthBias = 0.5f;
+        }
+
+        public override void Render(RenderContext rc, List<Drawable> drawableList)
+        {
+            rc.GraphicsDevice.BlendState = BlendState;
+            rc.GraphicsDevice.DepthStencilState = DepthStencilState;
+            rc.GraphicsDevice.RasterizerState = RasterizerState;
+
+            if (effectMatrices != null)
+            {
+                effectMatrices.Projection = rc.Camera.ProjectionMatrix;
+                effectMatrices.View = rc.Camera.ViewMatrix;
                 effectMatrices.World = Matrix.Identity;
             }
 
@@ -479,4 +539,112 @@ namespace GameLibrary.SceneGraph
         }
 
     }
+
+    // https://gist.github.com/JSandusky/82cf0022ba78c83e1d436947a6e00926
+    public class ShadowCascadeRenderer : AbstractShadowRenderer<StockEffects.ShadowCascadeEffect>
+    {
+        public ShadowCascadeRenderer(StockEffects.ShadowCascadeEffect effect) : base(effect)
+        {
+        }
+
+        public override void Render(RenderContext rc, List<Drawable> drawableList)
+        {
+            rc.GraphicsDevice.BlendState = BlendState;
+            rc.GraphicsDevice.DepthStencilState = DepthStencilState;
+            rc.GraphicsDevice.RasterizerState = RasterizerState;
+
+            if (effectMatrices != null)
+            {
+                effectMatrices.Projection = rc.Camera.ProjectionMatrix;
+                effectMatrices.View = rc.Camera.ViewMatrix;
+            }
+
+            foreach (EffectPass pass in effect.CurrentTechnique.Passes)
+            {
+                pass.Apply();
+                foreach (Drawable drawable in drawableList)
+                {
+                    if (!drawable.Enabled || !drawable.Visible)
+                    {
+                        break;
+                    }
+                    if ((effectMatrices != null) && (drawable is Transform transform))
+                    {
+                        effectMatrices.World = transform.WorldTransform;
+                        pass.Apply();
+                    }
+                    if (false)
+                    {
+                        drawable.PreDrawInstanced(rc.GraphicsDevice);
+                        drawable.DrawInstanced(rc.GraphicsDevice);
+                        drawable.PostDrawInstanced(rc.GraphicsDevice);
+                    }
+                    else
+                    {
+                        drawable.PreDraw(rc.GraphicsDevice);
+                        drawable.Draw(rc.GraphicsDevice);
+                        drawable.PostDraw(rc.GraphicsDevice);
+                    }
+                    rc.DrawCount++;
+                    rc.VertexCount += drawable.VertexCount;
+                }
+            }
+
+            // FIXME ugly hack... 
+            ((SharpDX.Direct3D11.DeviceContext)rc.GraphicsDevice.ContextHandle).GeometryShader.Set(null);
+        }
+    }
+
+    public class VoxelShadowCascadeRenderer : AbstractShadowRenderer<StockEffects.ShadowCascadeEffect>
+    {
+        public VoxelShadowCascadeRenderer(StockEffects.ShadowCascadeEffect effect) : base(effect)
+        {
+        }
+
+        public override void Render(RenderContext rc, List<Drawable> drawableList)
+        {
+            rc.GraphicsDevice.BlendState = BlendState;
+            rc.GraphicsDevice.DepthStencilState = DepthStencilState;
+            rc.GraphicsDevice.RasterizerState = RasterizerState;
+
+            if (effectMatrices != null)
+            {
+                effectMatrices.Projection = rc.Camera.ProjectionMatrix;
+                effectMatrices.View = rc.Camera.ViewMatrix;
+                effectMatrices.World = Matrix.Identity;
+            }
+
+            foreach (EffectPass pass in effect.CurrentTechnique.Passes)
+            {
+                pass.Apply();
+                foreach (Drawable drawable in drawableList)
+                {
+                    if (!drawable.Enabled || !drawable.Visible)
+                    {
+                        break;
+                    }
+                    if (instanced)
+                    {
+                        drawable.PreDrawInstanced(rc.GraphicsDevice);
+                        drawable.DrawInstanced(rc.GraphicsDevice);
+                        drawable.PostDrawInstanced(rc.GraphicsDevice);
+                    }
+                    else
+                    {
+                        drawable.PreDraw(rc.GraphicsDevice);
+                        drawable.Draw(rc.GraphicsDevice);
+                        drawable.PostDraw(rc.GraphicsDevice);
+                    }
+                    rc.DrawCount++;
+                    rc.VertexCount += drawable.VertexCount;
+                }
+            }
+
+            // FIXME ugly hack... 
+            ((SharpDX.Direct3D11.DeviceContext)rc.GraphicsDevice.ContextHandle).GeometryShader.Set(null);
+        }
+
+    }
+
 }
+

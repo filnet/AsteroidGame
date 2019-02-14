@@ -361,16 +361,14 @@ namespace GameLibrary.Voxel
 
             public int VertexCount { get { return mesh.VertexCount; } }
 
+            VertexBuffer instanceVertexBuffer = null;
+
             public void PreDraw(GraphicsDevice gd)
             {
+                gd.SetVertexBuffer(mesh.VertexBuffer);
                 if (mesh.IndexBuffer != null)
                 {
-                    gd.SetVertexBuffer(mesh.VertexBuffer);
                     gd.Indices = mesh.IndexBuffer;
-                }
-                else
-                {
-                    gd.SetVertexBuffer(mesh.VertexBuffer);
                 }
             }
 
@@ -387,6 +385,37 @@ namespace GameLibrary.Voxel
             }
 
             public void PostDraw(GraphicsDevice gd)
+            {
+            }
+
+            public void PreDrawInstanced(GraphicsDevice gd)
+            {
+                /*if (instanceVertexBuffer == null)
+                {
+                    instanceVertexBuffer = new DynamicVertexBuffer(gd, ShadowInstanceVertex.VertexDeclaration, 4, BufferUsage.WriteOnly);
+                    ShadowInstanceVertex[] instances = new ShadowInstanceVertex[] {
+                            new ShadowInstanceVertex(0), new ShadowInstanceVertex(1), new ShadowInstanceVertex(2), new ShadowInstanceVertex(3),
+                    };
+                    instanceVertexBuffer.SetData(instances);
+                }
+                VertexBufferBinding[] vertexBufferBindings = {
+                    new VertexBufferBinding(mesh.VertexBuffer, 0, 0),
+                    new VertexBufferBinding(instanceVertexBuffer, 0, 1)
+                };
+                gd.SetVertexBuffers(vertexBufferBindings);*/
+                gd.SetVertexBuffer(mesh.VertexBuffer);
+                if (mesh.IndexBuffer != null)
+                {
+                    gd.Indices = mesh.IndexBuffer;
+                }
+            }
+
+            public void DrawInstanced(GraphicsDevice gd)
+            {
+                gd.DrawInstancedPrimitives(mesh.PrimitiveType, 0, 0, mesh.PrimitiveCount, 4);
+            }
+
+            public void PostDrawInstanced(GraphicsDevice gd)
             {
             }
 
@@ -427,6 +456,10 @@ namespace GameLibrary.Voxel
             public void PreDraw(GraphicsDevice gd) { throw new NotSupportedException(); }
             public void Draw(GraphicsDevice gd) { throw new NotSupportedException(); }
             public void PostDraw(GraphicsDevice gd) { throw new NotSupportedException(); }
+
+            public void PreDrawInstanced(GraphicsDevice gd) { throw new NotSupportedException(); }
+            public void DrawInstanced(GraphicsDevice gd) { throw new NotSupportedException(); }
+            public void PostDrawInstanced(GraphicsDevice gd) { throw new NotSupportedException(); }
 
             public FakeDrawable(int renderGroupId, BoundingVolume boundingVolume)
             {

@@ -8,11 +8,12 @@ using System.ComponentModel;
 using GameLibrary.Component;
 using GameLibrary.Component.Camera;
 using System.Linq;
+using GameLibrary.Geometry;
 
 namespace GameLibrary.SceneGraph
 {
 
-    public sealed class RenderContext
+    public abstract class RenderContext
     {
         #region Properties
 
@@ -23,9 +24,9 @@ namespace GameLibrary.SceneGraph
         }
 
         [Category("Camera")]
-        public Camera RenderCamera
+        public virtual Camera CullCamera
         {
-            get { return renderCamera; }
+            get { return camera; }
         }
 
         // Frustum culling
@@ -58,35 +59,56 @@ namespace GameLibrary.SceneGraph
         }
 
         // flags
-        [Category("Flags")]
+        [Category("Debug Camera")]
         public bool Debug { get; set; }
 
-        [Category("Flags")]
+        [Category("Debug Camera")]
         public bool AddBoundingGeometry
         {
             get { return addBoundingGeometry; }
-            set { addBoundingGeometry = value; RequestRedraw(); }
+            set { addBoundingGeometry = value; DebugGeometryUpdate(); } 
         }
 
-        [Category("Flags")]
+        [Category("Debug Camera")]
         public bool ShowBoundingVolumes
         {
             get { return showBoundingVolumes; }
-            set { showBoundingVolumes = value; RequestRedraw(); }
+            set { showBoundingVolumes = value; DebugGeometryUpdate(); }
         }
 
-        [Category("Flags")]
+        [Category("Debug Camera")]
         public bool ShowCulledBoundingVolumes
         {
             get { return showCulledBoundingVolumes; }
-            set { showCulledBoundingVolumes = value; RequestRedraw(); }
+            set { showCulledBoundingVolumes = value; DebugGeometryUpdate(); }
         }
 
-        [Category("Flags")]
-        public bool ShowCollisionVolumes
+        [Category("Debug Camera")]
+        public bool ShowSceneBoundingBox
         {
-            get { return showCollisionVolumes; }
-            set { showCollisionVolumes = value; RequestRedraw(); }
+            get { return showSceneBoundingBox; }
+            set { showSceneBoundingBox = value; DebugGeometryUpdate(); }
+        }
+
+        [Category("Debug Camera")]
+        public virtual bool ShowFrustum
+        {
+            get { return showFrustum; }
+            set { showFrustum = value; DebugGeometryUpdate(); }
+        }
+
+        [Category("Debug Camera")]
+        public virtual bool ShowFrustumBoundingSphere
+        {
+            get { return showFrustumBoundingSphere; }
+            set { showFrustumBoundingSphere = value; DebugGeometryUpdate(); }
+        }
+
+        [Category("Debug Camera")]
+        public virtual bool ShowFrustumBoundingBox
+        {
+            get { return showFrustumBoundingBox; }
+            set { showFrustumBoundingBox = value; DebugGeometryUpdate(); }
         }
 
         // stats
@@ -119,17 +141,26 @@ namespace GameLibrary.SceneGraph
         private bool addBoundingGeometry;
         private bool showBoundingVolumes;
         private bool showCulledBoundingVolumes;
-        private bool showCollisionVolumes;
 
-        //public bool dirty;
+        private bool showFrustum;
+        private bool showFrustumBoundingSphere;
+        private bool showFrustumBoundingBox;
+
+        private bool showSceneBoundingBox;
+
+        private MeshNode frustumGeo;
+        private MeshNode frustumBoundingBoxGeo;
+        private MeshNode frustumBoundingSphereGeo;
+
+        private MeshNode sceneBoundingBoxGeo;
+
         private bool drawRequested;
 
         public GameTime GameTime;
 
         public readonly GraphicsDevice GraphicsDevice;
 
-        private Camera camera;
-        private readonly Camera renderCamera;
+        protected readonly Camera camera;
 
         // camera
         public int VisitOrder;
@@ -137,35 +168,21 @@ namespace GameLibrary.SceneGraph
         public Vector3 sceneMax;
         public Vector3 sceneMin;
 
+        public readonly Bounding.BoundingBox sceneBoundingBox = new Bounding.BoundingBox();
+
         // render bins
         public readonly SortedDictionary<int, List<Drawable>> renderBins;
-        public int DrawableCount;
+        private int DrawableCount;
 
-        // lights
-        public readonly List<LightNode> lightNodes;
-        public readonly List<RenderContext> lightRenderContextes;
-        public bool Light;
-
-        // render target
-        public Color ClearColor;
-        public readonly RenderTarget2D RenderTarget;
-
-        // stats
+        // render stats
         public int DrawCount;
         public int VertexCount;
 
-        public RenderContext(GraphicsDevice graphicsDevice, Camera camera) : this(graphicsDevice, camera, null)
-        {
-        }
-
-        public RenderContext(GraphicsDevice graphicsDevice, Camera camera, RenderTarget2D renderTarget)
+        public RenderContext(GraphicsDevice graphicsDevice, Camera camera)
         {
             GraphicsDevice = graphicsDevice;
 
             this.camera = camera;
-            this.renderCamera = camera;
-
-            RenderTarget = renderTarget;
 
             frustumCullingEnabled = true;
             distanceCullingEnabled = false;
@@ -179,25 +196,16 @@ namespace GameLibrary.SceneGraph
             cullDistance = 512;
             cullDistanceSquared = cullDistance * cullDistance;
 
-            // flags
-            Debug = false;
-            addBoundingGeometry = false;
-            showBoundingVolumes = false;
-            showCulledBoundingVolumes = false;
-            showCollisionVolumes = false;
-
             // state
             renderBins = new SortedDictionary<int, List<Drawable>>();
-
-            lightNodes = new List<LightNode>(1);
-            lightRenderContextes = new List<RenderContext>(1);
-
-            Light = false;
-
-            ClearColor = Color.CornflowerBlue;
-
-            renderTarget = null;
         }
+
+        public virtual void Dispose()
+        {
+            DebugGeometryDispose();
+        }
+
+        public abstract void SetupGraphicsDevice();
 
         public bool RedrawRequested()
         {
@@ -214,89 +222,36 @@ namespace GameLibrary.SceneGraph
             drawRequested = false;
         }
 
-        public void Clear()
+        public virtual void Clear()
         {
             ClearBins();
-
-            lightNodes.Clear();
-            foreach (RenderContext context in lightRenderContextes)
-            {
-                context.Clear();
-            }
-
-            sceneMax = new Vector3(float.MinValue);
-            sceneMin = new Vector3(float.MaxValue);
-        }
-
-        public void AddLightNode(LightNode lightNode)
-        {
-            lightNodes.Add(lightNode);
-
-            int index = lightNodes.Count - 1;
-            if (index >= lightRenderContextes.Count)
-            {
-                Console.WriteLine("Creating light render context");
-                int renderTargetSize = 2048;
-                int cascadeCount = 1;
-                RenderTarget2D renderTarget = new RenderTarget2D(
-                    GraphicsDevice,
-                    renderTargetSize, renderTargetSize,
-                    false,
-                    SurfaceFormat.Single, DepthFormat.Depth24,
-                    0,
-                    RenderTargetUsage.DiscardContents,
-                    false,
-                    cascadeCount);
-
-                Camera lightCamera = new LightCamera();
-                RenderContext rc = new RenderContext(GraphicsDevice, lightCamera, renderTarget);
-                rc.Light = true;
-                rc.ClearColor = Color.White;
-                lightRenderContextes.Add(rc);
-            }
-        }
-
-        private float savedZFar = 0;
-        private bool cameraFrozen = false;
-
-        public bool IsCameraFrozen => cameraFrozen;
-
-        public void FreezeCamera()
-        {
-            if (cameraFrozen) return;
-            cameraFrozen = true;
-
-            camera = new DebugCamera(camera);
-
-            // tweak camera zfar...
-            // TODO restore zfar later...
-            savedZFar = renderCamera.ZFar;
-            renderCamera.ZFar = 2000;
-        }
-
-        public void UnfreezeCamera()
-        {
-            if (!cameraFrozen) return;
-            cameraFrozen = false;
-
-            camera = renderCamera;
-            // TODO restore zfar!
-            renderCamera.ZFar = savedZFar;
         }
 
         // TODO move elsewhere...
-        public void UpdateCamera()
+        public virtual void UpdateCamera()
         {
-            if (cameraFrozen) return;
-
             // compute visit order based on view direction
-            Vector3 dir = Camera.ViewDirection;
+            Vector3 dir = CullCamera.ViewDirection;
             VisitOrder = VectorUtil.visitOrder(dir);
         }
 
-        public void ResetStats()
+        public void CullBegin()
         {
-            // culli
+            sceneMin = new Vector3(float.MaxValue);
+            sceneMax = new Vector3(float.MinValue);
+        }
+
+        public void CullEnd()
+        {
+            // visible bounding box includes "whole" chunks
+            // so we need to intersect with Frustum to get a tighter visible bounding box
+            // FIXME should be done in RenderContext
+            Bounding.BoundingBox.CreateFromMinMax(sceneMin, sceneMax, sceneBoundingBox);
+        }
+
+        public virtual void ResetStats()
+        {
+            // culling
             FrustumCullCount = 0;
             DistanceCullCount = 0;
             ScreenSizeCullCount = 0;
@@ -304,26 +259,16 @@ namespace GameLibrary.SceneGraph
             // draw
             DrawCount = 0;
             VertexCount = 0;
-
-            foreach (RenderContext context in lightRenderContextes)
-            {
-                context.ResetStats();
-            }
         }
 
-        public void ShowStats(String name)
+        protected internal virtual void ShowStats(String name)
         {
             Console.WriteLine(name + ": " + DrawCount + " (" + VertexCount + ")");
-            int i = 1;
-            foreach (RenderContext context in lightRenderContextes)
-            {
-                context.ShowStats("Light #" + i++);
-            }
         }
 
         public Vector2 ProjectToScreen2(ref Vector3 vector)
         {
-            Vector3 p = GraphicsDevice.Viewport.Project(vector, Camera.ProjectionMatrix, Camera.ViewMatrix, Matrix.Identity);
+            Vector3 p = GraphicsDevice.Viewport.Project(vector, CullCamera.ProjectionMatrix, CullCamera.ViewMatrix, Matrix.Identity);
             return new Vector2(p.X, p.Y);
         }
 
@@ -422,7 +367,7 @@ namespace GameLibrary.SceneGraph
         public void AddBoundingVolume(Drawable drawable, BoundingType boundingType, bool culled)
         {
             Boolean collided = false;
-            if (ShowCollisionVolumes)
+            if (false /*showCollisionVolumes*/)
             {
                 // collided = (collisionCache != null) ? collisionCache.ContainsKey(drawable.Id) : false;
             }
@@ -432,7 +377,7 @@ namespace GameLibrary.SceneGraph
                 {
                     AddToBin((boundingType == BoundingType.Sphere) ? Scene.COLLISION_SPHERE : Scene.COLLISION_BOX, drawable);
                 }
-                else if (ShowBoundingVolumes)
+                else if (showBoundingVolumes)
                 {
                     AddToBin((boundingType == BoundingType.Sphere) ? Scene.BOUNDING_SPHERE : Scene.BOUNDING_BOX, drawable);
                 }
@@ -440,11 +385,106 @@ namespace GameLibrary.SceneGraph
             else
             {
                 // handle culled Drawables
-                if (ShowCulledBoundingVolumes)
+                if (showCulledBoundingVolumes)
                 {
                     AddToBin((boundingType == BoundingType.Sphere) ? Scene.CULLED_BOUNDING_SPHERE : Scene.CULLED_BOUNDING_BOX, drawable);
                 }
             }
+        }
+
+        public virtual void DebugGeometryAddTo(RenderContext renderContext)
+        {
+            if (ShowFrustum && frustumGeo != null)
+            {
+                // frustum
+                renderContext.AddToBin(Scene.FRUSTUM, frustumGeo);
+            }
+            if (ShowFrustumBoundingSphere && frustumBoundingSphereGeo != null)
+            {
+                // frustum bounding sphere
+                renderContext.AddToBin(Scene.BOUNDING_SPHERE, frustumBoundingSphereGeo);
+            }
+            if (ShowFrustumBoundingBox && frustumBoundingBoxGeo != null)
+            {
+                // frustum bounding box
+                renderContext.AddToBin(Scene.BOUNDING_BOX, frustumBoundingBoxGeo);
+            }
+
+            if (ShowSceneBoundingBox && sceneBoundingBoxGeo != null)
+            {
+                // scene bounding box
+                renderContext.AddToBin(Scene.BOUNDING_BOX, sceneBoundingBoxGeo);
+            }           
+        }
+
+        protected virtual internal void DebugGeometryUpdate()
+        {
+            if (ShowFrustum)
+            {
+                // camera frustum 
+                // geometry node is rebuilt on each update!
+                frustumGeo?.Dispose();
+                frustumGeo = GeometryUtil.CreateFrustum("FRUSTUM", CullCamera.BoundingFrustum);
+                frustumGeo.RenderGroupId = Scene.FRUSTUM;
+                frustumGeo.Initialize(GraphicsDevice);
+            }
+            if (ShowFrustumBoundingSphere)
+            {
+                // camera frustum bounding sphere
+                if (frustumBoundingSphereGeo == null)
+                {
+                    frustumBoundingSphereGeo = GeometryUtil.CreateGeodesicWF("FRUSTUM_BOUNDING_SPHERE", 1);
+                    frustumBoundingSphereGeo.Initialize(GraphicsDevice);
+                }
+                frustumBoundingSphereGeo.BoundingVolume = CullCamera.BoundingSphere;
+                frustumBoundingSphereGeo.WorldBoundingVolume = CullCamera.BoundingSphere;
+            }
+            if (ShowFrustumBoundingBox)
+            {
+                // camera frustum bounding box
+                if (frustumBoundingBoxGeo == null)
+                {
+                    frustumBoundingBoxGeo = GeometryUtil.CreateCubeWF("FRUSTUM_BOUNDING_BOX", 1);
+                    frustumBoundingBoxGeo.Initialize(GraphicsDevice);
+                }
+
+                // FIXME garbage (need to manage bb in camera (like bs)
+                Bounding.BoundingBox frustumBoundingBox = new Bounding.BoundingBox();
+                Vector3[] corners = new Vector3[BoundingFrustum.CornerCount];
+                CullCamera.BoundingFrustum.GetCorners(corners);
+                frustumBoundingBox.ComputeFromPoints(corners);
+
+                frustumBoundingBoxGeo.BoundingVolume = frustumBoundingBox;
+                frustumBoundingBoxGeo.WorldBoundingVolume = frustumBoundingBox;
+            }
+            if (ShowSceneBoundingBox)
+            {
+                // scene bounding box
+                if (sceneBoundingBoxGeo == null)
+                {
+                    sceneBoundingBoxGeo = GeometryUtil.CreateCubeWF("SCENE_BOUNDING_BOX", 1);
+                    sceneBoundingBoxGeo.Initialize(GraphicsDevice);
+                }
+
+                sceneBoundingBoxGeo.BoundingVolume = sceneBoundingBox;
+                sceneBoundingBoxGeo.WorldBoundingVolume = sceneBoundingBox;
+            }
+            RequestRedraw();
+        }
+
+        protected virtual internal void DebugGeometryDispose()
+        {
+            frustumGeo?.Dispose();
+            frustumGeo = null;
+
+            frustumBoundingSphereGeo?.Dispose();
+            frustumBoundingSphereGeo = null;
+
+            frustumBoundingBoxGeo?.Dispose();
+            frustumBoundingBoxGeo = null;
+
+            sceneBoundingBoxGeo?.Dispose();
+            sceneBoundingBoxGeo = null;
         }
 
     }

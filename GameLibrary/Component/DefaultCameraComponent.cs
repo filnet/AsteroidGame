@@ -369,6 +369,14 @@ namespace GameLibrary.Component.Camera
             direction.Y = 0.0f;
             direction.Z = 0.0f;
 
+            float dz;
+            if ((dz = GetMouseWheelValueDelta()) != 0.0f)
+            {
+                //direction. = 1 * dz * mouseWheelSpeed;
+                //direction.Z = 1 * dz * mouseWheelSpeed;
+                direction = ViewMatrix.Forward * dz * 25;
+            }
+
             if (currentKeyboardState.IsKeyDown(actionKeys[Actions.MoveForwardsPrimary]) ||
                 currentKeyboardState.IsKeyDown(actionKeys[Actions.MoveForwardsAlternate]))
             {
@@ -546,6 +554,11 @@ namespace GameLibrary.Component.Camera
         private float GetMouseWheelDirection()
         {
             return (float)cage.deltaWheel;
+        }
+
+        private float GetMouseWheelValueDelta()
+        {
+            return (float)cage.deltaWheelValue;
         }
 
         /// <summary>
@@ -857,7 +870,6 @@ namespace GameLibrary.Component.Camera
             float dy = 0.0f;
             float dz = 0.0f;
 
-
             // TODO better integrate game pad...
             GamePadThumbSticks thumbSticks = currentGamePadState.ThumbSticks;
             GamePadTriggers triggers = currentGamePadState.Triggers;
@@ -889,6 +901,12 @@ namespace GameLibrary.Component.Camera
                         //Console.WriteLine(dx);
                         RotateSmoothly(dx * elapsed, dy * elapsed, 0.0f);
                     }
+
+                    /*if ((dz = GetMouseWheelValueDelta()) != 0.0f)
+                    {
+                        camera.Move(ZAxis, new Vector3(dz * mouseWheelSpeed / 25));
+                    }*/
+
                     //UpdatePosition(ref direction, elapsed);
                     break;
 
@@ -1215,6 +1233,7 @@ namespace GameLibrary.Component.Camera
         internal int deltaX;
         internal int deltaY;
         internal int deltaWheel;
+        internal int deltaWheelValue;
 
         private int savedMousePosX;
         private int savedMousePosY;
@@ -1270,6 +1289,7 @@ namespace GameLibrary.Component.Camera
                 deltaWheel = 1;
             else
                 deltaWheel = 0;
+            deltaWheelValue = currentWheelValue - previousWheelValue;
 
             if ((Math.Abs(centerX - currentMouseState.X) >= cageSize) || (Math.Abs(centerY - currentMouseState.Y) >= cageSize))
             {

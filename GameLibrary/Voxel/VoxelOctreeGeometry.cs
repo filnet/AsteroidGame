@@ -22,7 +22,6 @@ namespace GameLibrary.Voxel
         {
             voxelOctree = new VoxelOctree(size, chunkSize);
             voxelOctree.objectLoadedCallback = CB;
-
         }
 
         private void CB()

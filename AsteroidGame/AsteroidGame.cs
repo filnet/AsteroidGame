@@ -34,6 +34,10 @@ namespace AsteroidGame
         private GroupNode bulletGroupNode;
         private GroupNode asteroidGroupNode;
 
+        bool DebugWindowEnabled = true;
+        Thread t;
+        WpfControlWindow wnd;
+
         public static AsteroidGame Instance()
         {
             return instance;
@@ -45,30 +49,32 @@ namespace AsteroidGame
             instance = this;
         }
 
-        Thread t;
-        WpfControlWindow wnd;
-
         protected override void Initialize()
         {
             base.Initialize();
-            t = new Thread((ThreadStart)delegate
+            if (DebugWindowEnabled)
             {
-                wnd = new WpfControlWindow();
+                t = new Thread((ThreadStart)delegate
+                {
+                    wnd = new WpfControlWindow();
                 // Do stuff here, e.g. to the window
                 //wnd.Title = "Something else";
                 //wnd.setSelected(Scene.CameraComponent);
-                wnd.setSelected(Scene.renderContext);
+                wnd.setSelected(Scene.RenderContext);
                 // Show the window
                 wnd.ShowDialog();
-            });
-            t.SetApartmentState(ApartmentState.STA);
-            t.Start();
+                });
+                t.SetApartmentState(ApartmentState.STA);
+                t.Start();
+            }
         }
 
         protected override void Dispose(bool disposing)
         {
-            t.Abort();
-
+            if (t != null)
+            {
+                t.Abort();
+            }
             base.Dispose(disposing);
         }
 
@@ -321,7 +327,12 @@ namespace AsteroidGame
             LightNode sunNode = new LightNode("LIGHT_SUN");
             sunNode.Translation = new Vector3(1, 1, 1);
 
+            GeometryNode sphereGeo = GeometryUtil.CreateSphere("SPHERE", 2);
+            sphereGeo.RenderGroupId = Scene.ONE_LIGHT;
+            sphereGeo.Translation = new Vector3(2, 6, 2);
+
             sceneNode.Add(sunNode);
+            sunNode.Add(sphereGeo);
             sunNode.Add(voxelOctreeNode);
 
             return sceneNode;

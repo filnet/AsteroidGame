@@ -165,8 +165,9 @@ namespace GameLibrary
             if (host != null)
             {
                 host.RegisterCommand("t", "Toggle an option", this.ToggleOptionCommandExecute);
-                host.RegisterCommand("s", "Show options", this.ShowOptionsCommandExecute);
-                host.RegisterCommand("d", "Dump scene", this.SceneCommandExecute);
+                host.RegisterCommand("v", "Viewpoint", this.ViewpointCommandExecute);
+                host.RegisterCommand("d", "Dump scene", this.DumpSceneCommandExecute);
+                host.RegisterCommand("s", "SwitchScene", this.SwitchSceneCommandExecute);
                 //this.Visible = true;
             }
 
@@ -338,16 +339,19 @@ namespace GameLibrary
                         Scene.Debug = !Scene.Debug;
                         break;
                     case "bv":
-                        Scene.ShowBoundingVolumes = !Scene.ShowBoundingVolumes;
+                        Scene.RenderContext.ShowBoundingVolumes = !Scene.RenderContext.ShowBoundingVolumes;
                         break;
                     case "cbv":
-                        Scene.ShowCulledBoundingVolumes = !Scene.ShowCulledBoundingVolumes;
+                        Scene.RenderContext.ShowCulledBoundingVolumes = !Scene.RenderContext.ShowCulledBoundingVolumes;
                         break;
                     case "c":
-                        Scene.ShowCollisionVolumes = !Scene.ShowCollisionVolumes;
+                        Scene.RenderContext.ShowCollisionVolumes = !Scene.RenderContext.ShowCollisionVolumes;
                         break;
                     case "f":
-                        Scene.ShowFrustum = !Scene.ShowFrustum;
+                        Scene.RenderContext.ShowFrustum = !Scene.RenderContext.ShowFrustum;
+                        break;
+                    case "s":
+                        Scene.ShowStats = !Scene.ShowStats;
                         break;
                     case "cf":
                         Scene.CaptureFrustum = !Scene.CaptureFrustum;
@@ -358,7 +362,7 @@ namespace GameLibrary
             }
         }
 
-        void ShowOptionsCommandExecute(IDebugCommandHost host, string command, IList<string> arguments)
+        void ViewpointCommandExecute(IDebugCommandHost host, string command, IList<string> arguments)
         {
             char[] subArgSeparator = new[] { ':' };
             foreach (string orgArg in arguments)
@@ -367,33 +371,11 @@ namespace GameLibrary
                 string[] subargs = arg.Split(subArgSeparator);
                 switch (subargs[0])
                 {
-                    case "on":
-                        Scene.ShowFrustum = true;
+                    case "s":
+                        Scene.ViewpointScene();
                         break;
-                    case "off":
-                        Scene.ShowFrustum = false;
-                        break;
-                    case "reset":
-                        //ResetLog();
-                        break;
-                    case "log":
-                        //if (subargs.Length > 1)
-                        //{
-                        //    if (String.Compare(subargs[1], "on") == 0)
-                        //        ShowLog = true;
-                        //    if (String.Compare(subargs[1], "off") == 0)
-                        //        ShowLog = false;
-                        //}
-                        //else
-                        //{
-                        //    ShowLog = !ShowLog;
-                        //}
-                        break;
-                    case "frame":
-                        //int a = Int32.Parse(subargs[1]);
-                        //a = Math.Max(a, 1);
-                        //a = Math.Min(a, MaxSampleFrames);
-                        //TargetSampleFrames = a;
+                    case "l":
+                        Scene.ViewpointLight();
                         break;
                     case "/?":
                     case "--help":
@@ -406,34 +388,18 @@ namespace GameLibrary
                         break;
                 }
             }
-            Scene.CaptureFrustum = true;
         }
 
-
-        void SceneCommandExecute(IDebugCommandHost host, string command, IList<string> arguments)
+        void DumpSceneCommandExecute(IDebugCommandHost host, string command, IList<string> arguments)
         {
-            if (arguments.Count == 0)
-            {
-                Scene.Dump();
-                NextScene();
-                Scene.Dump();
-                return;
-            }
-
-            char[] subArgSeparator = new[] { ':' };
-            foreach (string orgArg in arguments)
-            {
-                string arg = orgArg.ToLower();
-                string[] subargs = arg.Split(subArgSeparator);
-                switch (subargs[0])
-                {
-                    case "d":
-                        Scene.Dump();
-                        break;
-                }
-            }
             Scene.Dump();
         }
+
+        void SwitchSceneCommandExecute(IDebugCommandHost host, string command, IList<string> arguments)
+        {
+            NextScene();
+        }
+
     }
 
     class CustomControlComponent : InputController

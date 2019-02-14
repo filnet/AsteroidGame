@@ -21,11 +21,11 @@ namespace GameLibrary.Component.Camera
 
         public virtual Matrix InverseViewProjectionMatrix => throw new NotImplementedException();
 
-        public Vector3 XAxis => throw new NotImplementedException();
+        public virtual Vector3 XAxis => throw new NotImplementedException();
 
-        public Vector3 YAxis => throw new NotImplementedException();
+        public virtual Vector3 YAxis => throw new NotImplementedException();
 
-        public Vector3 ZAxis => throw new NotImplementedException();
+        public virtual Vector3 ZAxis => throw new NotImplementedException();
 
         public virtual BoundingFrustum BoundingFrustum => throw new NotImplementedException();
 

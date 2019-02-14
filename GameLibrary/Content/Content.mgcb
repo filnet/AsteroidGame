@@ -31,6 +31,27 @@
 /processorParam:DebugMode=Auto
 /build:Effects/ClippingEffect.fx
 
+#begin Effects/ShadowCascadeEffect.fx
+/importer:EffectImporter
+/processor:EffectProcessor
+/processorParam:DebugMode=Auto
+/build:Effects/ShadowCascadeEffect.fx
+
+#begin Effects/ShadowCascadeGS.hlsl
+/copy:Effects/ShadowCascadeGS.hlsl
+
+#begin Effects/ShadowEffect.fx
+/importer:EffectImporter
+/processor:EffectProcessor
+/processorParam:DebugMode=Auto
+/build:Effects/ShadowEffect.fx
+
+#begin Effects/ShadowMapEffect.fx
+/importer:EffectImporter
+/processor:EffectProcessor
+/processorParam:DebugMode=Auto
+/build:Effects/ShadowMapEffect.fx
+
 #begin Effects/VoxelEffect.fx
 /importer:EffectImporter
 /processor:EffectProcessor

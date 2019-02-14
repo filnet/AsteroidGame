@@ -9,7 +9,12 @@ Project("{D954291E-2A0B-460D-934E-DC6B0785DB48}") = "GameLibrary", "GameLibrary\
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "WpfLibrary", "WpfLibrary\WpfLibrary.csproj", "{4EBBF215-ED29-4D70-942C-C1B5101BBF9D}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "MonoGame.Framework.Windows", "..\MonoGame\MonoGame.Framework\MonoGame.Framework.Windows.csproj", "{7DE47032-A904-4C29-BD22-2D235E8D91BA}"
+EndProject
 Global
+	GlobalSection(Performance) = preSolution
+		HasPerformanceSessions = true
+	EndGlobalSection
 	GlobalSection(SharedMSBuildProjectFiles) = preSolution
 		GameLibrary\GameLibrary.projitems*{6db66302-2dec-4263-92f9-ac0906fc8fac}*SharedItemsImports = 4
 		GameLibrary\GameLibrary.projitems*{817cfffb-c78b-4bb6-a2d9-00e3818f85c2}*SharedItemsImports = 13
@@ -36,6 +41,14 @@ Global
 		{4EBBF215-ED29-4D70-942C-C1B5101BBF9D}.Release|Any CPU.Build.0 = Release|Any CPU
 		{4EBBF215-ED29-4D70-942C-C1B5101BBF9D}.Release|x86.ActiveCfg = Release|Any CPU
 		{4EBBF215-ED29-4D70-942C-C1B5101BBF9D}.Release|x86.Build.0 = Release|Any CPU
+		{7DE47032-A904-4C29-BD22-2D235E8D91BA}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{7DE47032-A904-4C29-BD22-2D235E8D91BA}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{7DE47032-A904-4C29-BD22-2D235E8D91BA}.Debug|x86.ActiveCfg = Debug|Any CPU
+		{7DE47032-A904-4C29-BD22-2D235E8D91BA}.Debug|x86.Build.0 = Debug|Any CPU
+		{7DE47032-A904-4C29-BD22-2D235E8D91BA}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{7DE47032-A904-4C29-BD22-2D235E8D91BA}.Release|Any CPU.Build.0 = Release|Any CPU
+		{7DE47032-A904-4C29-BD22-2D235E8D91BA}.Release|x86.ActiveCfg = Release|Any CPU
+		{7DE47032-A904-4C29-BD22-2D235E8D91BA}.Release|x86.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

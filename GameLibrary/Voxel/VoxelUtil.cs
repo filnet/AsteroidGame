@@ -70,7 +70,6 @@ namespace GameLibrary.Voxel
         public static VoxelShadowEffect CreateVoxelShadowEffect(GraphicsDevice gd)
         {
             VoxelShadowEffect effect = new VoxelShadowEffect(gd);
-
             return effect;
         }
 

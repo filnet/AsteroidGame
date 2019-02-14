@@ -1,4 +1,5 @@
-﻿using Microsoft.Xna.Framework;
+﻿using GameLibrary.Component.Util;
+using Microsoft.Xna.Framework;
 using System;
 
 namespace GameLibrary.Component.Camera
@@ -27,7 +28,9 @@ namespace GameLibrary.Component.Camera
 
         public const float DEFAULT_FOVX = MathHelper.Pi / 3.0f;
         public const float DEFAULT_ZNEAR = 0.1f;
-        public const float DEFAULT_ZFAR = 100;
+        public const float DEFAULT_ZFAR = 50;
+        //public const float DEFAULT_ZFAR = 125.5375f;
+        //public const float DEFAULT_ZFAR = 1000;
 
         public const float DEFAULT_ORBIT_MIN_ZOOM = DEFAULT_ZNEAR + 1.0f;
         public const float DEFAULT_ORBIT_MAX_ZOOM = DEFAULT_ZFAR * 0.5f;
@@ -956,7 +959,7 @@ namespace GameLibrary.Component.Camera
             {
                 if (frustumDirty)
                 {
-                    xxx();
+                    UpdateBounding();
                 }
                 return boundingFrustum;
             }
@@ -968,7 +971,7 @@ namespace GameLibrary.Component.Camera
             {
                 if (frustumDirty)
                 {
-                    xxx();
+                    UpdateBounding();
                 }
                 return boundingSphere;
             }
@@ -976,13 +979,22 @@ namespace GameLibrary.Component.Camera
 
         #endregion
 
-        private void xxx()
+        private void UpdateBounding()
+        {
+            UpdateBoundingFrustum();
+            UpdateBoundingSphere();
+        }
+
+        private void UpdateBoundingFrustum()
         {
             // FIXME: garbage
             boundingFrustum = new BoundingFrustum(ViewProjectionMatrix);
 
             boundingFrustum.GetCorners(frustumCorners);
+        }
 
+        private void UpdateBoundingSphere()
+        {
             Vector3 center;
             float radius;
             if (false)
@@ -1009,8 +1021,7 @@ namespace GameLibrary.Component.Camera
                 for (int i = 0; i < frustumCorners.Length; i++)
                 {
                     Vector3 v = frustumCorners[i] - center;
-                    float dist = v.Length();
-                    radius = Math.Max(dist, radius);
+                    radius = Math.Max(v.Length(), radius);
                 }
             }
             else if (true)
@@ -1042,19 +1053,20 @@ namespace GameLibrary.Component.Camera
                 double r;
                 if (k2 >= ((f - n) / (f + n)))
                 {
-                    z = -f;
+                    z = f;
                     r = f * k;
                 }
                 else
                 {
-                    z = -(f + n) * (1.0f + k2) / 2;
+                    z = (f + n) * (1.0f + k2) / 2;
                     r = Math.Sqrt((f - n) * (f - n) + 2 * (f * f + n * n) * k2 + (f + n) * (f + n) * k2 * k2) / 2;
                 }
 
                 Vector3 nearFaceCenter = (frustumCorners[0] + frustumCorners[2]) / 2;
                 Vector3 farFaceCenter = (frustumCorners[4] + frustumCorners[6]) / 2;
+                Vector3 dir = Vector3.Normalize(farFaceCenter - nearFaceCenter);
 
-                center = nearFaceCenter - Vector3.Normalize(farFaceCenter - nearFaceCenter) * (float)z;
+                center = nearFaceCenter + dir * (float)z;
                 radius = (float)r;
             }
             else
@@ -1067,7 +1079,27 @@ namespace GameLibrary.Component.Camera
             boundingSphere.Radius = radius;
 
             frustumDirty = false;
+
+            ComputeShadowMapCascade();
+        }
+
+        private void ComputeShadowMapCascade()
+        {
+            //Console.WriteLine("split");
+            float n = znear;
+            float f = zfar;
+            float weight = 0.22f;
+            int splitCount = 4;
+            for (int i = 0; i < splitCount; ++i)
+            {
+                float p = (float)i / splitCount;
+                float cLog = n * (float)Math.Pow(f / n, p);
+                float cLin = MathUtil.Lerp(n, f, p);
+                float split = MathUtil.Lerp(cLog, cLin, weight);
+                //Console.WriteLine(split);
+            }
         }
     }
-
 }
+
+

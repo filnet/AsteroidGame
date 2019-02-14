@@ -14,40 +14,21 @@ namespace GameLibrary.SceneGraph
             set => throw new NotImplementedException();
         }
 
-        public override Vector3 ViewDirection
-        {
-            get { return viewDirection; }
-        }
+        public override Vector3 ViewDirection { get { return viewDirection; } }
 
-        public override Matrix ProjectionMatrix
-        {
-            get { return projectionMatrix; }
-        }
+        public override Vector3 YAxis { get { return viewMatrix.Up; } }
 
-        public override Matrix ViewMatrix
-        {
-            get { return viewMatrix; }
-        }
+        public override Matrix ProjectionMatrix { get { return projectionMatrix; } }
 
-        public override Matrix ViewProjectionMatrix
-        {
-            get { return viewProjectionMatrix; }
-        }
+        public override Matrix ViewMatrix { get { return viewMatrix; } }
 
-        public override Matrix InverseViewProjectionMatrix
-        {
-            get { return inverseViewProjectionMatrix; }
-        }
+        public override Matrix ViewProjectionMatrix { get { return viewProjectionMatrix; } }
 
-        public override BoundingFrustum BoundingFrustum
-        {
-            get { return boundingFrustum; }
-        }
+        public override Matrix InverseViewProjectionMatrix { get { return inverseViewProjectionMatrix; } }
 
-        public override Bounding.BoundingSphere BoundingSphere
-        {
-            get { return boundingSphere; }
-        }
+        public override BoundingFrustum BoundingFrustum { get { return boundingFrustum; } }
+
+        public override Bounding.BoundingSphere BoundingSphere { get { return boundingSphere; } }
 
         private readonly Vector3 position;
         private readonly Vector3 viewDirection;
@@ -69,7 +50,7 @@ namespace GameLibrary.SceneGraph
             projectionMatrix = camera.ProjectionMatrix;
             viewProjectionMatrix = camera.ViewProjectionMatrix;
             inverseViewProjectionMatrix = camera.InverseViewProjectionMatrix;
-                       
+
             boundingFrustum = camera.BoundingFrustum;
             boundingSphere = camera.BoundingSphere;
         }
