@@ -96,8 +96,8 @@ namespace GameLibrary.SceneGraph
 
             if (effectMatrices != null)
             {
-                effectMatrices.Projection = rc.Camera.ProjectionMatrix;
-                effectMatrices.View = rc.Camera.ViewMatrix;
+                effectMatrices.Projection = rc.RenderCamera.ProjectionMatrix;
+                effectMatrices.View = rc.RenderCamera.ViewMatrix;
             }
 
             foreach (EffectPass pass in effect.CurrentTechnique.Passes)
@@ -175,8 +175,8 @@ namespace GameLibrary.SceneGraph
 
             if (effectMatrices != null)
             {
-                effectMatrices.Projection = rc.Camera.ProjectionMatrix;
-                effectMatrices.View = rc.Camera.ViewMatrix;
+                effectMatrices.Projection = rc.RenderCamera.ProjectionMatrix;
+                effectMatrices.View = rc.RenderCamera.ViewMatrix;
             }
 
             Matrix worldMatrix;
@@ -393,8 +393,8 @@ namespace GameLibrary.SceneGraph
 
             if (effectMatrices != null)
             {
-                effectMatrices.Projection = rc.Camera.ProjectionMatrix;
-                effectMatrices.View = rc.Camera.ViewMatrix;
+                effectMatrices.Projection = rc.RenderCamera.ProjectionMatrix;
+                effectMatrices.View = rc.RenderCamera.ViewMatrix;
                 effectMatrices.World = Matrix.Identity;
             }
 
@@ -424,11 +424,21 @@ namespace GameLibrary.SceneGraph
         {
             RasterizerState = RasterizerState.CullNone;
             BlendState = BlendState.AlphaBlend;
+            /*
+            BlendState = BlendState.Additive;
+            BlendState blendState = new BlendState();
+            blendState.ColorBlendFunction = BlendFunction.Add;
+            blendState.AlphaSourceBlend = Blend.Zero;
+            blendState.AlphaDestinationBlend = Blend.SourceColor;
+            BlendState = blendState;
+            */
             // TODO there is no need to disable depth write if the transparent is Z sorted
-            //DepthStencilState depthState = new DepthStencilState();
-            //depthState.DepthBufferEnable = true;
-            //depthState.DepthBufferWriteEnable = false;
-            //DepthStencilState = depthState;
+            /*
+            DepthStencilState depthState = new DepthStencilState();
+            depthState.DepthBufferEnable = true;
+            depthState.DepthBufferWriteEnable = false;
+            DepthStencilState = depthState;
+            */
         }
     }
 
@@ -470,8 +480,8 @@ namespace GameLibrary.SceneGraph
 
             if (effectMatrices != null)
             {
-                effectMatrices.Projection = rc.Camera.ProjectionMatrix;
-                effectMatrices.View = rc.Camera.ViewMatrix;
+                effectMatrices.Projection = rc.RenderCamera.ProjectionMatrix;
+                effectMatrices.View = rc.RenderCamera.ViewMatrix;
             }
 
             foreach (EffectPass pass in effect.CurrentTechnique.Passes)
@@ -514,8 +524,8 @@ namespace GameLibrary.SceneGraph
 
             if (effectMatrices != null)
             {
-                effectMatrices.Projection = rc.Camera.ProjectionMatrix;
-                effectMatrices.View = rc.Camera.ViewMatrix;
+                effectMatrices.Projection = rc.RenderCamera.ProjectionMatrix;
+                effectMatrices.View = rc.RenderCamera.ViewMatrix;
                 effectMatrices.World = Matrix.Identity;
             }
 
@@ -545,6 +555,7 @@ namespace GameLibrary.SceneGraph
     {
         public ShadowCascadeRenderer(StockEffects.ShadowCascadeEffect effect) : base(effect)
         {
+            RasterizerState.ScissorTestEnable = true;
         }
 
         public override void Render(RenderContext rc, List<Drawable> drawableList)
@@ -553,10 +564,14 @@ namespace GameLibrary.SceneGraph
             rc.GraphicsDevice.DepthStencilState = DepthStencilState;
             rc.GraphicsDevice.RasterizerState = RasterizerState;
 
+            LightRenderContext lrc = rc as LightRenderContext;
+            LightCamera lightCamera = lrc.CullCamera as LightCamera;
+            rc.GraphicsDevice.ScissorRectangle = lightCamera.ScissorRectangle;
+
             if (effectMatrices != null)
             {
-                effectMatrices.Projection = rc.Camera.ProjectionMatrix;
-                effectMatrices.View = rc.Camera.ViewMatrix;
+                effectMatrices.Projection = rc.RenderCamera.ProjectionMatrix;
+                effectMatrices.View = rc.RenderCamera.ViewMatrix;
             }
 
             foreach (EffectPass pass in effect.CurrentTechnique.Passes)
@@ -599,6 +614,7 @@ namespace GameLibrary.SceneGraph
     {
         public VoxelShadowCascadeRenderer(StockEffects.ShadowCascadeEffect effect) : base(effect)
         {
+            RasterizerState.ScissorTestEnable = true;
         }
 
         public override void Render(RenderContext rc, List<Drawable> drawableList)
@@ -607,10 +623,14 @@ namespace GameLibrary.SceneGraph
             rc.GraphicsDevice.DepthStencilState = DepthStencilState;
             rc.GraphicsDevice.RasterizerState = RasterizerState;
 
+            LightRenderContext lrc = rc as LightRenderContext;
+            LightCamera lightCamera = lrc.CullCamera as LightCamera;
+            rc.GraphicsDevice.ScissorRectangle = lightCamera.ScissorRectangle;
+
             if (effectMatrices != null)
             {
-                effectMatrices.Projection = rc.Camera.ProjectionMatrix;
-                effectMatrices.View = rc.Camera.ViewMatrix;
+                effectMatrices.Projection = rc.RenderCamera.ProjectionMatrix;
+                effectMatrices.View = rc.RenderCamera.ViewMatrix;
                 effectMatrices.World = Matrix.Identity;
             }
 

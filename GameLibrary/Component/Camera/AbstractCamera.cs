@@ -27,6 +27,8 @@ namespace GameLibrary.Component.Camera
 
         public virtual Vector3 ZAxis => throw new NotImplementedException();
 
+        public virtual int VisitOrder => throw new NotImplementedException();
+
         public virtual BoundingFrustum BoundingFrustum => throw new NotImplementedException();
 
         public virtual SceneGraph.Bounding.BoundingSphere BoundingSphere => throw new NotImplementedException();

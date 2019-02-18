@@ -26,6 +26,8 @@ namespace GameLibrary.SceneGraph
 
         public override Matrix InverseViewProjectionMatrix { get { return inverseViewProjectionMatrix; } }
 
+        public override int VisitOrder { get { return visitOrder; } }
+
         public override BoundingFrustum BoundingFrustum { get { return boundingFrustum; } }
 
         public override Bounding.BoundingSphere BoundingSphere { get { return boundingSphere; } }
@@ -37,6 +39,8 @@ namespace GameLibrary.SceneGraph
         private readonly Matrix projectionMatrix;
         private readonly Matrix viewProjectionMatrix;
         private readonly Matrix inverseViewProjectionMatrix;
+
+        private readonly int visitOrder;
 
         private readonly BoundingFrustum boundingFrustum;
         private readonly Bounding.BoundingSphere boundingSphere;
@@ -50,6 +54,8 @@ namespace GameLibrary.SceneGraph
             projectionMatrix = camera.ProjectionMatrix;
             viewProjectionMatrix = camera.ViewProjectionMatrix;
             inverseViewProjectionMatrix = camera.InverseViewProjectionMatrix;
+
+            visitOrder = camera.VisitOrder;
 
             boundingFrustum = camera.BoundingFrustum;
             boundingSphere = camera.BoundingSphere;

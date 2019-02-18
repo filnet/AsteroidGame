@@ -20,27 +20,33 @@ namespace GameLibrary.SceneGraph
 
         public override Matrix InverseViewProjectionMatrix { get { return invViewProjectionMatrix; } }
 
+        public override int VisitOrder { get { return visitOrder; } }
+
         public override BoundingFrustum BoundingFrustum { get { return boundingFrustum; } }
 
-        private Vector3 lightPosition;
+        public Vector3 lightPosition;
         public Vector3 lightDirection;
 
-        private Matrix viewMatrix;
-        private Matrix projectionMatrix;
-        private Matrix viewProjectionMatrix;
+        public Matrix viewMatrix;
+        public Matrix projectionMatrix;
+        public Matrix viewProjectionMatrix;
 
-        private Matrix invViewProjectionMatrix;
+        public Matrix invViewProjectionMatrix;
 
-        private BoundingFrustum boundingFrustum;
+        public int visitOrder;
 
-        private Bounding.BoundingBox frustumBoundingBoxLS;
+        public BoundingFrustum boundingFrustum;
 
-        public Bounding.BoundingSphere bs;
+        public Bounding.BoundingBox frustumBoundingBoxLS;
+
+        public Rectangle ScissorRectangle;
+
+        //public Bounding.BoundingSphere frustumBoundSphere;
 
         public LightCamera() : base()
         {
             frustumBoundingBoxLS = new Bounding.BoundingBox();
-            bs = new Bounding.BoundingSphere();
+            //frustumBoundSphere = new Bounding.BoundingSphere();
         }
 
         // Think of light's orthographic frustum as a bounding box that encloses all objects visible by the camera,
@@ -132,7 +138,7 @@ namespace GameLibrary.SceneGraph
         }
 
         // see https://www.gamedev.net/forums/topic/591684-xna-40---shimmering-shadow-maps/
-        public void FitToViewStable(RenderContext renderContext, float nearClipOffset)
+        public void FitToViewStable(SceneRenderContext renderContext, float nearClipOffset)
         {
             int shadowMapSize = 2048;
 
@@ -220,6 +226,10 @@ namespace GameLibrary.SceneGraph
                     minZ = Math.Min(minZ, z);
                     maxZ = Math.Max(maxZ, z);
                 }
+                // FIXME..
+                frustumBoundingBoxLS.ComputeFromPoints(frustumCornersLS);
+                //Console.WriteLine(frustumBoundingBoxLS);
+
 
                 // fit Z to scene ?
                 if (fitToScene)
@@ -268,9 +278,8 @@ namespace GameLibrary.SceneGraph
             invViewProjectionMatrix = Matrix.Invert(viewProjectionMatrix);
             boundingFrustum = new BoundingFrustum(viewProjectionMatrix);
 
-            bs.Center = center;
-            bs.Radius = radius;
-            //bs.Radius /= 100;
+            //frustumBoundSphere.Center = center;
+            //frustumBoundSphere.Radius = radius;
         }
 
         public void FitToScene(BoundingFrustum cameraBoundingFrustum, Bounding.BoundingBox sceneBoundingBox, float nearPlaneOffset)

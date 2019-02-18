@@ -1188,6 +1188,11 @@ namespace GameLibrary.Component.Camera
             get { return camera.InverseViewProjectionMatrix; }
         }
 
+        public int VisitOrder
+        {
+            get { return camera.VisitOrder; }
+        }
+
         public BoundingFrustum BoundingFrustum
         {
             get { return camera.BoundingFrustum; }

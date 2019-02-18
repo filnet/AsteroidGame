@@ -12,10 +12,19 @@ namespace GameLibrary.SceneGraph
     {
         #region Properties
 
-        //[Category("Camera")]
-        public override Camera CullCamera
+        public int LightCount
         {
-            get { return cullCamera; }
+            get { return lightNodes.Count; }
+        }
+
+        public Camera LightCamera(int index)
+        {
+            return LightRenderContext(index).RenderCamera;
+        }
+
+        public LightRenderContext LightRenderContext(int index)
+        {
+            return lightRenderContextes[index];
         }
 
         [Category("Shadows")]
@@ -101,11 +110,9 @@ namespace GameLibrary.SceneGraph
 
         #endregion
 
-        private Camera cullCamera;
-
         // lights
-        public readonly List<LightNode> lightNodes;
-        public readonly List<LightRenderContext> lightRenderContextes;
+        private readonly List<LightNode> lightNodes;
+        private readonly List<LightRenderContext> lightRenderContextes;
 
         // shadows
         private bool shadowsEnabled;
@@ -130,7 +137,7 @@ namespace GameLibrary.SceneGraph
             lightRenderContextes = new List<LightRenderContext>(1);
 
             shadowsEnabled = true;
-            showShadowMap = false;
+            showShadowMap = true;
 
             DebugGeometryUpdate();
         }
@@ -170,41 +177,14 @@ namespace GameLibrary.SceneGraph
             if (index >= lightRenderContextes.Count)
             {
                 Console.WriteLine("Creating light render context");
-                Camera lightCamera = new LightCamera();
-                LightRenderContext rc = new LightRenderContext(GraphicsDevice, lightCamera);
-                rc.ShowShadowMap = showShadowMap;
-                lightRenderContextes.Add(rc);
-            }
-        }
+                LightCamera lightCamera = new LightCamera();
+                lightCamera.lightDirection = -lightNode.Translation;
+                lightCamera.lightDirection.Normalize();
 
-        public void CameraFreeze()
-        {
-            if (cameraFrozen) return;
-            cameraFrozen = true;
+                LightRenderContext lightRenderContext = new LightRenderContext(GraphicsDevice, lightCamera);
+                lightRenderContext.ShowShadowMap = showShadowMap;
 
-            cullCamera = new DebugCamera(camera);
-
-            // tweak camera zfar...
-            savedZFar = camera.ZFar;
-            camera.ZFar = 2000;
-        }
-
-        public void CameraUnfreeze()
-        {
-            if (!cameraFrozen) return;
-            cameraFrozen = false;
-
-            cullCamera = camera;
-            // TODO restore zfar!
-            camera.ZFar = savedZFar;
-        }
-
-        // TODO move elsewhere...
-        public override void UpdateCamera()
-        {
-            if (!cameraFrozen)
-            {
-                base.UpdateCamera();
+                lightRenderContextes.Add(lightRenderContext);
             }
         }
 
@@ -219,6 +199,28 @@ namespace GameLibrary.SceneGraph
                 CameraUnfreeze();
             }
             DebugGeometryUpdate();
+        }
+
+        private void CameraFreeze()
+        {
+            if (cameraFrozen) return;
+            cameraFrozen = true;
+
+            cullCamera = new DebugCamera(renderCamera);
+
+            // tweak camera zfar...
+            savedZFar = renderCamera.ZFar;
+            renderCamera.ZFar = 2000;
+        }
+
+        private void CameraUnfreeze()
+        {
+            if (!cameraFrozen) return;
+            cameraFrozen = false;
+
+            cullCamera = renderCamera;
+            // TODO restore zfar!
+            renderCamera.ZFar = savedZFar;
         }
 
         public override void ResetStats()
@@ -257,10 +259,10 @@ namespace GameLibrary.SceneGraph
         protected override internal void DebugGeometryUpdate()
         {
             base.DebugGeometryUpdate();
-            /*foreach (RenderContext context in lightRenderContextes)
+            foreach (RenderContext context in lightRenderContextes)
             {
                 context.DebugGeometryUpdate();
-            }*/
+            }
         }
 
         protected override internal void DebugGeometryDispose()

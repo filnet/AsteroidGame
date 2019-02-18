@@ -190,6 +190,11 @@ namespace GameLibrary.Component.Camera
             get;
         }
 
+        int VisitOrder
+        {
+            get;
+        }
+
         BoundingFrustum BoundingFrustum
         {
             get;

@@ -1,4 +1,5 @@
 ﻿using GameLibrary.Component;
+using GameLibrary.Component.Camera;
 using GameLibrary.Control;
 using GameLibrary.Geometry;
 using GameLibrary.SceneGraph.Bounding;
@@ -172,15 +173,22 @@ namespace GameLibrary.SceneGraph
 
         public void ViewpointScene()
         {
-            renderContext.Camera.LookAt(
+            renderContext.RenderCamera.LookAt(
                 renderContext.CullCamera.Position,
                 renderContext.CullCamera.Position + renderContext.CullCamera.ViewDirection,
-                renderContext.CullCamera.YAxis);
+                Vector3.Up /*renderContext.CullCamera.YAxis*/);
         }
 
         public void ViewpointLight()
         {
-
+            if (renderContext.LightCount > 0)
+            {
+                Camera lightCamera = renderContext.LightCamera(0);
+                renderContext.RenderCamera.LookAt(
+                    lightCamera.Position - lightCamera.ViewDirection * 100,
+                    lightCamera.Position + lightCamera.ViewDirection,
+                    Vector3.Up);
+            }
         }
 
         public void Update(GameTime gameTime)
@@ -209,8 +217,8 @@ namespace GameLibrary.SceneGraph
 
             bool cameraDirty = false;
             cameraDirty = cameraDirty || CaptureFrustum;
-            cameraDirty = cameraDirty || (!previousProjectionMatrix.Equals(renderContext.Camera.ProjectionMatrix));
-            cameraDirty = cameraDirty || (!previousViewMatrix.Equals(renderContext.Camera.ViewMatrix));
+            cameraDirty = cameraDirty || (!previousProjectionMatrix.Equals(renderContext.RenderCamera.ProjectionMatrix));
+            cameraDirty = cameraDirty || (!previousViewMatrix.Equals(renderContext.RenderCamera.ViewMatrix));
 
             // TODO implement sceneDirty (easy)
             // Octree should set it when needed
@@ -231,7 +239,6 @@ namespace GameLibrary.SceneGraph
                 if (CaptureFrustum)
                 {
                     CaptureFrustum = false;
-                    renderContext.UpdateCamera();
                     renderContext.CaptureFrustum();
                 }
 
@@ -240,10 +247,9 @@ namespace GameLibrary.SceneGraph
                     renderContext.ClearRedrawRequested();
                     if (cameraDirty)
                     {
-                        previousProjectionMatrix = renderContext.Camera.ProjectionMatrix;
-                        previousViewMatrix = renderContext.Camera.ViewMatrix;
+                        previousProjectionMatrix = renderContext.RenderCamera.ProjectionMatrix;
+                        previousViewMatrix = renderContext.RenderCamera.ViewMatrix;
                     }
-                    renderContext.UpdateCamera();
                 }
                 if (structureDirty)
                 {
@@ -254,32 +260,22 @@ namespace GameLibrary.SceneGraph
                 bool Stable = true;
                 bool FindOccluders = true;
 
-                // main camera culling
-
                 // FIXME most of the time nodes stay in the same render group
                 // so doing a clear + full reconstruct is not very efficient
                 // but RENDER_GROUP_VISITOR does the culling...
                 renderContext.Clear();
 
+                // view camera culling
                 renderContext.CullBegin();
                 rootNode.Visit(CULL_VISITOR, renderContext);
                 renderContext.CullEnd();
 
                 // light camera culling
-                // FIXME only last occluders BB and light frustum will be shown...
                 if (renderContext.ShadowsEnabled)
                 {
-                    LightRenderContext lightRenderContext = null;
-                    LightCamera lightCamera = null;
-
-                    for (int i = 0; i < renderContext.lightNodes.Count; i++)
+                    for (int i = 0; i < renderContext.LightCount; i++)
                     {
-                        LightNode lightNode = renderContext.lightNodes[i];
-                        lightRenderContext = renderContext.lightRenderContextes[i];
-                        lightCamera = lightRenderContext.CullCamera as LightCamera;
-
-                        lightCamera.lightDirection = -lightNode.Translation;
-                        lightCamera.lightDirection.Normalize();
+                        LightRenderContext lightRenderContext = renderContext.LightRenderContext(i);
 
                         // create initial light frustum
                         // if we are looking for occluders then push near plane outwards
@@ -288,18 +284,17 @@ namespace GameLibrary.SceneGraph
                         {
                             if (Stable)
                             {
-                                lightCamera.FitToViewStable(renderContext, nearClipOffset);
+                                lightRenderContext.FitToViewStable(renderContext, nearClipOffset);
                             }
                             else
                             {
-                                lightCamera.FitToView(renderContext.CullCamera.BoundingFrustum, nearClipOffset);
+                                //lightCamera.FitToView(renderContext.CullCamera.BoundingFrustum, nearClipOffset);
                             }
                         }
                         else
                         {
-                            lightCamera.FitToScene(renderContext.CullCamera.BoundingFrustum, renderContext.sceneBoundingBox, nearClipOffset);
+                            //lightCamera.FitToScene(renderContext.CullCamera.BoundingFrustum, renderContext.sceneBoundingBox, nearClipOffset);
                         }
-                        lightRenderContext.UpdateCamera();
 
                         if (FindOccluders)
                         {
@@ -319,18 +314,17 @@ namespace GameLibrary.SceneGraph
                             {
                                 if (Stable)
                                 {
-                                    lightCamera.FitToViewStable(renderContext, 0.0f);
+                                    lightRenderContext.FitToViewStable(renderContext, 0.0f);
                                 }
                                 else
                                 {
-                                    lightCamera.FitToView(renderContext.CullCamera.BoundingFrustum, 0.0f);
+                                    //lightCamera.FitToView(renderContext.CullCamera.BoundingFrustum, 0.0f);
                                 }
                             }
                             else
                             {
-                                lightCamera.FitToScene(renderContext.CullCamera.BoundingFrustum, renderContext.sceneBoundingBox, 0.0f);
+                                //lightCamera.FitToScene(renderContext.CullCamera.BoundingFrustum, renderContext.sceneBoundingBox, 0.0f);
                             }
-                            lightRenderContext.UpdateCamera();
                         }
                         else
                         {
@@ -346,23 +340,23 @@ namespace GameLibrary.SceneGraph
                                 }
                             }
                         }
-                    }
-                    // show occluder bounding boxes
-                    if (renderContext.ShowOccluders)
-                    {
-                        // TODO this a better approach than the one used for ShowBoundingVolumes (done in the CULL callback)
-                        // use this approach there too...
-                        foreach (KeyValuePair<int, List<Drawable>> renderBinKVP in lightRenderContext.renderBins)
+                        // debugging: show occluder bounding boxes
+                        if (renderContext.ShowOccluders)
                         {
-                            int renderBinId = renderBinKVP.Key;
-                            List<Drawable> drawableList = renderBinKVP.Value;
-                            renderContext.AddToBin(OCCLUDER_BOUNDING_BOX, drawableList);
+                            // TODO this a better approach than the one used for ShowBoundingVolumes (done in the CULL callback)
+                            // use this approach there too...
+                            foreach (KeyValuePair<int, List<Drawable>> renderBinKVP in lightRenderContext.renderBins)
+                            {
+                                int renderBinId = renderBinKVP.Key;
+                                List<Drawable> drawableList = renderBinKVP.Value;
+                                renderContext.AddToBin(OCCLUDER_BOUNDING_BOX, drawableList);
+                            }
                         }
                     }
-                }
 
-                // debug geometry
-                renderContext.DebugGeometryAddTo(renderContext);
+                    // debug geometry
+                    renderContext.DebugGeometryAddTo(renderContext);
+                }
             }
 
         }
@@ -372,17 +366,17 @@ namespace GameLibrary.SceneGraph
             if (renderContext.ShadowsEnabled)
             {
                 LightRenderContext lightRenderContext = null;
-                for (int i = 0; i < renderContext.lightNodes.Count; i++)
+                for (int i = 0; i < renderContext.LightCount; i++)
                 {
                     //LightNode lightNode = renderContext.lightNodes[i];
-                    lightRenderContext = renderContext.lightRenderContextes[i];
+                    lightRenderContext = renderContext.LightRenderContext(i);
 
                     Render(lightRenderContext, lightRenderContext.renderBins, renderers2);
 
                     // HACK
                     VoxelEffect voxelEffect = ((VoxelRenderer)renderers[VOXEL]).effect;
-                    voxelEffect.DirectionalLight0.Direction = lightRenderContext.CullCamera.ViewDirection;
-                    voxelEffect.LightWorldViewProj = lightRenderContext.CullCamera.ViewProjectionMatrix;
+                    voxelEffect.DirectionalLight0.Direction = lightRenderContext.RenderCamera.ViewDirection;
+                    voxelEffect.LightWorldViewProj = lightRenderContext.RenderCamera.ViewProjectionMatrix;
                     voxelEffect.ShadowMapTexture = lightRenderContext.RenderTarget;
                 }
             }
@@ -520,7 +514,7 @@ namespace GameLibrary.SceneGraph
                 {
                     voxelOctreeGeometry.voxelOctree.ClearLoadQueue();
                     voxelOctreeGeometry.voxelOctree.Visit(
-                        ctxt.VisitOrder, VOXEL_OCTREE_CULL_VISITOR, null, VOXEL_OCTREE_CULL_POST_VISITOR, ref arg);
+                        ctxt.CullCamera.VisitOrder, VOXEL_OCTREE_CULL_VISITOR, null, VOXEL_OCTREE_CULL_POST_VISITOR, ref arg);
                     return true;
                 }
                 else if (node is Drawable drawable)

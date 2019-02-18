@@ -69,6 +69,8 @@ namespace GameLibrary.Component.Camera
         private Matrix viewProjectionMatrix;
         private Matrix invViewProjectionMatrix;
 
+        private int visitOrder;
+
         private BoundingFrustum boundingFrustum;
         private readonly Vector3[] frustumCorners = new Vector3[BoundingFrustum.CornerCount];
 
@@ -953,6 +955,19 @@ namespace GameLibrary.Component.Camera
             }
         }
 
+        public int VisitOrder
+        {
+            get
+            {
+                if (frustumDirty)
+                {
+                    UpdateBounding();
+                }
+                return visitOrder;
+            }
+        }
+
+
         public BoundingFrustum BoundingFrustum
         {
             get
@@ -983,6 +998,8 @@ namespace GameLibrary.Component.Camera
         {
             UpdateBoundingFrustum();
             UpdateBoundingSphere();
+            UpdateVisitOrder();
+            frustumDirty = false;
         }
 
         private void UpdateBoundingFrustum()
@@ -994,6 +1011,17 @@ namespace GameLibrary.Component.Camera
         }
 
         private void UpdateBoundingSphere()
+        {
+            ComputeBoundingSphere();
+        }
+
+        private void UpdateVisitOrder()
+        {
+            // compute visit order based on view direction
+            visitOrder = VectorUtil.visitOrder(ViewDirection);
+        }
+
+        private void ComputeBoundingSphere()
         {
             Vector3 center;
             float radius;
@@ -1077,10 +1105,6 @@ namespace GameLibrary.Component.Camera
 
             boundingSphere.Center = center;
             boundingSphere.Radius = radius;
-
-            frustumDirty = false;
-
-            ComputeShadowMapCascade();
         }
 
         private void ComputeShadowMapCascade()

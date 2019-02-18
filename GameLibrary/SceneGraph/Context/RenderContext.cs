@@ -18,15 +18,15 @@ namespace GameLibrary.SceneGraph
         #region Properties
 
         [Category("Camera")]
-        public Camera Camera
+        public Camera RenderCamera
         {
-            get { return camera; }
+            get { return renderCamera; }
         }
 
         [Category("Camera")]
         public virtual Camera CullCamera
         {
-            get { return camera; }
+            get { return cullCamera; }
         }
 
         // Frustum culling
@@ -160,10 +160,9 @@ namespace GameLibrary.SceneGraph
 
         public readonly GraphicsDevice GraphicsDevice;
 
-        protected readonly Camera camera;
-
-        // camera
-        public int VisitOrder;
+        // cameras
+        protected Camera renderCamera;
+        protected Camera cullCamera;
 
         public Vector3 sceneMax;
         public Vector3 sceneMin;
@@ -182,7 +181,8 @@ namespace GameLibrary.SceneGraph
         {
             GraphicsDevice = graphicsDevice;
 
-            this.camera = camera;
+            this.renderCamera = camera;
+            this.cullCamera = camera;
 
             frustumCullingEnabled = true;
             distanceCullingEnabled = false;
@@ -227,14 +227,6 @@ namespace GameLibrary.SceneGraph
             ClearBins();
         }
 
-        // TODO move elsewhere...
-        public virtual void UpdateCamera()
-        {
-            // compute visit order based on view direction
-            Vector3 dir = CullCamera.ViewDirection;
-            VisitOrder = VectorUtil.visitOrder(dir);
-        }
-
         public void CullBegin()
         {
             sceneMin = new Vector3(float.MaxValue);
@@ -274,24 +266,29 @@ namespace GameLibrary.SceneGraph
 
         public Vector2 ProjectToScreen(ref Vector3 vector)
         {
+            return ProjectToScreen(ref vector, GraphicsDevice.Viewport);
+        }
+
+        public Vector2 ProjectToScreen(ref Vector3 vector, Viewport viewport)
+        {
             // http://www.scratchapixel.com/lessons/3d-basic-rendering/perspective-and-orthographic-projection-matrix/projection-matrices-what-you-need-to-know-first
 
-            Matrix matrix = camera.ViewProjectionMatrix;
+            Matrix matrix = CullCamera.ViewProjectionMatrix;
 
             Vector2 v;
             v.X = (vector.X * matrix.M11) + (vector.Y * matrix.M21) + (vector.Z * matrix.M31) + matrix.M41;
             v.Y = (vector.X * matrix.M12) + (vector.Y * matrix.M22) + (vector.Z * matrix.M32) + matrix.M42;
-            float W = (vector.X * matrix.M14) + (vector.Y * matrix.M24) + (vector.Z * matrix.M34) + matrix.M44;
-            v.X /= W;
-            v.Y /= W;
+            float w = (vector.X * matrix.M14) + (vector.Y * matrix.M24) + (vector.Z * matrix.M34) + matrix.M44;
+            v.X /= w;
+            v.Y /= w;
 
             // FIXME cache x, y, w, h ?
-            int x = GraphicsDevice.Viewport.X;
-            int y = GraphicsDevice.Viewport.Y;
-            int width = GraphicsDevice.Viewport.Width;
-            int height = GraphicsDevice.Viewport.Height;
-            v.X = (((v.X + 1f) * 0.5f) * width) + x;
-            v.Y = (((-v.Y + 1f) * 0.5f) * height) + y;
+            int x = viewport.X;
+            int y = viewport.Y;
+            int width = viewport.Width;
+            int height = viewport.Height;
+            v.X = (((1.0f + v.X) * 0.5f) * width) + x;
+            v.Y = (((1.0f - v.Y) * 0.5f) * height) + y;
             return v;
         }
 
