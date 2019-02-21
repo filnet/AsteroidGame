@@ -6,6 +6,7 @@ using System;
 using GameLibrary.SceneGraph.Common;
 using System.ComponentModel;
 using GameLibrary.Geometry;
+using System.Collections.Generic;
 
 namespace GameLibrary.SceneGraph
 {
@@ -13,23 +14,42 @@ namespace GameLibrary.SceneGraph
     {
         #region Properties
 
-        [Category("Debug Shadows")]
+        [Category("Camera")]
+        public bool ShadowsEnabled
+        {
+            get { return shadowsEnabled; }
+            set { shadowsEnabled = value; RequestRedraw(); }
+        }
+
+        [Category("Camera")]
         public bool ShowShadowMap
         {
             get { return showShadowMap; }
             set { showShadowMap = value; DebugGeometryUpdate(); }
         }
 
+        [Category("Debug")]
+        public bool ShowOccluders
+        {
+            get { return showOccluders; }
+            set { showOccluders = value; RequestRedraw(); }
+        }
+
         #endregion
 
-        // render target
-        private readonly int shadowMapSize;
-        private readonly int cascadeCount;
+        // shadows
+        private bool shadowsEnabled;
 
+        private int shadowMapSize;
+        private int cascadeCount;
+
+        // render target
         public readonly RenderTargetShadowCascade RenderTarget;
 
         // debugging
         private bool showShadowMap;
+
+        private bool showOccluders;
 
         private MeshNode frustumGeo;
         private BillboardNode billboardNode;
@@ -38,6 +58,7 @@ namespace GameLibrary.SceneGraph
         {
             cullCamera = new LightCamera();
 
+            shadowsEnabled = true;
             shadowMapSize = 2048;
             cascadeCount = 4;
 
@@ -216,10 +237,18 @@ namespace GameLibrary.SceneGraph
             // compute derived values
             Matrix.Multiply(ref lightCamera.viewMatrix, ref lightCamera.projectionMatrix, out lightCamera.viewProjectionMatrix);
             Matrix.Invert(ref lightCamera.viewProjectionMatrix, out lightCamera.invViewProjectionMatrix);
+            // FIXME garbage
             lightCamera.boundingFrustum = new BoundingFrustum(lightCamera.viewProjectionMatrix);
             lightCamera.visitOrder = VectorUtil.visitOrder(lightCamera.ViewDirection);
 
             // light cull camera
+            // TODO:
+            // - use frustum convex hull to get better zfar (i.e. max z of hull)
+            // - use open znear bounding region (copy paste and adapt BoundingFrustum class)
+            // - use frustum convex hull to construct a tight culling bounding region (copy paste and adapt again BoundingFrustum class...)
+            // - take into account scene : case 1 is when scene is smaller/contained in frustrum
+            // - take into account scene : case 2 is when scene there is no scene => don't draw shadows at all...
+
             Bounding.BoundingBox bb = lightCamera.frustumBoundingBoxLS;
             Matrix.CreateOrthographicOffCenter(
                 bb.Center.X - bb.HalfSize.X, bb.Center.X + bb.HalfSize.X,
@@ -230,6 +259,7 @@ namespace GameLibrary.SceneGraph
             // compute derived values
             Matrix.Multiply(ref lightCullCamera.viewMatrix, ref lightCullCamera.projectionMatrix, out lightCullCamera.viewProjectionMatrix);
             Matrix.Invert(ref lightCullCamera.viewProjectionMatrix, out lightCullCamera.invViewProjectionMatrix);
+            // FIXME garbage
             lightCullCamera.boundingFrustum = new BoundingFrustum(lightCullCamera.viewProjectionMatrix);
             lightCullCamera.visitOrder = VectorUtil.visitOrder(lightCullCamera.ViewDirection);
 
@@ -243,15 +273,11 @@ namespace GameLibrary.SceneGraph
             lightCullCamera.ScissorRectangle.Y = 0;
             lightCullCamera.ScissorRectangle.Width = 2048;
             lightCullCamera.ScissorRectangle.Height = 2048;
-
-            //lightCamera.frustumBoundSphere.Center = center;
-            //lightCamera.frustumBoundSphere.Radius = radius;
         }
 
         public override void DebugGeometryAddTo(RenderContext renderContext)
         {
             base.DebugGeometryAddTo(renderContext);
-
 
             if (ShowFrustum && frustumGeo != null)
             {
@@ -262,9 +288,38 @@ namespace GameLibrary.SceneGraph
             // shadow map texture
             if (showShadowMap && billboardNode != null)
             {
-                billboardNode.Texture = RenderTarget;
-
                 renderContext.AddToBin(Scene.HUD, billboardNode);
+            }
+
+            if (ShowBoundingVolumes)
+            {
+                List<Drawable> drawableList = renderBins[Scene.BOUNDING_BOX];
+                renderContext.AddToBin(Scene.BOUNDING_BOX, drawableList);
+                // TODO bounding spheres...
+            }
+
+            if (ShowCulledBoundingVolumes)
+            {
+                List<Drawable> drawableList = renderBins[Scene.CULLED_BOUNDING_BOX];
+                renderContext.AddToBin(Scene.CULLED_BOUNDING_BOX, drawableList);
+                // TODO bounding spheres...
+            }
+
+            if (showOccluders)
+            {
+                // TODO this a better approach than the one used for ShowBoundingVolumes (done in the CULL callback)
+                // use this approach there too...
+                foreach (KeyValuePair<int, List<Drawable>> renderBinKVP in renderBins)
+                {
+                    int renderBinId = renderBinKVP.Key;
+                    // HACK...
+                    if (renderBinId >= Scene.DEBUG)
+                    {
+                        break;
+                    }
+                    List<Drawable> drawableList = renderBinKVP.Value;
+                    renderContext.AddToBin(Scene.OCCLUDER_BOUNDING_BOX, drawableList);
+                }
             }
         }
 
@@ -274,7 +329,7 @@ namespace GameLibrary.SceneGraph
 
             if (ShowFrustum)
             {
-                // geometry node is rebuilt on each update!
+                // FIXME geometry node is rebuilt on each update!
                 frustumGeo?.Dispose();
                 if (RenderCamera.BoundingFrustum != null)
                 {
@@ -290,6 +345,7 @@ namespace GameLibrary.SceneGraph
                 {
                     billboardNode = new BillboardNode("SHADOW_MAP");
                     billboardNode.Initialize(GraphicsDevice);
+                    billboardNode.Texture = RenderTarget;
                 }
             }
         }

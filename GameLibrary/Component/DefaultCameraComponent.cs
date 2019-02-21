@@ -1198,6 +1198,11 @@ namespace GameLibrary.Component.Camera
             get { return camera.BoundingFrustum; }
         }
 
+        public SceneGraph.Bounding.BoundingBox BoundingBox
+        {
+            get { return camera.BoundingBox; }
+        }
+
         public SceneGraph.Bounding.BoundingSphere BoundingSphere
         {
             get { return camera.BoundingSphere; }

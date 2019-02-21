@@ -11,6 +11,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using Voxel;
+using static GameLibrary.SceneGraph.SceneRenderContext;
 
 namespace GameLibrary.SceneGraph
 {
@@ -32,7 +33,9 @@ namespace GameLibrary.SceneGraph
         public static int VOXEL = 12;
         public static int VOXEL_WATER = 13;
 
-        public static int FRUSTUM = 20;
+        // DEBUG STARTS HERE
+        public static int DEBUG = 20;
+        public static int FRUSTUM = 21;
 
         public static int BOUNDING_SPHERE = 30;
         public static int BOUNDING_BOX = 31;
@@ -40,7 +43,7 @@ namespace GameLibrary.SceneGraph
         public static int CULLED_BOUNDING_SPHERE = 32;
         public static int CULLED_BOUNDING_BOX = 33;
 
-        public static int CASTER_BOUNDING_SPHERE = 34;
+        public static int OCCLUDER_BOUNDING_SPHERE = 34;
         public static int OCCLUDER_BOUNDING_BOX = 35;
 
         public static int COLLISION_SPHERE = 40;
@@ -139,7 +142,7 @@ namespace GameLibrary.SceneGraph
             renderers[BOUNDING_BOX] = new BoundRenderer(EffectFactory.CreateBoundEffect(GraphicsDevice, clip), boundingBoxGeo);
             renderers[CULLED_BOUNDING_SPHERE] = new BoundRenderer(EffectFactory.CreateCulledBoundEffect(GraphicsDevice, clip), boundingSphereGeo);
             renderers[CULLED_BOUNDING_BOX] = new BoundRenderer(EffectFactory.CreateCulledBoundEffect(GraphicsDevice, clip), boundingBoxGeo);
-            renderers[CASTER_BOUNDING_SPHERE] = new BoundRenderer(EffectFactory.CreateCasterBoundEffect(GraphicsDevice, clip), boundingSphereGeo);
+            renderers[OCCLUDER_BOUNDING_SPHERE] = new BoundRenderer(EffectFactory.CreateCasterBoundEffect(GraphicsDevice, clip), boundingSphereGeo);
             renderers[OCCLUDER_BOUNDING_BOX] = new BoundRenderer(EffectFactory.CreateCasterBoundEffect(GraphicsDevice, clip), boundingBoxGeo);
             renderers[COLLISION_SPHERE] = new BoundRenderer(EffectFactory.CreateCollisionEffect(GraphicsDevice, clip), boundingSphereGeo);
             renderers[COLLISION_BOX] = new BoundRenderer(EffectFactory.CreateCollisionEffect(GraphicsDevice, clip), boundingBoxGeo);
@@ -217,8 +220,8 @@ namespace GameLibrary.SceneGraph
 
             bool cameraDirty = false;
             cameraDirty = cameraDirty || CaptureFrustum;
-            cameraDirty = cameraDirty || (!previousProjectionMatrix.Equals(renderContext.RenderCamera.ProjectionMatrix));
-            cameraDirty = cameraDirty || (!previousViewMatrix.Equals(renderContext.RenderCamera.ViewMatrix));
+            cameraDirty = cameraDirty || (!previousProjectionMatrix.Equals(renderContext.Camera.ProjectionMatrix));
+            cameraDirty = cameraDirty || (!previousViewMatrix.Equals(renderContext.Camera.ViewMatrix));
 
             // TODO implement sceneDirty (easy)
             // Octree should set it when needed
@@ -239,7 +242,18 @@ namespace GameLibrary.SceneGraph
                 if (CaptureFrustum)
                 {
                     CaptureFrustum = false;
-                    renderContext.CaptureFrustum();
+                    switch (renderContext.CameraFreezeMode)
+                    {
+                        case FreezeMode.None:
+                            renderContext.FreezeCamera(FreezeMode.Cull);
+                            break;
+                        case FreezeMode.Cull:
+                            renderContext.FreezeCamera(FreezeMode.Render);
+                            break;
+                        case FreezeMode.Render:
+                            renderContext.FreezeCamera(FreezeMode.None);
+                            break;
+                    }
                 }
 
                 if (cameraDirty || renderContext.RedrawRequested())
@@ -276,6 +290,10 @@ namespace GameLibrary.SceneGraph
                     for (int i = 0; i < renderContext.LightCount; i++)
                     {
                         LightRenderContext lightRenderContext = renderContext.LightRenderContext(i);
+                        if (!lightRenderContext.ShadowsEnabled)
+                        {
+                            continue;
+                        }
 
                         // create initial light frustum
                         // if we are looking for occluders then push near plane outwards
@@ -338,18 +356,6 @@ namespace GameLibrary.SceneGraph
                                     List<Drawable> drawableList = renderBinKVP.Value;
                                     lightRenderContext.AddToBin(renderBinId, drawableList);
                                 }
-                            }
-                        }
-                        // debugging: show occluder bounding boxes
-                        if (renderContext.ShowOccluders)
-                        {
-                            // TODO this a better approach than the one used for ShowBoundingVolumes (done in the CULL callback)
-                            // use this approach there too...
-                            foreach (KeyValuePair<int, List<Drawable>> renderBinKVP in lightRenderContext.renderBins)
-                            {
-                                int renderBinId = renderBinKVP.Key;
-                                List<Drawable> drawableList = renderBinKVP.Value;
-                                renderContext.AddToBin(OCCLUDER_BOUNDING_BOX, drawableList);
                             }
                         }
                     }

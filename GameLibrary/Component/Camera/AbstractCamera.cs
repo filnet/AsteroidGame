@@ -31,6 +31,8 @@ namespace GameLibrary.Component.Camera
 
         public virtual BoundingFrustum BoundingFrustum => throw new NotImplementedException();
 
+        public virtual SceneGraph.Bounding.BoundingBox BoundingBox => throw new NotImplementedException();
+
         public virtual SceneGraph.Bounding.BoundingSphere BoundingSphere => throw new NotImplementedException();
 
         public virtual float AspectRatio { get => throw new NotImplementedException(); set => throw new NotImplementedException(); }

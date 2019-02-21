@@ -1,4 +1,5 @@
 ﻿using System.Windows;
+using System.Windows.Controls;
 
 namespace WpfLibrary
 {
@@ -12,9 +13,15 @@ namespace WpfLibrary
             InitializeComponent();
         }
 
-        public void setSelected(object obj)
+        public void setSelected1(object obj)
         {
             this.PropertyGrid1.SelectedObject = obj;
         }
+
+        public void setSelected2(object obj)
+        {
+            this.PropertyGrid2.SelectedObject = obj;
+        }
+
     }
 }

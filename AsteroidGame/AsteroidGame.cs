@@ -34,9 +34,8 @@ namespace AsteroidGame
         private GroupNode bulletGroupNode;
         private GroupNode asteroidGroupNode;
 
-        bool DebugWindowEnabled = true;
-        Thread t;
-        WpfControlWindow wnd;
+        private bool DebugWindowEnabled = true;
+        private WpfControlWindow wnd;
 
         public static AsteroidGame Instance()
         {
@@ -54,15 +53,16 @@ namespace AsteroidGame
             base.Initialize();
             if (DebugWindowEnabled)
             {
-                t = new Thread((ThreadStart)delegate
+                Thread t = new Thread((ThreadStart)delegate
                 {
                     wnd = new WpfControlWindow();
-                // Do stuff here, e.g. to the window
-                //wnd.Title = "Something else";
-                //wnd.setSelected(Scene.CameraComponent);
-                wnd.setSelected(Scene.RenderContext);
-                // Show the window
-                wnd.ShowDialog();
+                    // Do stuff here, e.g. to the window
+                    //wnd.Title = "Something else";
+                    //wnd.setSelected(Scene.CameraComponent);
+                    wnd.setSelected1(Scene.RenderContext);
+                    wnd.setSelected2(Scene.RenderContext.LightRenderContext(0));
+                    // Show the window
+                    wnd.ShowDialog();
                 });
                 t.SetApartmentState(ApartmentState.STA);
                 t.Start();
@@ -71,9 +71,9 @@ namespace AsteroidGame
 
         protected override void Dispose(bool disposing)
         {
-            if (t != null)
+            if (wnd != null)
             {
-                t.Abort();
+                wnd.Dispatcher.BeginInvoke(new ThreadStart(() => wnd.Close()));
             }
             base.Dispose(disposing);
         }

@@ -18,6 +18,12 @@ namespace GameLibrary.SceneGraph
         #region Properties
 
         [Category("Camera")]
+        public Camera Camera
+        {
+            get { return camera; }
+        }
+
+        [Category("Camera")]
         public Camera RenderCamera
         {
             get { return renderCamera; }
@@ -59,52 +65,45 @@ namespace GameLibrary.SceneGraph
         }
 
         // flags
-        [Category("Debug Camera")]
+        [Category("Debug")]
         public bool Debug { get; set; }
 
-        [Category("Debug Camera")]
-        public bool AddBoundingGeometry
-        {
-            get { return addBoundingGeometry; }
-            set { addBoundingGeometry = value; DebugGeometryUpdate(); } 
-        }
-
-        [Category("Debug Camera")]
+        [Category("Debug Culling")]
         public bool ShowBoundingVolumes
         {
             get { return showBoundingVolumes; }
             set { showBoundingVolumes = value; DebugGeometryUpdate(); }
         }
 
-        [Category("Debug Camera")]
+        [Category("Debug Culling")]
         public bool ShowCulledBoundingVolumes
         {
             get { return showCulledBoundingVolumes; }
             set { showCulledBoundingVolumes = value; DebugGeometryUpdate(); }
         }
 
-        [Category("Debug Camera")]
+        [Category("Debug Culling")]
         public bool ShowSceneBoundingBox
         {
             get { return showSceneBoundingBox; }
             set { showSceneBoundingBox = value; DebugGeometryUpdate(); }
         }
 
-        [Category("Debug Camera")]
+        [Category("Debug Frustum")]
         public virtual bool ShowFrustum
         {
             get { return showFrustum; }
             set { showFrustum = value; DebugGeometryUpdate(); }
         }
 
-        [Category("Debug Camera")]
+        [Category("Debug Frustum")]
         public virtual bool ShowFrustumBoundingSphere
         {
             get { return showFrustumBoundingSphere; }
             set { showFrustumBoundingSphere = value; DebugGeometryUpdate(); }
         }
 
-        [Category("Debug Camera")]
+        [Category("Debug Frustum")]
         public virtual bool ShowFrustumBoundingBox
         {
             get { return showFrustumBoundingBox; }
@@ -138,7 +137,6 @@ namespace GameLibrary.SceneGraph
         internal ulong screenSizeCullingOwner;
 
         // flags
-        private bool addBoundingGeometry;
         private bool showBoundingVolumes;
         private bool showCulledBoundingVolumes;
 
@@ -161,13 +159,14 @@ namespace GameLibrary.SceneGraph
         public readonly GraphicsDevice GraphicsDevice;
 
         // cameras
+        protected readonly Camera camera;
         protected Camera renderCamera;
         protected Camera cullCamera;
 
         public Vector3 sceneMax;
         public Vector3 sceneMin;
 
-        public readonly Bounding.BoundingBox sceneBoundingBox = new Bounding.BoundingBox();
+        private readonly Bounding.BoundingBox sceneBoundingBox = new Bounding.BoundingBox();
 
         // render bins
         public readonly SortedDictionary<int, List<Drawable>> renderBins;
@@ -181,6 +180,7 @@ namespace GameLibrary.SceneGraph
         {
             GraphicsDevice = graphicsDevice;
 
+            this.camera = camera;
             this.renderCamera = camera;
             this.cullCamera = camera;
 
@@ -207,24 +207,24 @@ namespace GameLibrary.SceneGraph
 
         public abstract void SetupGraphicsDevice();
 
-        public bool RedrawRequested()
+        public virtual void Clear()
+        {
+            ClearBins();
+        }
+
+        public virtual bool RedrawRequested()
         {
             return (drawRequested || renderBins.Count == 0);
         }
 
-        public void RequestRedraw()
+        public virtual void RequestRedraw()
         {
             drawRequested = true;
         }
 
-        public void ClearRedrawRequested()
+        public virtual void ClearRedrawRequested()
         {
             drawRequested = false;
-        }
-
-        public virtual void Clear()
-        {
-            ClearBins();
         }
 
         public void CullBegin()
@@ -432,9 +432,9 @@ namespace GameLibrary.SceneGraph
                 {
                     frustumBoundingSphereGeo = GeometryUtil.CreateGeodesicWF("FRUSTUM_BOUNDING_SPHERE", 1);
                     frustumBoundingSphereGeo.Initialize(GraphicsDevice);
+                    frustumBoundingSphereGeo.BoundingVolume = CullCamera.BoundingSphere;
+                    frustumBoundingSphereGeo.WorldBoundingVolume = CullCamera.BoundingSphere;
                 }
-                frustumBoundingSphereGeo.BoundingVolume = CullCamera.BoundingSphere;
-                frustumBoundingSphereGeo.WorldBoundingVolume = CullCamera.BoundingSphere;
             }
             if (ShowFrustumBoundingBox)
             {
@@ -443,16 +443,18 @@ namespace GameLibrary.SceneGraph
                 {
                     frustumBoundingBoxGeo = GeometryUtil.CreateCubeWF("FRUSTUM_BOUNDING_BOX", 1);
                     frustumBoundingBoxGeo.Initialize(GraphicsDevice);
+                    frustumBoundingBoxGeo.BoundingVolume = CullCamera.BoundingBox;
+                    frustumBoundingBoxGeo.WorldBoundingVolume = CullCamera.BoundingBox;
                 }
-
+                /*
                 // FIXME garbage (need to manage bb in camera (like bs)
                 Bounding.BoundingBox frustumBoundingBox = new Bounding.BoundingBox();
                 Vector3[] corners = new Vector3[BoundingFrustum.CornerCount];
                 CullCamera.BoundingFrustum.GetCorners(corners);
                 frustumBoundingBox.ComputeFromPoints(corners);
-
                 frustumBoundingBoxGeo.BoundingVolume = frustumBoundingBox;
                 frustumBoundingBoxGeo.WorldBoundingVolume = frustumBoundingBox;
+                */
             }
             if (ShowSceneBoundingBox)
             {
@@ -461,10 +463,9 @@ namespace GameLibrary.SceneGraph
                 {
                     sceneBoundingBoxGeo = GeometryUtil.CreateCubeWF("SCENE_BOUNDING_BOX", 1);
                     sceneBoundingBoxGeo.Initialize(GraphicsDevice);
+                    sceneBoundingBoxGeo.BoundingVolume = sceneBoundingBox;
+                    sceneBoundingBoxGeo.WorldBoundingVolume = sceneBoundingBox;
                 }
-
-                sceneBoundingBoxGeo.BoundingVolume = sceneBoundingBox;
-                sceneBoundingBoxGeo.WorldBoundingVolume = sceneBoundingBox;
             }
             RequestRedraw();
         }

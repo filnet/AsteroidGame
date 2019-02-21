@@ -12,6 +12,8 @@ namespace GameLibrary.SceneGraph
     {
         #region Properties
 
+        public enum FreezeMode { None, Render, Cull }
+
         public int LightCount
         {
             get { return lightNodes.Count; }
@@ -27,81 +29,36 @@ namespace GameLibrary.SceneGraph
             return lightRenderContextes[index];
         }
 
-        [Category("Shadows")]
+        [Category("Camera")]
         public bool ShadowsEnabled
         {
             get { return shadowsEnabled; }
             set { shadowsEnabled = value; RequestRedraw(); }
         }
 
+        [Category("Debug")]
+        public FreezeMode CameraFreezeMode
+        {
+            get { return cameraFreezeMode; }
+            set { FreezeCamera(value); }
+        }
+
         public override bool ShowFrustum
         {
-            get { return cameraFrozen && base.ShowFrustum; }
+            get { return (cameraFreezeMode != FreezeMode.None) && base.ShowFrustum; }
         }
 
         public override bool ShowFrustumBoundingSphere
         {
-            get { return cameraFrozen && base.ShowFrustumBoundingSphere; }
+            get { return (cameraFreezeMode != FreezeMode.None) && base.ShowFrustumBoundingSphere; }
         }
 
         public override bool ShowFrustumBoundingBox
         {
-            get { return cameraFrozen && base.ShowFrustumBoundingBox; }
+            get { return (cameraFreezeMode != FreezeMode.None) && base.ShowFrustumBoundingBox; }
         }
 
-        [Category("Debug Light")]
-        public bool ShowLightFrustum
-        {
-            get { return showLightFrustum; }
-            set
-            {
-                showLightFrustum = value;
-                foreach (LightRenderContext context in lightRenderContextes)
-                {
-                    context.ShowFrustum = value;
-                }
-                RequestRedraw();
-            }
-        }
-
-        [Category("Debug Light")]
-        public bool ShowOccludersBoundingBox
-        {
-            get { return showOccludersBoundingBox; }
-            set
-            {
-                showOccludersBoundingBox = value;
-                foreach (LightRenderContext context in lightRenderContextes)
-                {
-                    context.ShowSceneBoundingBox = value;
-                }
-                RequestRedraw();
-            }
-        }
-
-        [Category("Debug Light")]
-        public bool ShowOccluders
-        {
-            get { return showOccluders; }
-            set { showOccluders = value; RequestRedraw(); }
-        }
-
-        [Category("Debug Shadows")]
-        public bool ShowShadowMap
-        {
-            get { return showShadowMap; }
-            set
-            {
-                showShadowMap = value;
-                foreach (LightRenderContext context in lightRenderContextes)
-                {
-                    context.ShowShadowMap = value;
-                }
-                RequestRedraw();
-            }
-        }
-
-        [Category("Debug Collisions")]
+        [Category("Debug Physics")]
         public bool ShowCollisionVolumes
         {
             get { return showCollisionVolumes; }
@@ -118,26 +75,17 @@ namespace GameLibrary.SceneGraph
         private bool shadowsEnabled;
 
         // debugging
-        private bool showLightFrustum;
-        private bool showOccludersBoundingBox;
-        private bool showOccluders;
-        private bool showShadowMap;
         private bool showCollisionVolumes;
 
-        public bool IsCameraFrozen => cameraFrozen;
-
+        private FreezeMode cameraFreezeMode = FreezeMode.None;
         private float savedZFar = 0;
-        private bool cameraFrozen = false;
 
         public SceneRenderContext(GraphicsDevice graphicsDevice, Camera camera) : base(graphicsDevice, camera)
         {
-            cullCamera = camera;
-
             lightNodes = new List<LightNode>(1);
             lightRenderContextes = new List<LightRenderContext>(1);
 
             shadowsEnabled = true;
-            showShadowMap = true;
 
             DebugGeometryUpdate();
         }
@@ -169,6 +117,32 @@ namespace GameLibrary.SceneGraph
             }
         }
 
+        public override bool RedrawRequested()
+        {
+            // FIXME performance: most fequent case (i.e. no request) is the worst case scenario...
+            if (base.RedrawRequested())
+            {
+                return true;
+            }
+            foreach (LightRenderContext context in lightRenderContextes)
+            {
+                if (context.RedrawRequested())
+                {
+                    return true;
+                }
+            }
+            return false;
+        }
+
+        public override void ClearRedrawRequested()
+        {
+            base.ClearRedrawRequested();
+            foreach (LightRenderContext context in lightRenderContextes)
+            {
+                context.ClearRedrawRequested();
+            }
+        }
+
         public void AddLightNode(LightNode lightNode)
         {
             lightNodes.Add(lightNode);
@@ -182,45 +156,58 @@ namespace GameLibrary.SceneGraph
                 lightCamera.lightDirection.Normalize();
 
                 LightRenderContext lightRenderContext = new LightRenderContext(GraphicsDevice, lightCamera);
-                lightRenderContext.ShowShadowMap = showShadowMap;
+                lightRenderContext.ShowShadowMap = true;
 
                 lightRenderContextes.Add(lightRenderContext);
             }
         }
 
-        public void CaptureFrustum()
+        public void FreezeCamera(FreezeMode mode)
         {
-            if (!cameraFrozen)
+            if (mode == cameraFreezeMode)
             {
-                CameraFreeze();
+                return;
             }
-            else
+            switch (mode)
             {
-                CameraUnfreeze();
+                case FreezeMode.Cull:
+                    // freeze cull camera
+                    cullCamera = new DebugCamera(camera);
+
+                    // tweak camera zfar...
+                    // this is needed to make sure the render camera "sees" the cull camera
+                    savedZFar = camera.ZFar;
+                    camera.ZFar = 2000;
+                    renderCamera = camera;
+                    break;
+                case FreezeMode.Render:
+                    // freeze render camera
+                    renderCamera = new DebugCamera(camera);
+
+                    // unfreeze cull camera
+                    if (cameraFreezeMode == FreezeMode.Cull)
+                    {
+                        // restore zfar
+                        camera.ZFar = savedZFar;
+                        // move camera to cull camera
+                        camera.LookAt(cullCamera.Position, cullCamera.Position + cullCamera.ViewDirection, Vector3.Up);
+                    }
+                    cullCamera = camera;
+                    break;
+                case FreezeMode.None:
+                default:
+                    if (cameraFreezeMode == FreezeMode.Cull)
+                    {
+                        // restore zfar
+                        camera.ZFar = savedZFar;
+                    }
+
+                    renderCamera = camera;
+                    cullCamera = camera;
+                    break;
             }
+            cameraFreezeMode = mode;
             DebugGeometryUpdate();
-        }
-
-        private void CameraFreeze()
-        {
-            if (cameraFrozen) return;
-            cameraFrozen = true;
-
-            cullCamera = new DebugCamera(renderCamera);
-
-            // tweak camera zfar...
-            savedZFar = renderCamera.ZFar;
-            renderCamera.ZFar = 2000;
-        }
-
-        private void CameraUnfreeze()
-        {
-            if (!cameraFrozen) return;
-            cameraFrozen = false;
-
-            cullCamera = renderCamera;
-            // TODO restore zfar!
-            renderCamera.ZFar = savedZFar;
         }
 
         public override void ResetStats()
@@ -249,8 +236,14 @@ namespace GameLibrary.SceneGraph
 
         public override void DebugGeometryAddTo(RenderContext renderContext)
         {
+            if (cameraFreezeMode == FreezeMode.Render)
+            {
+                // HACK...
+                // needed for updating the frustrum
+                DebugGeometryUpdate();
+            }
             base.DebugGeometryAddTo(renderContext);
-            foreach (RenderContext context in lightRenderContextes)
+            foreach (LightRenderContext context in lightRenderContextes)
             {
                 context.DebugGeometryAddTo(renderContext);
             }

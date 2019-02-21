@@ -37,11 +37,12 @@ namespace GameLibrary.SceneGraph
 
         public BoundingFrustum boundingFrustum;
 
+        //public Bounding.BoundingBox boundingBox;
+        //public Bounding.BoundingSphere boundingSphere;
+
         public Bounding.BoundingBox frustumBoundingBoxLS;
 
         public Rectangle ScissorRectangle;
-
-        //public Bounding.BoundingSphere frustumBoundSphere;
 
         public LightCamera() : base()
         {

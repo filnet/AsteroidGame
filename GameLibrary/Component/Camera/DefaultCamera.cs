@@ -74,6 +74,7 @@ namespace GameLibrary.Component.Camera
         private BoundingFrustum boundingFrustum;
         private readonly Vector3[] frustumCorners = new Vector3[BoundingFrustum.CornerCount];
 
+        private readonly SceneGraph.Bounding.BoundingBox boundingBox = new SceneGraph.Bounding.BoundingBox();
         private readonly SceneGraph.Bounding.BoundingSphere boundingSphere = new SceneGraph.Bounding.BoundingSphere();
 
         private Quaternion savedOrientation;
@@ -980,6 +981,18 @@ namespace GameLibrary.Component.Camera
             }
         }
 
+        public SceneGraph.Bounding.BoundingBox BoundingBox
+        {
+            get
+            {
+                if (frustumDirty)
+                {
+                    UpdateBounding();
+                }
+                return boundingBox;
+            }
+        }
+
         public SceneGraph.Bounding.BoundingSphere BoundingSphere
         {
             get
@@ -996,29 +1009,18 @@ namespace GameLibrary.Component.Camera
 
         private void UpdateBounding()
         {
-            UpdateBoundingFrustum();
-            UpdateBoundingSphere();
-            UpdateVisitOrder();
-            frustumDirty = false;
-        }
-
-        private void UpdateBoundingFrustum()
-        {
             // FIXME: garbage
             boundingFrustum = new BoundingFrustum(ViewProjectionMatrix);
-
             boundingFrustum.GetCorners(frustumCorners);
-        }
 
-        private void UpdateBoundingSphere()
-        {
+            boundingBox.ComputeFromPoints(frustumCorners);
+
             ComputeBoundingSphere();
-        }
 
-        private void UpdateVisitOrder()
-        {
             // compute visit order based on view direction
             visitOrder = VectorUtil.visitOrder(ViewDirection);
+
+            frustumDirty = false;
         }
 
         private void ComputeBoundingSphere()
