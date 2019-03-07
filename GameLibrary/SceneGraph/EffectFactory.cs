@@ -37,48 +37,22 @@ namespace GameLibrary.SceneGraph
             return CreateBasicEffect3(gd, c);
         }
 
-        public static Effect CreateBoundEffect(GraphicsDevice gd, bool clipping)
+        public static Effect CreateVectorEffect(GraphicsDevice gd, bool clipping)
         {
-            Color c = new Color(Color.Green, 255);
-
-            if (!clipping)
+            if (clipping)
             {
-                return CreateBasicEffect3(gd, c);
+                return CreateClippingEffect(gd);
             }
-            return CreateClippingEffect(gd, c);
+            return CreateBasicEffect3(gd);
         }
 
-        public static Effect CreateCulledBoundEffect(GraphicsDevice gd, bool clipping)
+        public static Effect CreateVectorEffect(GraphicsDevice gd, bool clipping, Color color)
         {
-            Color c = new Color(Color.Blue, 255);
-
-            if (!clipping)
+            if (clipping)
             {
-                return CreateBasicEffect3(gd, c);
+                return CreateClippingEffect(gd, color);
             }
-            return CreateClippingEffect(gd, c);
-        }
-
-        public static Effect CreateCasterBoundEffect(GraphicsDevice gd, bool clipping)
-        {
-            Color c = new Color(Color.Yellow, 255);
-
-            if (!clipping)
-            {
-                return CreateBasicEffect3(gd, c);
-            }
-            return CreateClippingEffect(gd, c);
-        }
-
-        public static Effect CreateCollisionEffect(GraphicsDevice gd, bool clipping)
-        {
-            Color c = new Color(Color.Red, 128);
-
-            if (!clipping)
-            {
-                return CreateBasicEffect3(gd, c);
-            }
-            return CreateClippingEffect(gd, c);
+            return CreateBasicEffect3(gd, color);
         }
 
         public static Effect CreateBillboardEffect(GraphicsDevice gd)

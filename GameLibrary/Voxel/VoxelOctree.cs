@@ -22,7 +22,7 @@ namespace GameLibrary.Voxel
     public sealed class VoxelChunk
     {
         public VoxelChunkState State;
-        public SceneGraph.Bounding.BoundingBox BoundingBox;
+        public SceneGraph.Bounding.Box BoundingBox;
         public VoxelMap VoxelMap;
         public Drawable Drawable;
         public Drawable TransparentDrawable;
@@ -157,7 +157,7 @@ namespace GameLibrary.Voxel
                     Vector3 halfSize;
                     GetNodeBoundingBox(node, out center, out halfSize);
                     // TODO compute a tighter bounding box based on chunk content
-                    voxelChunk.BoundingBox = new SceneGraph.Bounding.BoundingBox(center, halfSize);
+                    voxelChunk.BoundingBox = new SceneGraph.Bounding.Box(center, halfSize);
 
                     if (true /*ctxt.AddBoundingGeometry*/)
                     {
@@ -200,7 +200,7 @@ namespace GameLibrary.Voxel
                     Vector3 center;
                     Vector3 halfSize;
                     GetNodeBoundingBox(node, out center, out halfSize);
-                    voxelChunk.BoundingBox = new SceneGraph.Bounding.BoundingBox(center, halfSize);
+                    voxelChunk.BoundingBox = new SceneGraph.Bounding.Box(center, halfSize);
                 }
                 else
                 {
@@ -352,12 +352,12 @@ namespace GameLibrary.Voxel
             /// <summary>
             /// Gets or sets the geometry bounding volume, which contains the entire geometry in model (local) space.
             /// </summary>
-            public BoundingVolume BoundingVolume { get; }
+            public Volume BoundingVolume { get; }
 
             /// <summary>
             /// Gets or sets the geometry bounding volume, which contains the entire geometry in model (local) space.
             /// </summary>
-            public BoundingVolume WorldBoundingVolume { get { return BoundingVolume; } }
+            public Volume WorldBoundingVolume { get { return BoundingVolume; } }
 
             public int VertexCount { get { return mesh.VertexCount; } }
 
@@ -444,12 +444,12 @@ namespace GameLibrary.Voxel
             /// <summary>
             /// Gets or sets the geometry bounding volume, which contains the entire geometry in model (local) space.
             /// </summary>
-            public BoundingVolume BoundingVolume { get; }
+            public Volume BoundingVolume { get; }
 
             /// <summary>
             /// Gets or sets the geometry bounding volume, which contains the entire geometry in model (local) space.
             /// </summary>
-            public BoundingVolume WorldBoundingVolume { get { return BoundingVolume; } }
+            public Volume WorldBoundingVolume { get { return BoundingVolume; } }
 
             public int VertexCount { get { throw new NotSupportedException(); } }
 
@@ -461,7 +461,7 @@ namespace GameLibrary.Voxel
             public void DrawInstanced(GraphicsDevice gd) { throw new NotSupportedException(); }
             public void PostDrawInstanced(GraphicsDevice gd) { throw new NotSupportedException(); }
 
-            public FakeDrawable(int renderGroupId, BoundingVolume boundingVolume)
+            public FakeDrawable(int renderGroupId, Volume boundingVolume)
             {
                 Enabled = true;
                 Visible = false;

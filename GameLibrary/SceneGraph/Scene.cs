@@ -17,40 +17,47 @@ namespace GameLibrary.SceneGraph
 {
     public class Scene
     {
-        public static int THREE_LIGHTS = 0;
-        public static int ONE_LIGHT = 1;
-        public static int NO_LIGHT = 2;
-        public static int WIRE_FRAME = 3;
-        public static int VECTOR = 4;
-        public static int CLIPPING = 5;
+        public static readonly int THREE_LIGHTS = 0;
+        public static readonly int ONE_LIGHT = 1;
+        public static readonly int NO_LIGHT = 2;
+        public static readonly int WIRE_FRAME = 3;
+        public static readonly int VECTOR = 4;
+        public static readonly int CLIPPING = 5;
 
-        public static int PLAYER = 6;
-        public static int BULLET = 7;
-        public static int ASTEROID = 8;
+        public static readonly int PLAYER = 6;
+        public static readonly int BULLET = 7;
+        public static readonly int ASTEROID = 8;
 
-        public static int OCTREE = 10;
-        //public static int VOXEL_MAP = 11;
-        public static int VOXEL = 12;
-        public static int VOXEL_WATER = 13;
+        public static readonly int OCTREE = 10;
+        //public static readonly int VOXEL_MAP = 11;
+        public static readonly int VOXEL = 12;
+        public static readonly int VOXEL_WATER = 13;
 
         // DEBUG STARTS HERE
-        public static int DEBUG = 20;
-        public static int FRUSTUM = 21;
+        public static readonly int DEBUG = 20;
+        public static readonly int FRUSTUM = 21;
 
-        public static int BOUNDING_SPHERE = 30;
-        public static int BOUNDING_BOX = 31;
+        public static readonly int BOUNDING_SPHERE = 30;
+        public static readonly int BOUNDING_BOX = 31;
 
-        public static int CULLED_BOUNDING_SPHERE = 32;
-        public static int CULLED_BOUNDING_BOX = 33;
+        public static readonly int CULLED_BOUNDING_SPHERE = 32;
+        public static readonly int CULLED_BOUNDING_BOX = 33;
 
-        public static int OCCLUDER_BOUNDING_SPHERE = 34;
-        public static int OCCLUDER_BOUNDING_BOX = 35;
+        public static readonly int OCCLUDER_BOUNDING_SPHERE = 34;
+        public static readonly int OCCLUDER_BOUNDING_BOX = 35;
 
-        public static int COLLISION_SPHERE = 40;
-        public static int COLLISION_BOX = 41;
+        public static readonly int COLLISION_SPHERE = 40;
+        public static readonly int COLLISION_BOX = 41;
 
-        public static int HUD = 45;
-        public static int HORTO = 46;
+        public static readonly int BOUNDING_HULL = 43;
+
+        public static readonly int HUD = 45;
+        public static readonly int HORTO = 46;
+
+        private static readonly Color GREEN = new Color(Color.Green, 255);
+        private static readonly Color BLUE = new Color(Color.Blue, 255);
+        private static readonly Color YELLOW = new Color(Color.Yellow, 255);
+        private static readonly Color RED = new Color(Color.Red, 255);
 
         private CameraComponent cameraComponent;
 
@@ -118,8 +125,8 @@ namespace GameLibrary.SceneGraph
             renderers[ONE_LIGHT] = new BasicRenderer(EffectFactory.CreateBasicEffect2(GraphicsDevice)); // 1 light
             renderers[NO_LIGHT] = new BasicRenderer(EffectFactory.CreateBasicEffect3(GraphicsDevice)); // no light
 
-            renderers[WIRE_FRAME] = new WireFrameRenderer(EffectFactory.CreateBasicEffect3(GraphicsDevice)); // no light + wire frame
-            renderers[VECTOR] = new BasicRenderer(EffectFactory.CreateBasicEffect3(GraphicsDevice)); // no light
+            renderers[WIRE_FRAME] = new WireFrameRenderer(EffectFactory.CreateVectorEffect(GraphicsDevice, false)); // no light + wire frame
+            renderers[VECTOR] = new BasicRenderer(EffectFactory.CreateVectorEffect(GraphicsDevice, false)); // no light
             renderers[CLIPPING] = new BasicRenderer(EffectFactory.CreateClippingEffect(GraphicsDevice));
 
             renderers[PLAYER] = new BasicRenderer(EffectFactory.CreateClippingEffect(GraphicsDevice));
@@ -138,14 +145,18 @@ namespace GameLibrary.SceneGraph
             renderers[FRUSTUM] = new FrustumRenderer(EffectFactory.CreateFrustumEffect(GraphicsDevice));
 
             bool clip = false; // clipping
-            renderers[BOUNDING_SPHERE] = new BoundRenderer(EffectFactory.CreateBoundEffect(GraphicsDevice, clip), boundingSphereGeo);
-            renderers[BOUNDING_BOX] = new BoundRenderer(EffectFactory.CreateBoundEffect(GraphicsDevice, clip), boundingBoxGeo);
-            renderers[CULLED_BOUNDING_SPHERE] = new BoundRenderer(EffectFactory.CreateCulledBoundEffect(GraphicsDevice, clip), boundingSphereGeo);
-            renderers[CULLED_BOUNDING_BOX] = new BoundRenderer(EffectFactory.CreateCulledBoundEffect(GraphicsDevice, clip), boundingBoxGeo);
-            renderers[OCCLUDER_BOUNDING_SPHERE] = new BoundRenderer(EffectFactory.CreateCasterBoundEffect(GraphicsDevice, clip), boundingSphereGeo);
-            renderers[OCCLUDER_BOUNDING_BOX] = new BoundRenderer(EffectFactory.CreateCasterBoundEffect(GraphicsDevice, clip), boundingBoxGeo);
-            renderers[COLLISION_SPHERE] = new BoundRenderer(EffectFactory.CreateCollisionEffect(GraphicsDevice, clip), boundingSphereGeo);
-            renderers[COLLISION_BOX] = new BoundRenderer(EffectFactory.CreateCollisionEffect(GraphicsDevice, clip), boundingBoxGeo);
+            renderers[BOUNDING_SPHERE] = new BoundRenderer(EffectFactory.CreateVectorEffect(GraphicsDevice, clip, GREEN), boundingSphereGeo);
+            renderers[BOUNDING_BOX] = new BoundRenderer(EffectFactory.CreateVectorEffect(GraphicsDevice, clip, GREEN), boundingBoxGeo);
+            renderers[BOUNDING_HULL] = new BasicRenderer(EffectFactory.CreateVectorEffect(GraphicsDevice, clip, RED));
+
+            renderers[CULLED_BOUNDING_SPHERE] = new BoundRenderer(EffectFactory.CreateVectorEffect(GraphicsDevice, clip, BLUE), boundingSphereGeo);
+            renderers[CULLED_BOUNDING_BOX] = new BoundRenderer(EffectFactory.CreateVectorEffect(GraphicsDevice, clip, BLUE), boundingBoxGeo);
+
+            renderers[OCCLUDER_BOUNDING_SPHERE] = new BoundRenderer(EffectFactory.CreateVectorEffect(GraphicsDevice, clip, YELLOW), boundingSphereGeo);
+            renderers[OCCLUDER_BOUNDING_BOX] = new BoundRenderer(EffectFactory.CreateVectorEffect(GraphicsDevice, clip, YELLOW), boundingBoxGeo);
+
+            renderers[COLLISION_SPHERE] = new BoundRenderer(EffectFactory.CreateVectorEffect(GraphicsDevice, clip, RED), boundingSphereGeo);
+            renderers[COLLISION_BOX] = new BoundRenderer(EffectFactory.CreateVectorEffect(GraphicsDevice, clip, RED), boundingBoxGeo);
 
             //renderers[HUD] = new HortographicRenderer(EffectFactory.CreateBillboardEffect(GraphicsDevice));
             renderers[HUD] = new BillboardRenderer(EffectFactory.CreateBillboardEffect(GraphicsDevice));
@@ -525,7 +536,7 @@ namespace GameLibrary.SceneGraph
                 }
                 else if (node is Drawable drawable)
                 {
-                    BoundingVolume bv = drawable.WorldBoundingVolume;
+                    Volume bv = drawable.WorldBoundingVolume;
                     bool cull = false;
                     if (bv != null)
                     {
@@ -564,8 +575,8 @@ namespace GameLibrary.SceneGraph
 
             bool culled = false;
 
-            Bounding.BoundingBox boundingBox = (node.obj.Drawable != null) ?
-                node.obj.Drawable.BoundingVolume as Bounding.BoundingBox : node.obj.BoundingBox;
+            Bounding.Box boundingBox = (node.obj.Drawable != null) ?
+                node.obj.Drawable.BoundingVolume as Bounding.Box : node.obj.BoundingBox;
 
             // frustum culling
             if (!culled && ctxt.FrustumCullingEnabled)
@@ -789,7 +800,7 @@ namespace GameLibrary.SceneGraph
             return true;
         };
 
-        public static void AddBBoxHull(RenderContext ctxt, ref Bounding.BoundingBox boundingBox)
+        public static void AddBBoxHull(RenderContext ctxt, ref Bounding.Box boundingBox)
         {
             bool addHull = false;
             bool addProjectedHull = !addHull;

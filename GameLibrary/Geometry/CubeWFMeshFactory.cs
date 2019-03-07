@@ -90,7 +90,7 @@ namespace GameLibrary.Geometry
 
 
             Mesh mesh = new Mesh(PrimitiveType.LineList, lineCount);
-            mesh.BoundingVolume = new GameLibrary.SceneGraph.Bounding.BoundingSphere(Vector3.Zero, 2 * d);
+            mesh.BoundingVolume = new GameLibrary.SceneGraph.Bounding.Sphere(Vector3.Zero, 2 * d);
             builder.SetToMesh(mesh);
             return mesh;
         }

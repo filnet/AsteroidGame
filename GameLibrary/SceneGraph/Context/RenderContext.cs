@@ -175,7 +175,7 @@ namespace GameLibrary.SceneGraph
         public Vector3 sceneMax;
         public Vector3 sceneMin;
 
-        private readonly Bounding.BoundingBox sceneBoundingBox = new Bounding.BoundingBox();
+        private readonly Bounding.Box sceneBoundingBox = new Bounding.Box();
 
         // render bins
         public readonly SortedDictionary<int, List<Drawable>> renderBins;
@@ -247,7 +247,7 @@ namespace GameLibrary.SceneGraph
             // visible bounding box includes "whole" chunks
             // so we need to intersect with Frustum to get a tighter visible bounding box
             // FIXME should be done in RenderContext
-            Bounding.BoundingBox.CreateFromMinMax(sceneMin, sceneMax, sceneBoundingBox);
+            Bounding.Box.CreateFromMinMax(sceneMin, sceneMax, sceneBoundingBox);
         }
 
         public virtual void ResetStats()

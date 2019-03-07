@@ -50,8 +50,8 @@ namespace GameLibrary.SceneGraph.Common
 
     public abstract class GeometryNode : TransformNode, Physical, Drawable
     {
-        private BoundingVolume boundingVolume;
-        private BoundingVolume worldBoundingVolume;
+        private Volume boundingVolume;
+        private Volume worldBoundingVolume;
 
         public bool BoundingVolumeVisible { get; set; }
 
@@ -64,7 +64,7 @@ namespace GameLibrary.SceneGraph.Common
         /// <summary>
         /// Gets or sets the geometry bounding volume, which contains the entire geometry in model (local) space.
         /// </summary>
-        public BoundingVolume BoundingVolume
+        public Volume BoundingVolume
         {
             get { return boundingVolume; }
             internal set { boundingVolume = value; }
@@ -73,7 +73,7 @@ namespace GameLibrary.SceneGraph.Common
         /// <summary>
         /// Gets or sets the geometry bounding volume, which contains the entire geometry in model (local) space.
         /// </summary>
-        public BoundingVolume WorldBoundingVolume
+        public Volume WorldBoundingVolume
         {
             get { return worldBoundingVolume; }
             internal set { worldBoundingVolume = value; }

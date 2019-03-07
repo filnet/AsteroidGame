@@ -290,7 +290,7 @@ namespace GameLibrary.Voxel
             halfSize = Vector3.Divide(HalfSize, (float)Math.Pow(2, depth));
         }
 
-        protected void GetNodeBoundingBox(OctreeNode<T> node, ref SceneGraph.Bounding.BoundingBox boundingBox)
+        protected void GetNodeBoundingBox(OctreeNode<T> node, ref SceneGraph.Bounding.Box boundingBox)
         {
             Vector3 center;
             Vector3 halfSize;

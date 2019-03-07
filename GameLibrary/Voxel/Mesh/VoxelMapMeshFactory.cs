@@ -61,7 +61,7 @@ namespace GameLibrary.Voxel
             drawVisitor.opaqueBuilder.SetToMesh(mesh);
 
             //mesh.BoundingVolume = new GameLibrary.SceneGraph.Bounding.BoundingBox(octree.Center, octree.HalfSize);
-            mesh.BoundingVolume = SceneGraph.Bounding.BoundingBox.CreateFromMinMax(drawVisitor.min, drawVisitor.max);
+            mesh.BoundingVolume = SceneGraph.Bounding.Box.CreateFromMinMax(drawVisitor.min, drawVisitor.max);
 
             return mesh;
         }
@@ -76,7 +76,7 @@ namespace GameLibrary.Voxel
             drawVisitor.transparentBuilder.SetToMesh(mesh);
 
             //mesh.BoundingVolume = new GameLibrary.SceneGraph.Bounding.BoundingBox(octree.Center, octree.HalfSize);
-            mesh.BoundingVolume = SceneGraph.Bounding.BoundingBox.CreateFromMinMax(drawVisitor.min, drawVisitor.max);
+            mesh.BoundingVolume = SceneGraph.Bounding.Box.CreateFromMinMax(drawVisitor.min, drawVisitor.max);
 
             return mesh;
         }

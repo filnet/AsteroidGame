@@ -37,7 +37,7 @@ namespace AsteroidGame.Geometry
             }
             Mesh mesh = new Mesh(PrimitiveType.LineStrip, count);
             builder.SetToMesh(mesh);
-            GameLibrary.SceneGraph.Bounding.BoundingSphere boundingSphere = new GameLibrary.SceneGraph.Bounding.BoundingSphere();
+            GameLibrary.SceneGraph.Bounding.Sphere boundingSphere = new GameLibrary.SceneGraph.Bounding.Sphere();
             boundingSphere.ComputeFromPoints(vertices);
             mesh.BoundingVolume = boundingSphere;
             return mesh;

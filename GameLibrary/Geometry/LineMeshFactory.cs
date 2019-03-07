@@ -51,7 +51,7 @@ namespace GameLibrary.Geometry
                 builder.AddVertex(vertices[0], Vector3.Zero, Color.White, Vector2.Zero);
             }
             Mesh mesh = new Mesh(PrimitiveType.LineStrip, vertexCount - 1);
-            mesh.BoundingVolume = new GameLibrary.SceneGraph.Bounding.BoundingSphere(new Vector3(0.5f, 0, 0), 0.5f);
+            mesh.BoundingVolume = new GameLibrary.SceneGraph.Bounding.Sphere(new Vector3(0.5f, 0, 0), 0.5f);
             builder.SetToMesh(mesh);
             return mesh;
         }

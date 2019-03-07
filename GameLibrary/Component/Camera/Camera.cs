@@ -200,12 +200,12 @@ namespace GameLibrary.Component.Camera
             get;
         }
 
-        SceneGraph.Bounding.BoundingBox BoundingBox
+        SceneGraph.Bounding.Box BoundingBox
         {
             get;
         }
 
-        SceneGraph.Bounding.BoundingSphere BoundingSphere
+        SceneGraph.Bounding.Sphere BoundingSphere
         {
             get;
         }

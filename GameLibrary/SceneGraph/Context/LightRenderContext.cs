@@ -125,7 +125,7 @@ namespace GameLibrary.SceneGraph
 
             LightCamera lightCullCamera = CullCamera as LightCamera;
 
-            Bounding.BoundingSphere frustrumBoundingSphere = renderContext.CullCamera.BoundingSphere;
+            Bounding.Sphere frustrumBoundingSphere = renderContext.CullCamera.BoundingSphere;
             Vector3 center = frustrumBoundingSphere.Center;
             float radius = frustrumBoundingSphere.Radius;
 
@@ -197,7 +197,7 @@ namespace GameLibrary.SceneGraph
                 {
                     // transform scene bounding box to light space
                     // FIXME we are only interested in the Z component
-                    Bounding.BoundingBox sceneBoundingBoxLS = new Bounding.BoundingBox();
+                    Bounding.Box sceneBoundingBoxLS = new Bounding.Box();
                     //sceneBoundingBox.Transform(viewMatrix, sceneBoundingBoxLS);
 
                     minZ = Math.Max(minZ, sceneBoundingBoxLS.Center.Z - sceneBoundingBoxLS.HalfSize.Z);
@@ -249,7 +249,7 @@ namespace GameLibrary.SceneGraph
             // - take into account scene : case 1 is when scene is smaller/contained in frustrum
             // - take into account scene : case 2 is when scene there is no scene => don't draw shadows at all...
 
-            Bounding.BoundingBox bb = lightCamera.frustumBoundingBoxLS;
+            Bounding.Box bb = lightCamera.frustumBoundingBoxLS;
             Matrix.CreateOrthographicOffCenter(
                 bb.Center.X - bb.HalfSize.X, bb.Center.X + bb.HalfSize.X,
                 bb.Center.Y - bb.HalfSize.Y, bb.Center.Y + bb.HalfSize.Y,

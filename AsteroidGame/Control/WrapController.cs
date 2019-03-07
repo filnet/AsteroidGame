@@ -61,7 +61,7 @@ namespace AsteroidGame.Control
 
                 // BoundingSphere can be changed by other controllers during the update...
                 // Controllers should not be registered in nodes...
-                GameLibrary.SceneGraph.Bounding.BoundingSphere bs = Node.WorldBoundingVolume as GameLibrary.SceneGraph.Bounding.BoundingSphere;
+                GameLibrary.SceneGraph.Bounding.Sphere bs = Node.WorldBoundingVolume as GameLibrary.SceneGraph.Bounding.Sphere;
                 if (bs == null)
                 {
                     return;

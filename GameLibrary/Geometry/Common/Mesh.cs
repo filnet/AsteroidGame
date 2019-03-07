@@ -22,7 +22,7 @@ namespace GameLibrary.Geometry.Common
 
         protected readonly int primitiveCount;
 
-        protected BoundingVolume boundingVolume;
+        protected Volume boundingVolume;
 
         #endregion
 
@@ -64,7 +64,7 @@ namespace GameLibrary.Geometry.Common
             get { return primitiveCount; }
         }
 
-        public BoundingVolume BoundingVolume
+        public Volume BoundingVolume
         {
             get { return boundingVolume; }
             set { boundingVolume = value; }

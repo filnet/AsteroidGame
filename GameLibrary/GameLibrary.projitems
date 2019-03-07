@@ -29,6 +29,7 @@
     <Compile Include="$(MSBuildThisFileDirectory)Geometry\Common\BuilderFactory.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Geometry\Common\VertexPositionColorNormalTexture.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Geometry\Common\ShadowInstanceVertex.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)SceneGraph\Bounding\Frustum.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)SceneGraph\Context\LightRenderContext.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)SceneGraph\Context\SceneRenderContext.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)StockEffects\C#\ShadowCascadeEffect.cs" />
@@ -77,7 +78,7 @@
     <Compile Include="$(MSBuildThisFileDirectory)Geometry\PolygonMeshFactory.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Geometry\FrustumMeshFactory.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Geometry\SquareMeshFactory.cs" />
-    <Compile Include="$(MSBuildThisFileDirectory)SceneGraph\Bounding\BoundingBox.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)SceneGraph\Bounding\Box.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)SceneGraph\Renderer.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)StockEffects\C#\InstancingEffect.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Util\BitUtil.cs" />
@@ -91,8 +92,8 @@
     <Compile Include="$(MSBuildThisFileDirectory)Voxel\Octree.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Voxel\Mesh\VoxelMapMeshFactory.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Physics\Integrator.cs" />
-    <Compile Include="$(MSBuildThisFileDirectory)SceneGraph\Bounding\BoundingSphere.cs" />
-    <Compile Include="$(MSBuildThisFileDirectory)SceneGraph\Bounding\BoundingVolume.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)SceneGraph\Bounding\Sphere.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)SceneGraph\Bounding\Volume.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)SceneGraph\EffectFactory.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)SceneGraph\Common\GeometryNode.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)SceneGraph\Common\GroupNode.cs" />

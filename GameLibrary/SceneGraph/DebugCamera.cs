@@ -30,8 +30,8 @@ namespace GameLibrary.SceneGraph
 
         public override BoundingFrustum BoundingFrustum { get { return boundingFrustum; } }
 
-        public override Bounding.BoundingBox BoundingBox { get { return boundingBox; } }
-        public override Bounding.BoundingSphere BoundingSphere { get { return boundingSphere; } }
+        public override Bounding.Box BoundingBox { get { return boundingBox; } }
+        public override Bounding.Sphere BoundingSphere { get { return boundingSphere; } }
 
         private readonly Vector3 position;
         private readonly Vector3 viewDirection;
@@ -44,8 +44,8 @@ namespace GameLibrary.SceneGraph
         private readonly int visitOrder;
 
         private readonly BoundingFrustum boundingFrustum;
-        private readonly Bounding.BoundingBox boundingBox;
-        private readonly Bounding.BoundingSphere boundingSphere;
+        private readonly Bounding.Box boundingBox;
+        private readonly Bounding.Sphere boundingSphere;
 
         public DebugCamera(Camera camera) : base()
         {

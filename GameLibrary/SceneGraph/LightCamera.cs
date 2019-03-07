@@ -40,13 +40,13 @@ namespace GameLibrary.SceneGraph
         //public Bounding.BoundingBox boundingBox;
         //public Bounding.BoundingSphere boundingSphere;
 
-        public Bounding.BoundingBox frustumBoundingBoxLS;
+        public Bounding.Box frustumBoundingBoxLS;
 
         public Rectangle ScissorRectangle;
 
         public LightCamera() : base()
         {
-            frustumBoundingBoxLS = new Bounding.BoundingBox();
+            frustumBoundingBoxLS = new Bounding.Box();
             //frustumBoundSphere = new Bounding.BoundingSphere();
         }
 
@@ -169,7 +169,7 @@ namespace GameLibrary.SceneGraph
             // TODO frustrum/bounds/etc... rendering : use RasterizerState.DepthClipEnable = false; in renderer
             // so we see them even if should be Z clipped (ok for far, but what about near...)
 
-            Bounding.BoundingSphere frustrumBoundingSphere = renderContext.CullCamera.BoundingSphere;
+            Bounding.Sphere frustrumBoundingSphere = renderContext.CullCamera.BoundingSphere;
 
             Vector3 center = frustrumBoundingSphere.Center;
             float radius = frustrumBoundingSphere.Radius;
@@ -237,7 +237,7 @@ namespace GameLibrary.SceneGraph
                 {
                     // transform scene bounding box to light space
                     // FIXME we are only interested in the Z component
-                    Bounding.BoundingBox sceneBoundingBoxLS = new Bounding.BoundingBox();
+                    Bounding.Box sceneBoundingBoxLS = new Bounding.Box();
                     //sceneBoundingBox.Transform(viewMatrix, sceneBoundingBoxLS);
 
                     minZ = Math.Max(minZ, sceneBoundingBoxLS.Center.Z - sceneBoundingBoxLS.HalfSize.Z);
@@ -283,7 +283,7 @@ namespace GameLibrary.SceneGraph
             //frustumBoundSphere.Radius = radius;
         }
 
-        public void FitToScene(BoundingFrustum cameraBoundingFrustum, Bounding.BoundingBox sceneBoundingBox, float nearPlaneOffset)
+        public void FitToScene(BoundingFrustum cameraBoundingFrustum, Bounding.Box sceneBoundingBox, float nearPlaneOffset)
         {
             // matrix that will rotate in the direction of the light
             Vector3 lightUpVector = Vector3.Up;
@@ -295,7 +295,7 @@ namespace GameLibrary.SceneGraph
             Matrix lightRotation = Matrix.CreateLookAt(Vector3.Zero, lightDirection, lightUpVector);
 
             // transform scene bounding box to light space
-            Bounding.BoundingBox sceneBoundingBoxLS = new Bounding.BoundingBox();
+            Bounding.Box sceneBoundingBoxLS = new Bounding.Box();
             //Bounding.BoundingVolume boundingVolume = sceneBoundingBoxLS as Bounding.BoundingVolume;
             sceneBoundingBox.Transform(lightRotation, sceneBoundingBoxLS);
 
@@ -314,7 +314,7 @@ namespace GameLibrary.SceneGraph
             Vector3 max;
             min = Vector3.Max(frustumBoundingBoxLS.Center - frustumBoundingBoxLS.HalfSize, sceneBoundingBoxLS.Center - sceneBoundingBoxLS.HalfSize);
             max = Vector3.Min(frustumBoundingBoxLS.Center + frustumBoundingBoxLS.HalfSize, sceneBoundingBoxLS.Center + sceneBoundingBoxLS.HalfSize);
-            frustumBoundingBoxLS = Bounding.BoundingBox.CreateFromMinMax(min, max);
+            frustumBoundingBoxLS = Bounding.Box.CreateFromMinMax(min, max);
 
             if (nearPlaneOffset != 0)
             {
@@ -322,7 +322,7 @@ namespace GameLibrary.SceneGraph
                 min = frustumBoundingBoxLS.Center - frustumBoundingBoxLS.HalfSize;
                 max = frustumBoundingBoxLS.Center + frustumBoundingBoxLS.HalfSize;
                 min.Z = min.Z - nearPlaneOffset;
-                frustumBoundingBoxLS = Bounding.BoundingBox.CreateFromMinMax(min, max);
+                frustumBoundingBoxLS = Bounding.Box.CreateFromMinMax(min, max);
             }
 
             // light position is in the middle of the bounding box

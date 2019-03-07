@@ -124,9 +124,9 @@ namespace GameLibrary.Voxel
 
             }
 
-            public GameLibrary.SceneGraph.Bounding.BoundingVolume GetBoundingVolume()
+            public GameLibrary.SceneGraph.Bounding.Volume GetBoundingVolume()
             {
-                return new GameLibrary.SceneGraph.Bounding.BoundingBox(Vector3.Zero, new Vector3(d * size, d * size, d * size));
+                return new GameLibrary.SceneGraph.Bounding.Box(Vector3.Zero, new Vector3(d * size, d * size, d * size));
             }
 
             public bool Begin(int size)

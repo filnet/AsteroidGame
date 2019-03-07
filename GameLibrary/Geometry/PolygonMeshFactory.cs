@@ -40,7 +40,7 @@ namespace GameLibrary.Geometry
             builder.AddIndex(0);
             Mesh mesh = new Mesh(PrimitiveType.LineStrip, vertexCount);
             builder.SetToMesh(mesh);
-            GameLibrary.SceneGraph.Bounding.BoundingSphere boundingSphere = new GameLibrary.SceneGraph.Bounding.BoundingSphere(2);
+            GameLibrary.SceneGraph.Bounding.Sphere boundingSphere = new GameLibrary.SceneGraph.Bounding.Sphere(2);
             //boundingSphere.ComputeFromPoints(vertices);
             mesh.BoundingVolume = boundingSphere;
             builder.SetToMesh(mesh);

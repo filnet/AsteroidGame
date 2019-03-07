@@ -21,12 +21,12 @@ namespace GameLibrary.SceneGraph.Common
         /// <summary>
         /// Gets or sets the geometry bounding volume, which contains the entire geometry in model (local) space.
         /// </summary>
-        BoundingVolume BoundingVolume { get; }
+        Volume BoundingVolume { get; }
 
         /// <summary>
         /// Gets or sets the geometry bounding volume, which contains the entire geometry in model (local) space.
         /// </summary>
-        BoundingVolume WorldBoundingVolume { get; }
+        Volume WorldBoundingVolume { get; }
 
         int VertexCount { get; }
 

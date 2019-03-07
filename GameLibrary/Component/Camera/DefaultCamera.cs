@@ -74,8 +74,8 @@ namespace GameLibrary.Component.Camera
         private BoundingFrustum boundingFrustum;
         private readonly Vector3[] frustumCorners = new Vector3[BoundingFrustum.CornerCount];
 
-        private readonly SceneGraph.Bounding.BoundingBox boundingBox = new SceneGraph.Bounding.BoundingBox();
-        private readonly SceneGraph.Bounding.BoundingSphere boundingSphere = new SceneGraph.Bounding.BoundingSphere();
+        private readonly SceneGraph.Bounding.Box boundingBox = new SceneGraph.Bounding.Box();
+        private readonly SceneGraph.Bounding.Sphere boundingSphere = new SceneGraph.Bounding.Sphere();
 
         private Quaternion savedOrientation;
         private Vector3 savedEye;
@@ -981,7 +981,7 @@ namespace GameLibrary.Component.Camera
             }
         }
 
-        public SceneGraph.Bounding.BoundingBox BoundingBox
+        public SceneGraph.Bounding.Box BoundingBox
         {
             get
             {
@@ -993,7 +993,7 @@ namespace GameLibrary.Component.Camera
             }
         }
 
-        public SceneGraph.Bounding.BoundingSphere BoundingSphere
+        public SceneGraph.Bounding.Sphere BoundingSphere
         {
             get
             {
