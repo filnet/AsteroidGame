@@ -279,9 +279,22 @@ namespace GameLibrary.SceneGraph
         {
             base.DebugGeometryAddTo(renderContext);
 
+            if (ShowFrustum)
+            {
+                // FIXME geometry node is rebuilt on each update!
+                frustumGeo?.Dispose();
+                if (RenderCamera.BoundingFrustum != null)
+                {
+                    frustumGeo = GeometryUtil.CreateFrustum("FRUSTUM", RenderCamera.BoundingFrustum);
+                    frustumGeo.RenderGroupId = Scene.FRUSTUM;
+                    frustumGeo.Initialize(GraphicsDevice);
+                }
+            }
+
             if (ShowFrustum && frustumGeo != null)
             {
-                // tight frustum bounding box
+                // frustum (of renderer...)
+                // FIXME does not belong here...
                 renderContext.AddToBin(Scene.FRUSTUM, frustumGeo);
             }
 
@@ -327,19 +340,7 @@ namespace GameLibrary.SceneGraph
         {
             base.DebugGeometryUpdate();
 
-            if (ShowFrustum)
-            {
-                // FIXME geometry node is rebuilt on each update!
-                frustumGeo?.Dispose();
-                if (RenderCamera.BoundingFrustum != null)
-                {
-                    frustumGeo = GeometryUtil.CreateFrustum("FRUSTUM", RenderCamera.BoundingFrustum);
-                    frustumGeo.RenderGroupId = Scene.FRUSTUM;
-                    frustumGeo.Initialize(GraphicsDevice);
-                }
-            }
-
-            if (showShadowMap)
+            if (ShowShadowMap)
             {
                 if (billboardNode == null)
                 {

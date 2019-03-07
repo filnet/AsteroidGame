@@ -97,6 +97,13 @@ namespace GameLibrary.SceneGraph
         }
 
         [Category("Debug Frustum")]
+        public virtual bool ShowFrustumHull
+        {
+            get { return showFrustumHull; }
+            set { showFrustumHull = value; DebugGeometryUpdate(); }
+        }
+
+        [Category("Debug Frustum")]
         public virtual bool ShowFrustumBoundingSphere
         {
             get { return showFrustumBoundingSphere; }
@@ -141,12 +148,14 @@ namespace GameLibrary.SceneGraph
         private bool showCulledBoundingVolumes;
 
         private bool showFrustum;
+        private bool showFrustumHull;
         private bool showFrustumBoundingSphere;
         private bool showFrustumBoundingBox;
 
         private bool showSceneBoundingBox;
 
         private MeshNode frustumGeo;
+        private MeshNode frustumHullGeo;
         private MeshNode frustumBoundingBoxGeo;
         private MeshNode frustumBoundingSphereGeo;
 
@@ -391,10 +400,42 @@ namespace GameLibrary.SceneGraph
 
         public virtual void DebugGeometryAddTo(RenderContext renderContext)
         {
+            if (ShowFrustum)
+            {
+                // frustum
+                // geometry is rebuilt on each update!
+                frustumGeo?.Dispose();
+                frustumGeo = GeometryUtil.CreateFrustum("FRUSTUM", CullCamera.BoundingFrustum);
+                frustumGeo.RenderGroupId = Scene.FRUSTUM;
+                frustumGeo.Initialize(GraphicsDevice);
+
+                // frustum
+                renderContext.AddToBin(Scene.FRUSTUM, frustumGeo);
+            }
+            if (ShowFrustumHull)
+            {
+                // frustum hull
+                // geometry is rebuilt on each update!
+                frustumHullGeo?.Dispose();
+                Vector3 cameraPosition = renderCamera.Position;
+                Vector3[] hull = VectorUtil.Hull(cullCamera.BoundingFrustum, ref cameraPosition);
+                if (hull.Length > 0)
+                {
+                    frustumHullGeo = new MeshNode("FRUSTUM_HULL", new LineMeshFactory(hull, true));
+                    frustumHullGeo.Initialize(GraphicsDevice);
+                    frustumHullGeo.BoundingVolume = CullCamera.BoundingSphere;
+                    frustumHullGeo.WorldBoundingVolume = CullCamera.BoundingSphere;
+                }
+            }
             if (ShowFrustum && frustumGeo != null)
             {
                 // frustum
                 renderContext.AddToBin(Scene.FRUSTUM, frustumGeo);
+            }
+            if (ShowFrustumHull && frustumHullGeo != null)
+            {
+                // frustum hull
+                renderContext.AddToBin(Scene.BOUNDING_HULL, frustumHullGeo);
             }
             if (ShowFrustumBoundingSphere && frustumBoundingSphereGeo != null)
             {
@@ -411,23 +452,14 @@ namespace GameLibrary.SceneGraph
             {
                 // scene bounding box
                 renderContext.AddToBin(Scene.BOUNDING_BOX, sceneBoundingBoxGeo);
-            }           
+            }
         }
 
         protected virtual internal void DebugGeometryUpdate()
         {
-            if (ShowFrustum)
-            {
-                // camera frustum 
-                // geometry node is rebuilt on each update!
-                frustumGeo?.Dispose();
-                frustumGeo = GeometryUtil.CreateFrustum("FRUSTUM", CullCamera.BoundingFrustum);
-                frustumGeo.RenderGroupId = Scene.FRUSTUM;
-                frustumGeo.Initialize(GraphicsDevice);
-            }
             if (ShowFrustumBoundingSphere)
             {
-                // camera frustum bounding sphere
+                // frustum bounding sphere
                 if (frustumBoundingSphereGeo == null)
                 {
                     frustumBoundingSphereGeo = GeometryUtil.CreateGeodesicWF("FRUSTUM_BOUNDING_SPHERE", 1);
@@ -438,7 +470,7 @@ namespace GameLibrary.SceneGraph
             }
             if (ShowFrustumBoundingBox)
             {
-                // camera frustum bounding box
+                // frustum bounding box
                 if (frustumBoundingBoxGeo == null)
                 {
                     frustumBoundingBoxGeo = GeometryUtil.CreateCubeWF("FRUSTUM_BOUNDING_BOX", 1);

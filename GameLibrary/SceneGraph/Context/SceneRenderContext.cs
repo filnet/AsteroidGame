@@ -236,12 +236,6 @@ namespace GameLibrary.SceneGraph
 
         public override void DebugGeometryAddTo(RenderContext renderContext)
         {
-            if (cameraFreezeMode == FreezeMode.Render)
-            {
-                // HACK...
-                // needed for updating the frustrum
-                DebugGeometryUpdate();
-            }
             base.DebugGeometryAddTo(renderContext);
             foreach (LightRenderContext context in lightRenderContextes)
             {

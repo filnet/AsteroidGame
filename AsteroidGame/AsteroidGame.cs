@@ -379,7 +379,7 @@ namespace AsteroidGame
                         Vector3[] vertices = new Vector3[verticeCount];
                         for (int i = 0; i < verticeCount; i++)
                         {
-                            vertices[i] = VectorUtil.HULL_VERTICES[VectorUtil.HULL_LOOKUP_TABLE[++p]];
+                            vertices[i] = VectorUtil.BB_HULL_VERTICES[VectorUtil.HULL_LOOKUP_TABLE[++p]];
                         }
                         //Console.WriteLine(verticeCount + " " + vertices);
 
