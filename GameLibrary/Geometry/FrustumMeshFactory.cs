@@ -12,7 +12,7 @@ namespace GameLibrary.Geometry
     {
         protected readonly Vector3[] vertices;
 
-        //private BoundingFrustum boundingFrustum;
+        //private Frustum Frustum;
 
         private VertexBufferBuilder<VertexPositionColor> builder;
 
@@ -21,15 +21,15 @@ namespace GameLibrary.Geometry
             this.vertices = vertices;
         }
 
-        public FrustumMeshFactory(BoundingFrustum boundingFrustum)
+        public FrustumMeshFactory(SceneGraph.Bounding.Frustum frustum)
         {
-            vertices = boundingFrustum.GetCorners();
-            //this.boundingFrustum = boundingFrustum;
+            vertices = frustum.GetCorners();
+            //this.frustum = frustum;
         }
 
         public Mesh CreateMesh(GraphicsDevice gd)
         {
-            //vertices = boundingFrustum.GetCorners();
+            //vertices = Frustum.GetCorners();
 
             int lineCount = 12;
             builder = VertexBufferBuilder<VertexPositionColor>.createVertexPositionColorBufferBuilder(gd, vertices.Count(), 2 * lineCount);

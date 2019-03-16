@@ -28,7 +28,7 @@ namespace GameLibrary.SceneGraph
 
         public override int VisitOrder { get { return visitOrder; } }
 
-        public override BoundingFrustum BoundingFrustum { get { return boundingFrustum; } }
+        public override SceneGraph.Bounding.Frustum BoundingFrustum { get { return boundingFrustum; } }
 
         public override Bounding.Box BoundingBox { get { return boundingBox; } }
         public override Bounding.Sphere BoundingSphere { get { return boundingSphere; } }
@@ -43,7 +43,7 @@ namespace GameLibrary.SceneGraph
 
         private readonly int visitOrder;
 
-        private readonly BoundingFrustum boundingFrustum;
+        private readonly Bounding.Frustum boundingFrustum;
         private readonly Bounding.Box boundingBox;
         private readonly Bounding.Sphere boundingSphere;
 
@@ -59,9 +59,9 @@ namespace GameLibrary.SceneGraph
 
             visitOrder = camera.VisitOrder;
 
-            boundingFrustum = camera.BoundingFrustum;
-            boundingBox = camera.BoundingBox;
-            boundingSphere = camera.BoundingSphere;
+            boundingFrustum = camera.BoundingFrustum.Clone() as Bounding.Frustum;
+            boundingBox = camera.BoundingBox.Clone() as Bounding.Box;
+            boundingSphere = camera.BoundingSphere.Clone() as Bounding.Sphere;
         }
 
     }

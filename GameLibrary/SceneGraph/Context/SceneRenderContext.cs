@@ -12,7 +12,7 @@ namespace GameLibrary.SceneGraph
     {
         #region Properties
 
-        public enum FreezeMode { None, Render, Cull }
+        public enum CameraMode { Default, FreezeRender, FreezeCull, LightRender, LightCull }
 
         public int LightCount
         {
@@ -37,25 +37,10 @@ namespace GameLibrary.SceneGraph
         }
 
         [Category("Debug")]
-        public FreezeMode CameraFreezeMode
+        public CameraMode Mode
         {
-            get { return cameraFreezeMode; }
-            set { FreezeCamera(value); }
-        }
-
-        public override bool ShowFrustum
-        {
-            get { return (cameraFreezeMode != FreezeMode.None) && base.ShowFrustum; }
-        }
-
-        public override bool ShowFrustumBoundingSphere
-        {
-            get { return (cameraFreezeMode != FreezeMode.None) && base.ShowFrustumBoundingSphere; }
-        }
-
-        public override bool ShowFrustumBoundingBox
-        {
-            get { return (cameraFreezeMode != FreezeMode.None) && base.ShowFrustumBoundingBox; }
+            get { return cameraMode; }
+            set { SetCameraMode(value); }
         }
 
         [Category("Debug Physics")]
@@ -77,10 +62,10 @@ namespace GameLibrary.SceneGraph
         // debugging
         private bool showCollisionVolumes;
 
-        private FreezeMode cameraFreezeMode = FreezeMode.None;
+        private CameraMode cameraMode = CameraMode.Default;
         private float savedZFar = 0;
 
-        public SceneRenderContext(GraphicsDevice graphicsDevice, Camera camera) : base(graphicsDevice, camera)
+        public SceneRenderContext(GraphicsDevice graphicsDevice, Camera camera) : base("VIEW", graphicsDevice, camera)
         {
             lightNodes = new List<LightNode>(1);
             lightRenderContextes = new List<LightRenderContext>(1);
@@ -119,11 +104,11 @@ namespace GameLibrary.SceneGraph
 
         public override bool RedrawRequested()
         {
-            // FIXME performance: most fequent case (i.e. no request) is the worst case scenario...
             if (base.RedrawRequested())
             {
                 return true;
             }
+            // FIXME performance: most fequent case (i.e. no request) is the worst case scenario...
             foreach (LightRenderContext context in lightRenderContextes)
             {
                 if (context.RedrawRequested())
@@ -162,15 +147,29 @@ namespace GameLibrary.SceneGraph
             }
         }
 
-        public void FreezeCamera(FreezeMode mode)
+
+        private Matrix previousViewProjectionMatrix = Matrix.Identity;
+
+        public bool CameraDirty()
         {
-            if (mode == cameraFreezeMode)
+            if (!previousViewProjectionMatrix.Equals(Camera.ViewProjectionMatrix))
+            {
+                previousViewProjectionMatrix = Camera.ViewProjectionMatrix;
+                return true;
+            }
+            return false;
+        }
+
+        public void SetCameraMode(CameraMode mode)
+        {
+            if (mode == cameraMode)
             {
                 return;
             }
+            // FIXME some mode switches are buggy and won't restore zfae
             switch (mode)
             {
-                case FreezeMode.Cull:
+                case CameraMode.FreezeCull:
                     // freeze cull camera
                     cullCamera = new DebugCamera(camera);
 
@@ -180,12 +179,12 @@ namespace GameLibrary.SceneGraph
                     camera.ZFar = 2000;
                     renderCamera = camera;
                     break;
-                case FreezeMode.Render:
+                case CameraMode.FreezeRender:
                     // freeze render camera
                     renderCamera = new DebugCamera(camera);
 
                     // unfreeze cull camera
-                    if (cameraFreezeMode == FreezeMode.Cull)
+                    if (cameraMode == CameraMode.FreezeCull)
                     {
                         // restore zfar
                         camera.ZFar = savedZFar;
@@ -194,9 +193,17 @@ namespace GameLibrary.SceneGraph
                     }
                     cullCamera = camera;
                     break;
-                case FreezeMode.None:
+                case CameraMode.LightRender:
+                    cullCamera = camera;
+                    renderCamera = LightRenderContext(0).RenderCamera;
+                    break;
+                case CameraMode.LightCull:
+                    cullCamera = camera;
+                    renderCamera = LightRenderContext(0).CullCamera;                    
+                    break;
+                case CameraMode.Default:
                 default:
-                    if (cameraFreezeMode == FreezeMode.Cull)
+                    if (cameraMode == CameraMode.FreezeCull)
                     {
                         // restore zfar
                         camera.ZFar = savedZFar;
@@ -206,7 +213,7 @@ namespace GameLibrary.SceneGraph
                     cullCamera = camera;
                     break;
             }
-            cameraFreezeMode = mode;
+            cameraMode = mode;
             DebugGeometryUpdate();
         }
 

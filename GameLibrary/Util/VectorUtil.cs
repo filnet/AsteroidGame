@@ -177,7 +177,7 @@ namespace GameLibrary
 
         // Bounding Box Hull
 
-        public static Vector3[] Hull(GameLibrary.SceneGraph.Bounding.Box boundingBox, ref Vector3 eye)
+        public static Vector3[] HullCorners(GameLibrary.SceneGraph.Bounding.Box boundingBox, ref Vector3 eye)
         {
             Vector3 c = boundingBox.Center;
             Vector3 s2 = boundingBox.HalfSize;
@@ -225,9 +225,9 @@ namespace GameLibrary
             return dst;
         }
 
-        public static Vector3[] ProjectedHull(GameLibrary.SceneGraph.Bounding.Box boundingBox, ref Vector3 eye, ProjectToScreen projectToScreen)
+        public static Vector3[] HullProjectedCorners(GameLibrary.SceneGraph.Bounding.Box boundingBox, ref Vector3 eye, ProjectToScreen projectToScreen)
         {
-            Vector3[] dst = Hull(boundingBox, ref eye);
+            Vector3[] dst = HullCorners(boundingBox, ref eye);
             for (int i = 0; i < dst.Length; i++)
             {
                 Vector3 v = dst[i];
@@ -236,7 +236,7 @@ namespace GameLibrary
             return dst;
         }
 
-        public static float ProjectedArea(GameLibrary.SceneGraph.Bounding.Box boundingBox, ref Vector3 eye, ProjectToScreen projectToScreen)
+        public static float HullArea(GameLibrary.SceneGraph.Bounding.Box boundingBox, ref Vector3 eye, ProjectToScreen projectToScreen)
         {
             Vector3 c = boundingBox.Center;
             Vector3 s2 = boundingBox.HalfSize;
@@ -292,7 +292,7 @@ namespace GameLibrary
             return sum * 0.5f;
         }
 
-        // FIXME copied in Frustum
+        // FIXME duplicated in Frustum
         public static float ClassifyPoint(ref Vector3 point, Plane plane)
         {
             return point.X * plane.Normal.X + point.Y * plane.Normal.Y + point.Z * plane.Normal.Z + plane.D;
@@ -300,7 +300,7 @@ namespace GameLibrary
 
         // Frustum Hull
 
-        public static Vector3[] Hull(BoundingFrustum frustum, ref Vector3 eye)
+        public static Vector3[] HullCorners(SceneGraph.Bounding.Frustum frustum, ref Vector3 eye)
         {
             // compute 6-bit code to classify eye with respect to the 6 defining planes
             int pos = 0;
@@ -326,7 +326,7 @@ namespace GameLibrary
             }
 
             // compute the hull
-            Vector3[] corners = new Vector3[BoundingFrustum.CornerCount];
+            Vector3[] corners = new Vector3[SceneGraph.Bounding.Frustum.CornerCount];
             frustum.GetCorners(corners);
 
             Vector3[] dst = new Vector3[count];
@@ -336,6 +336,126 @@ namespace GameLibrary
                 // FIXME frustrum corners are not ordered the same as BB_HULL_VERTICES
                 if (j < 4) j = 3 - j; else j = 11 - j;
                 dst[i] = corners[j];
+            }
+            return dst;
+        }
+
+        public static int[] Hull(SceneGraph.Bounding.Frustum frustum, ref Vector3 eye)
+        {
+            // compute 6-bit code to classify eye with respect to the 6 defining planes
+            int pos = 0;
+            pos += (ClassifyPoint(ref eye, frustum.Left) > 0.0f) ? 1 << 0 : 0; //  1 = left
+            pos += (ClassifyPoint(ref eye, frustum.Right) > 0.0f) ? 1 << 1 : 0; //  2 = right
+            pos += (ClassifyPoint(ref eye, frustum.Bottom) > 0.0f) ? 1 << 2 : 0; //  4 = bottom
+            pos += (ClassifyPoint(ref eye, frustum.Top) > 0.0f) ? 1 << 3 : 0; //  8 = top
+            pos += (ClassifyPoint(ref eye, frustum.Far) > 0.0f) ? 1 << 5 : 0; // 32 = back !!!
+            pos += (ClassifyPoint(ref eye, frustum.Near) > 0.0f) ? 1 << 4 : 0; // 16 = front !!!
+
+            // return empty array if inside
+            if (pos == 0)
+            {
+                return new int[0];
+            }
+
+            // look up number of vertices
+            pos *= 7;
+            int count = HULL_LOOKUP_TABLE[pos];
+            if (count == 0)
+            {
+                throw new InvalidOperationException("invalid hull lookup index: " + pos);
+            }
+
+            // compute the hull
+            Vector3[] corners = new Vector3[SceneGraph.Bounding.Frustum.CornerCount];
+            frustum.GetCorners(corners);
+
+            int[] dst = new int[count];
+            for (int i = 0; i < count; i++)
+            {
+                int j = HULL_LOOKUP_TABLE[++pos];
+                // FIXME frustrum corners are not ordered the same as BB_HULL_VERTICES
+                if (j < 4) j = 3 - j; else j = 11 - j;
+                dst[i] = j;
+            }
+            return dst;
+        }
+
+        public static Vector3[] HullCornersFromDirection(SceneGraph.Bounding.Frustum frustum, ref Vector3 dir)
+        {
+            // compute 6-bit code to classify eye with respect to the 6 defining planes
+            int pos = 0;
+            pos += (frustum.Left.DotNormal(dir) > 0.0f) ? 1 << 0 : 0; //  1 = left
+            pos += (frustum.Right.DotNormal(dir) > 0.0f) ? 1 << 1 : 0; //  2 = right
+            pos += (frustum.Bottom.DotNormal(dir) > 0.0f) ? 1 << 2 : 0; //  4 = bottom
+            pos += (frustum.Top.DotNormal(dir) > 0.0f) ? 1 << 3 : 0; //  8 = top
+            pos += (frustum.Far.DotNormal(dir) > 0.0f) ? 1 << 5 : 0; // 32 = back !!!
+            pos += (frustum.Near.DotNormal(dir) > 0.0f) ? 1 << 4 : 0; // 16 = front !!!
+
+            // return empty array if inside
+            if (pos == 0)
+            {
+                return new Vector3[0];
+            }
+
+            // look up number of vertices
+            pos *= 7;
+            int count = HULL_LOOKUP_TABLE[pos];
+            if (count == 0)
+            {
+                throw new InvalidOperationException("invalid hull lookup index: " + pos);
+            }
+
+            // compute the hull
+            Vector3[] corners = new Vector3[SceneGraph.Bounding.Frustum.CornerCount];
+            frustum.GetCorners(corners);
+
+            Vector3[] dst = new Vector3[count];
+            for (int i = 0; i < count; i++)
+            {
+                int j = HULL_LOOKUP_TABLE[++pos];
+                // FIXME frustrum corners are not ordered the same as BB_HULL_VERTICES
+                if (j < 4) j = 3 - j; else j = 11 - j;
+                dst[i] = corners[j];
+            }
+            return dst;
+        }
+
+        public static int[] HullFromDirection(SceneGraph.Bounding.Frustum frustum, ref Vector3 dir)
+        {
+            // compute 6-bit code to classify direction with respect to the 6 defining planes
+            int pos = 0;
+            pos += (frustum.Left.DotNormal(dir) > 0.0f) ? 1 << 0 : 0; //  1 = left
+            pos += (frustum.Right.DotNormal(dir) > 0.0f) ? 1 << 1 : 0; //  2 = right
+            pos += (frustum.Bottom.DotNormal(dir) > 0.0f) ? 1 << 2 : 0; //  4 = bottom
+            pos += (frustum.Top.DotNormal(dir) > 0.0f) ? 1 << 3 : 0; //  8 = top
+            pos += (frustum.Far.DotNormal(dir) > 0.0f) ? 1 << 5 : 0; // 32 = back !!!
+            pos += (frustum.Near.DotNormal(dir) > 0.0f) ? 1 << 4 : 0; // 16 = front !!!
+
+            // return empty array if inside
+            if (pos == 0)
+            {
+                return new int[0];
+            }
+
+            // look up number of vertices
+            pos *= 7;
+            int count = HULL_LOOKUP_TABLE[pos];
+            if (count == 0)
+            {
+                throw new InvalidOperationException("invalid hull lookup index: " + pos);
+            }
+
+            // compute the hull
+            Vector3[] corners = new Vector3[SceneGraph.Bounding.Frustum.CornerCount];
+            frustum.GetCorners(corners);
+
+            int[] dst = new int[count];
+            for (int i = 0; i < count; i++)
+            {
+                int j = HULL_LOOKUP_TABLE[++pos];
+                // FIXME frustrum corners are not ordered the same as BB_HULL_VERTICES
+                if (j < 4) j = 3 - j; else j = 11 - j;
+                dst[i] = j;
             }
             return dst;
         }

@@ -195,7 +195,7 @@ namespace GameLibrary.Component.Camera
             get;
         }
 
-        BoundingFrustum BoundingFrustum
+        SceneGraph.Bounding.Frustum BoundingFrustum
         {
             get;
         }

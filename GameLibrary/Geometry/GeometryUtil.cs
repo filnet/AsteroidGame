@@ -75,9 +75,9 @@ namespace GameLibrary.Geometry
             return new MeshNode(name, new FrustumMeshFactory(corners));
         }
 
-        public static MeshNode CreateFrustum(String name, BoundingFrustum boundingFrustum)
+        public static MeshNode CreateFrustum(String name, SceneGraph.Bounding.Frustum frustum)
         {
-            return new MeshNode(name, new FrustumMeshFactory(boundingFrustum));
+            return new MeshNode(name, new FrustumMeshFactory(frustum));
         }
     }
 }

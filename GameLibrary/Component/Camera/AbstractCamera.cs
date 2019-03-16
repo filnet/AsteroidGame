@@ -29,7 +29,7 @@ namespace GameLibrary.Component.Camera
 
         public virtual int VisitOrder => throw new NotImplementedException();
 
-        public virtual BoundingFrustum BoundingFrustum => throw new NotImplementedException();
+        public virtual SceneGraph.Bounding.Frustum BoundingFrustum => throw new NotImplementedException();
 
         public virtual SceneGraph.Bounding.Box BoundingBox => throw new NotImplementedException();
 

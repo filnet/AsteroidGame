@@ -68,20 +68,14 @@ namespace GameLibrary.SceneGraph
 
         private Dictionary<int, List<Node>> collisionGroups;
 
-        private MeshNode boundingSphereGeo;
-        private MeshNode boundingBoxGeo;
-
-        private Matrix previousProjectionMatrix = Matrix.Identity;
-        private Matrix previousViewMatrix = Matrix.Identity;
-
         Dictionary<int, LinkedList<Collision>> collisionCache = new Dictionary<int, LinkedList<Collision>>();
         //LinkedList<GameLibrary.Util.Intersection> intersections = new LinkedList<GameLibrary.Util.Intersection>();
 
         // Settings 
-        public bool Debug = false;
-        public bool ShowStats = false;
+        public bool Debug;
+        public bool ShowStats;
         public bool CaptureFrustum;
-        public bool CheckCollisions = false;
+        public bool CheckCollisions;
 
         public GraphicsDevice GraphicsDevice;
 
@@ -115,10 +109,10 @@ namespace GameLibrary.SceneGraph
         {
             //VectorUtil.CreateAABBAreaLookupTable();
 
-            boundingSphereGeo = GeometryUtil.CreateGeodesicWF("BOUNDING_SPHERE", 4);
+            GeometryNode boundingSphereGeo = GeometryUtil.CreateGeodesicWF("BOUNDING_SPHERE", 4);
             boundingSphereGeo.Initialize(GraphicsDevice);
 
-            boundingBoxGeo = GeometryUtil.CreateCubeWF("BOUNDING_BOX", 1);
+            GeometryNode boundingBoxGeo = GeometryUtil.CreateCubeWF("BOUNDING_BOX", 1);
             boundingBoxGeo.Initialize(GraphicsDevice);
 
             renderers[THREE_LIGHTS] = new BasicRenderer(EffectFactory.CreateBasicEffect1(GraphicsDevice)); // 3 lights
@@ -185,12 +179,18 @@ namespace GameLibrary.SceneGraph
             rootNode.Visit(DUMP_VISITOR);
         }
 
+        public void ViewpointOrigin()
+        {
+            Vector3 eye = new Vector3(0, 1, 0);
+            Vector3 target = eye + Vector3.Forward;
+            renderContext.RenderCamera.LookAt(eye, target, Vector3.Up);
+        }
+
         public void ViewpointScene()
         {
-            renderContext.RenderCamera.LookAt(
-                renderContext.CullCamera.Position,
-                renderContext.CullCamera.Position + renderContext.CullCamera.ViewDirection,
-                Vector3.Up /*renderContext.CullCamera.YAxis*/);
+            Vector3 eye = renderContext.CullCamera.Position;
+            Vector3 target = eye + renderContext.CullCamera.ViewDirection;
+            renderContext.RenderCamera.LookAt(eye, target, Vector3.Up);
         }
 
         public void ViewpointLight()
@@ -198,10 +198,12 @@ namespace GameLibrary.SceneGraph
             if (renderContext.LightCount > 0)
             {
                 Camera lightCamera = renderContext.LightCamera(0);
-                renderContext.RenderCamera.LookAt(
-                    lightCamera.Position - lightCamera.ViewDirection * 100,
-                    lightCamera.Position + lightCamera.ViewDirection,
-                    Vector3.Up);
+                //Vector3 target = lightCamera.Position;
+                //Vector3 eye = target - lightCamera.ViewDirection * 100;
+                Vector3 eye = lightCamera.Position;
+                Vector3 target = eye + lightCamera.ViewDirection;
+                // TODO set view point so view frustum bounding sphere is fully visible from light locaation
+                renderContext.RenderCamera.LookAt(eye, target, Vector3.Up);
             }
         }
 
@@ -229,10 +231,7 @@ namespace GameLibrary.SceneGraph
                 handleCollisions();
             }
 
-            bool cameraDirty = false;
-            cameraDirty = cameraDirty || CaptureFrustum;
-            cameraDirty = cameraDirty || (!previousProjectionMatrix.Equals(renderContext.Camera.ProjectionMatrix));
-            cameraDirty = cameraDirty || (!previousViewMatrix.Equals(renderContext.Camera.ViewMatrix));
+            bool cameraDirty = renderContext.CameraDirty() || CaptureFrustum;
 
             // TODO implement sceneDirty (easy)
             // Octree should set it when needed
@@ -253,16 +252,16 @@ namespace GameLibrary.SceneGraph
                 if (CaptureFrustum)
                 {
                     CaptureFrustum = false;
-                    switch (renderContext.CameraFreezeMode)
+                    switch (renderContext.Mode)
                     {
-                        case FreezeMode.None:
-                            renderContext.FreezeCamera(FreezeMode.Cull);
+                        case CameraMode.Default:
+                            renderContext.SetCameraMode(CameraMode.FreezeCull);
                             break;
-                        case FreezeMode.Cull:
-                            renderContext.FreezeCamera(FreezeMode.Render);
+                        case CameraMode.FreezeCull:
+                            renderContext.SetCameraMode(CameraMode.FreezeRender);
                             break;
-                        case FreezeMode.Render:
-                            renderContext.FreezeCamera(FreezeMode.None);
+                        case CameraMode.FreezeRender:
+                            renderContext.SetCameraMode(CameraMode.Default);
                             break;
                     }
                 }
@@ -270,19 +269,17 @@ namespace GameLibrary.SceneGraph
                 if (cameraDirty || renderContext.RedrawRequested())
                 {
                     renderContext.ClearRedrawRequested();
-                    if (cameraDirty)
+                    /*if (cameraDirty)
                     {
                         previousProjectionMatrix = renderContext.RenderCamera.ProjectionMatrix;
                         previousViewMatrix = renderContext.RenderCamera.ViewMatrix;
-                    }
+                    }*/
                 }
                 if (structureDirty)
                 {
                     if (Debug) Console.WriteLine("Structure Dirty");
                 }
 
-                bool FitToView = true;
-                bool Stable = true;
                 bool FindOccluders = true;
 
                 // FIXME most of the time nodes stay in the same render group
@@ -309,21 +306,7 @@ namespace GameLibrary.SceneGraph
                         // create initial light frustum
                         // if we are looking for occluders then push near plane outwards
                         float nearClipOffset = FindOccluders ? 1000.0f : 0.0f;
-                        if (FitToView)
-                        {
-                            if (Stable)
-                            {
-                                lightRenderContext.FitToViewStable(renderContext, nearClipOffset);
-                            }
-                            else
-                            {
-                                //lightCamera.FitToView(renderContext.CullCamera.BoundingFrustum, nearClipOffset);
-                            }
-                        }
-                        else
-                        {
-                            //lightCamera.FitToScene(renderContext.CullCamera.BoundingFrustum, renderContext.sceneBoundingBox, nearClipOffset);
-                        }
+                        lightRenderContext.FitToViewStable(renderContext, nearClipOffset);
 
                         if (FindOccluders)
                         {
@@ -336,28 +319,11 @@ namespace GameLibrary.SceneGraph
                             lightRenderContext.CullBegin();
                             rootNode.Visit(CULL_VISITOR, lightRenderContext);
                             lightRenderContext.CullEnd();
-
-                            // revert to tight light frustum
-                            // occluders beyond near/far planes will be depth clamped (see shadow renderer rasterizer state)
-                            if (FitToView)
-                            {
-                                if (Stable)
-                                {
-                                    lightRenderContext.FitToViewStable(renderContext, 0.0f);
-                                }
-                                else
-                                {
-                                    //lightCamera.FitToView(renderContext.CullCamera.BoundingFrustum, 0.0f);
-                                }
-                            }
-                            else
-                            {
-                                //lightCamera.FitToScene(renderContext.CullCamera.BoundingFrustum, renderContext.sceneBoundingBox, 0.0f);
-                            }
+                            // FIXME should add geometry from main context...
                         }
                         else
                         {
-                            // no culling was done to find occluders: just copy occluders from main context
+                            // no culling was done to find occluders: just copy geometry from main context
                             foreach (KeyValuePair<int, List<Drawable>> renderBinKVP in renderContext.renderBins)
                             {
                                 int renderBinId = renderBinKVP.Key;
@@ -540,10 +506,19 @@ namespace GameLibrary.SceneGraph
                     bool cull = false;
                     if (bv != null)
                     {
-                        BoundingFrustum boundingFrustum = ctxt.CullCamera.BoundingFrustum;
+                        SceneGraph.Bounding.Frustum boundingFrustum = ctxt.CullCamera.BoundingFrustum;
                         // TODO use a more accurate test for leaf nodes (but still not 100% accurate...)
-                        bool slow = false;
-                        if (bv.IsContained(boundingFrustum, !slow) == ContainmentType.Disjoint)
+                        ContainmentHint hint = ContainmentHint.Precise;
+                        ContainmentType containmentType = ContainmentType.Disjoint;
+                        if (bv is SceneGraph.Bounding.Box boundingBox)
+                        {
+                            containmentType = boundingFrustum.Contains(boundingBox, hint);
+                        }
+                        if (bv is SceneGraph.Bounding.Sphere boundingSphere)
+                        {
+                            containmentType = boundingFrustum.Contains(boundingSphere);
+                        }
+                        if (containmentType == ContainmentType.Disjoint)
                         {
                             //if (Debug) Console.WriteLine("Culling " + node.Name);
                             cull = true;
@@ -587,14 +562,14 @@ namespace GameLibrary.SceneGraph
 
                 // http://www.cse.chalmers.se/~uffe/vfc.pdf
                 // https://cesium.com/blog/2017/02/02/tighter-frustum-culling-and-why-you-may-want-to-disregard-it/
-                // https://github.com/labnation/MonoGame/blob/master/MonoGame.Framework/BoundingFrustum.cs
+                // https://github.com/labnation/MonoGame/blob/master/MonoGame.Framework/Frustum.cs
                 // https://github.com/labnation/MonoGame/blob/master/MonoGame.Framework/BoundingBox.cs
 
-                BoundingFrustum boundingFrustum = ctxt.CullCamera.BoundingFrustum;
+                SceneGraph.Bounding.Frustum boundingFrustum = ctxt.CullCamera.BoundingFrustum;
 
                 // use a more accurate test for leaf nodes (but still not 100% accurate...)
-                bool slow = (node.obj.Drawable != null);
-                ContainmentType containmentType = boundingBox.IsContained(boundingFrustum, !slow);
+                ContainmentHint hint = (node.obj.Drawable != null) ? ContainmentHint.Precise : ContainmentHint.Fast;
+                ContainmentType containmentType = boundingFrustum.Contains(boundingBox, hint);
                 if (containmentType == ContainmentType.Disjoint)
                 {
                     culled = true;
@@ -690,7 +665,7 @@ namespace GameLibrary.SceneGraph
                         AddBBoxHull(ctxt, ref boundingBox);
                     }
                     Vector3 cameraPosition = ctxt.CullCamera.Position;
-                    float a = VectorUtil.ProjectedArea(node.obj.BoundingBox, ref cameraPosition, ctxt.ProjectToScreen);
+                    float a = VectorUtil.HullArea(node.obj.BoundingBox, ref cameraPosition, ctxt.ProjectToScreen);
                     if (a != -1 && a < minA)
                     {
                         minA = a;
@@ -737,7 +712,7 @@ namespace GameLibrary.SceneGraph
                 }
                 if (drawable.BoundingVolumeVisible)
                 {
-                    ctxt.AddBoundingVolume(drawable, BoundingType.AABB, culled);
+                    ctxt.AddBoundingVolume(drawable, VolumeType.AABB, culled);
                 }
             }
             Drawable transparentDrawable = node.obj.TransparentDrawable;
@@ -825,7 +800,7 @@ namespace GameLibrary.SceneGraph
             if (addHull)
             {
                 Vector3 cameraPosition = ctxt.CullCamera.Position;
-                Vector3[] hull = VectorUtil.Hull(boundingBox, ref cameraPosition);
+                Vector3[] hull = VectorUtil.HullCorners(boundingBox, ref cameraPosition);
                 if (hull.Length > 0)
                 {
                     GeometryNode n = new MeshNode("BBOX_HULL", new LineMeshFactory(hull, true));
@@ -837,7 +812,7 @@ namespace GameLibrary.SceneGraph
             if (addProjectedHull)
             {
                 Vector3 cameraPosition = ctxt.CullCamera.Position;
-                Vector3[] hull = VectorUtil.ProjectedHull(boundingBox, ref cameraPosition, ctxt.ProjectToScreen);
+                Vector3[] hull = VectorUtil.HullProjectedCorners(boundingBox, ref cameraPosition, ctxt.ProjectToScreen);
                 if (hull.Length > 0)
                 {
                     GeometryNode n = new MeshNode("BBOX_PROJECTED_HULL", new LineMeshFactory(hull, true));

@@ -29,8 +29,8 @@ namespace GameLibrary.Component.Camera
         public const float DEFAULT_FOVX = MathHelper.Pi / 3.0f;
         public const float DEFAULT_ZNEAR = 0.1f;
         public const float DEFAULT_ZFAR = 50;
-        //public const float DEFAULT_ZFAR = 125.5375f;
         //public const float DEFAULT_ZFAR = 1000;
+        //public const float DEFAULT_ZFAR = 125.5375f;
 
         public const float DEFAULT_ORBIT_MIN_ZOOM = DEFAULT_ZNEAR + 1.0f;
         public const float DEFAULT_ORBIT_MAX_ZOOM = DEFAULT_ZFAR * 0.5f;
@@ -71,8 +71,8 @@ namespace GameLibrary.Component.Camera
 
         private int visitOrder;
 
-        private BoundingFrustum boundingFrustum;
-        private readonly Vector3[] frustumCorners = new Vector3[BoundingFrustum.CornerCount];
+        private SceneGraph.Bounding.Frustum boundingFrustum;
+        private readonly Vector3[] frustumCorners = new Vector3[SceneGraph.Bounding.Frustum.CornerCount];
 
         private readonly SceneGraph.Bounding.Box boundingBox = new SceneGraph.Bounding.Box();
         private readonly SceneGraph.Bounding.Sphere boundingSphere = new SceneGraph.Bounding.Sphere();
@@ -123,6 +123,8 @@ namespace GameLibrary.Component.Camera
 
             viewProjectionDirty = true;
             frustumDirty = true;
+
+            boundingFrustum = new SceneGraph.Bounding.Frustum();
         }
 
         /// <summary>
@@ -969,7 +971,7 @@ namespace GameLibrary.Component.Camera
         }
 
 
-        public BoundingFrustum BoundingFrustum
+        public SceneGraph.Bounding.Frustum BoundingFrustum
         {
             get
             {
@@ -1009,10 +1011,12 @@ namespace GameLibrary.Component.Camera
 
         private void UpdateBounding()
         {
+            boundingFrustum.Matrix = ViewProjectionMatrix;
             // FIXME: garbage
-            boundingFrustum = new BoundingFrustum(ViewProjectionMatrix);
-            boundingFrustum.GetCorners(frustumCorners);
+            //boundingFrustum = new SceneGraph.Bounding.Frustum(ViewProjectionMatrix);
 
+            // FIXME move to Frustum class
+            boundingFrustum.GetCorners(frustumCorners);
             boundingBox.ComputeFromPoints(frustumCorners);
 
             ComputeBoundingSphere();

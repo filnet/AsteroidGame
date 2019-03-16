@@ -371,6 +371,9 @@ namespace GameLibrary
                 string[] subargs = arg.Split(subArgSeparator);
                 switch (subargs[0])
                 {
+                    case "o":
+                        Scene.ViewpointOrigin();
+                        break;
                     case "s":
                         Scene.ViewpointScene();
                         break;

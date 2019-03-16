@@ -1193,7 +1193,7 @@ namespace GameLibrary.Component.Camera
             get { return camera.VisitOrder; }
         }
 
-        public BoundingFrustum BoundingFrustum
+        public SceneGraph.Bounding.Frustum BoundingFrustum
         {
             get { return camera.BoundingFrustum; }
         }

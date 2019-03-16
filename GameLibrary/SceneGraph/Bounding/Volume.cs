@@ -7,17 +7,19 @@ using Microsoft.Xna.Framework.Graphics;
 
 namespace GameLibrary.SceneGraph.Bounding
 {
-    /// <summary>
-    /// The type that this bounding volume is of.
-    /// </summary>
-    public enum BoundingType
+    public enum VolumeType
     {
-        //Bounding Sphere
         Sphere,
-        //Axis-Aligned Bounding Box
         AABB,
-        //Oriented Bounding Box
-        OBB
+        OBB,
+        Frustum,
+        Region
+    }
+
+    public enum ContainmentHint
+    {
+        Fast,
+        Precise
     }
 
     /// <summary>
@@ -34,29 +36,84 @@ namespace GameLibrary.SceneGraph.Bounding
         }
 
         /// <summary>
-        /// Creates a deep-copy of this BoundVolume, returns the same type.
+        /// Returns the type of volume
+        /// </summary>
+        /// <returns>Volume type</returns>
+        public abstract VolumeType Type();
+
+        /// <summary>
+        /// Creates a deep-copy of this Volume, returns the same type.
         /// </summary>
         /// <returns>A new copy of this volume</returns>
         public abstract Volume Clone();
 
+        #region Contains
+
         /// <summary>
-        /// Return the type of bounding volume
+        /// Containment test between this <see cref="Frustum"/> and specified <see cref="Box"/>.
         /// </summary>
-        /// <returns>Bounding type</returns>
-        public abstract BoundingType GetBoundingType();
+        /// <param name="box">A <see cref="Box"/> for testing.</param>
+        /// <returns>Result of testing for containment between this <see cref="Frustum"/> and specified <see cref="Box"/>.</returns>
+        public abstract ContainmentType Contains(Box box, ContainmentHint hint);
+
+        /// <summary>
+        /// Containment test between this <see cref="Frustum"/> and specified <see cref="Sphere"/>.
+        /// </summary>
+        /// <param name="sphere">A <see cref="Sphere"/> for testing.</param>
+        /// <returns>Result of testing for containment between this <see cref="Frustum"/> and specified <see cref="Sphere"/>.</returns>
+        public abstract ContainmentType Contains(Sphere sphere);
+
+        /// <summary>
+        /// Containment test between this <see cref="Frustum"/> and specified <see cref="Frustum"/>.
+        /// </summary>
+        /// <param name="frustum">A <see cref="Frustum"/> for testing.</param>
+        /// <returns>Result of testing for containment between this <see cref="Frustum"/> and specified <see cref="Frustum"/>.</returns>
+        public abstract ContainmentType Contains(Frustum frustum);
+
+        /// <summary>
+        /// Containment test between this <see cref="Frustum"/> and specified <see cref="Vector3"/>.
+        /// </summary>
+        /// <param name="point">A <see cref="Vector3"/> for testing.</param>
+        /// <returns>Result of testing for containment between this <see cref="Frustum"/> and specified <see cref="Vector3"/>.</returns>
+        public bool Contains(Vector3 point)
+        {
+            bool result;
+            Contains(ref point, out result);
+            return result;
+        }
+
+        public abstract void Contains(ref Vector3 point, out bool result);
+
+        #endregion
+
+        #region Intersects
+
+        public abstract bool Intersects(Box box);
+
+        public abstract bool Intersects(Sphere sphere);
+
+        public abstract bool Intersects(Frustum frustum);
+
+        public PlaneIntersectionType Intersects(Plane plane)
+        {
+            PlaneIntersectionType result;
+            Intersects(ref plane, out result);
+            return result;
+        }
+
+        public abstract void Intersects(ref Plane plane, out PlaneIntersectionType result);
+
+        //public Nullable<float> Intersects(Ray ray);
+
+        //public void Intersects(ref Ray ray, out Nullable<float> result);
+
+        #endregion
 
         /// <summary>
         /// Computes this BoundVolume from a set of 3D points
         /// </summary>
         /// <param name="points">Array of Vectors</param>
-        public abstract void ComputeFromPoints(Vector3[] points);
-
-        /// <summary>
-        /// Ask this BoundVolume if a point is within its volume.
-        /// </summary>
-        /// <param name="point">Vector3</param>
-        /// <returns>True if is inside the volume, false otherwise</returns>
-        public abstract bool Contains(Vector3 point);
+        //public abstract void ComputeFromPoints(Vector3[] points);
 
         /// <summary>
         /// Compute the distance from the center of this volume
@@ -64,10 +121,7 @@ namespace GameLibrary.SceneGraph.Bounding
         /// </summary>
         /// <param name="point">Vector3</param>
         /// <returns>Distance</returns>
-        public float DistanceTo(Vector3 point)
-        {
-            return 0; //Vector3.Distance(Center, point);
-        }
+        public abstract float DistanceTo(Vector3 point);
 
         /// <summary>
         /// Compute the distance from the center of this volume to
@@ -75,12 +129,7 @@ namespace GameLibrary.SceneGraph.Bounding
         /// </summary>
         /// <param name="point">Vector3</param>
         /// <returns>Distance squared</returns>
-        public float DistanceSquaredTo(Vector3 point)
-        {
-            return 0; //Vector3.DistanceSquared(Center, point);
-        }
-
-        public abstract ContainmentType IsContained(BoundingFrustum boundingFrustum, bool fast);
+        public abstract float DistanceSquaredTo(Vector3 point);
 
         /// <summary>
         /// Compute the distance from the nearest edge of the volume
@@ -97,58 +146,20 @@ namespace GameLibrary.SceneGraph.Bounding
         public abstract float GetVolume();
 
         /// <summary>
-        /// Determine if this volume intersects with another.
-        /// Intersection occurs when one contains the other,
-        /// they overlap, or if they touch.
-        /// </summary>
-        /// <param name="bv">BoundVolume to check</param>
-        /// <returns>True if intersects, false otherwise</returns>
-        public abstract bool Intersects(Volume bv);
-
-        /// <summary>
-        /// Determine if this volume intersects with the ray.
-        /// </summary>
-        /// <param name="ray">Ray to test against</param>
-        /// <returns>True if intersects, false otherwise</returns>
-        //public abstract bool Intersects(Ray3 ray);
-
-        /// <summary>
-        /// Determine if this volume intersects with a
-        /// bounding box
-        /// </summary>
-        /// <param name="bb">BoundBox to check with</param>
-        /// <returns>True if intersects, false otherwise</returns>
-        //public abstract bool IntersectsBoundBox(BoundBox bb);
-
-        /// <summary>
-        /// Determine if this volume intersects with a bounding sphere
-        /// </summary>
-        /// <param name="sphere">BoundSphere to check with</param>
-        /// <returns>True if intersects, false otherwise</returns>
-        public abstract bool IntersectsBoundSphere(Sphere sphere);
-
-        /// <summary>
-        /// Determine if this volume intersects with an OrientedBoundBox
-        /// </summary>
-        /// <param name="obb">OrientedBoundBox to check against</param>
-        /// <returns>True if intersects, false otherwise</returns>
-        //public abstract bool IntersectsOrientedBoundBox(OrientedBoundBox obb);
-
-        /// <summary>
         /// Merges the two bound volumes into a brand new
         /// bounding volume and leaves the two unchanged.
         /// </summary>
         /// <param name="bv">BoundVolume to merge with</param>
         /// <returns>A new volume containing both volumes</returns>
-        public abstract Volume Merge(Volume bv);
+        //public abstract Volume Merge(Volume bv);
 
         /// <summary>
         /// Merges the two bound volumes into a new volume, which is
-        /// the one that called the method. Returns the itself.
+        /// the one that called the method. Returns itself.
         /// </summary>
         /// <param name="bv">BoundVolume to merge with</param>
         /// <returns>Itself</returns>
-        public abstract Volume MergeLocal(Volume bv);
+        //public abstract Volume MergeLocal(Volume bv);
 
         /// <summary>
         /// Set the center of this BoundVolume with the
@@ -179,20 +190,18 @@ namespace GameLibrary.SceneGraph.Bounding
         //}
 
         /// <summary>
-        /// Transforms this BoundVolume with the specified
+        /// Transforms this Volume with the specified
         /// scale, rotation, and translation. Returns a new transformed volume.
         /// </summary>
         /// <param name="scale">Scale</param>
         /// <param name="rotation">Rotation</param>
         /// <param name="translation">Translation</param>
-        /// <param name="store">BoundVolume to store in</param>
+        /// <param name="store">Volume to store in</param>
         public abstract Volume Transform(Vector3 scale, Quaternion rotation, Vector3 translation, Volume store);
 
         public abstract Volume Transform(Matrix m, Volume store);
 
-        //public abstract Camera.FrustumIntersect CheckFrustumPlane(Plane plane);
-
-        public abstract Matrix WorldMatrix();
+        //public abstract Matrix WorldMatrix();
 
         public abstract void WorldMatrix(out Matrix m);
     }

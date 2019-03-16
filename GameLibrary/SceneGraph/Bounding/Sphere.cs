@@ -9,10 +9,8 @@ namespace GameLibrary.SceneGraph.Bounding
         private static readonly float EPSILON = 0.00001f;
         private static readonly float RADIUS_EPSILON = 1.0f + EPSILON;
 
-        protected Vector3 center;
-        protected float radius;
-
-        private Microsoft.Xna.Framework.BoundingSphere xnaBoundingSphere;
+        private Vector3 center;
+        private float radius;
 
         public Vector3 Center
         {
@@ -26,9 +24,9 @@ namespace GameLibrary.SceneGraph.Bounding
             set { radius = value; }
         }
 
-        public Sphere() : base()
+        public Sphere()
         {
-            center = new Vector3(0, 0, 0);
+            center = Vector3.Zero;
             radius = 0;
         }
 
@@ -44,43 +42,119 @@ namespace GameLibrary.SceneGraph.Bounding
             this.radius = radius;
         }
 
-        public Sphere(Sphere bs)
+        public Sphere(Sphere sphere)
         {
-            center = bs.center;
-            radius = bs.Radius;
+            center = sphere.center;
+            radius = sphere.Radius;
         }
 
-        /// <summary>
-        /// Creates a deep-copy of this BoundVolume
-        /// </summary>
-        /// <returns>A new copy of this volume</returns>
+        public override VolumeType Type()
+        {
+            return VolumeType.Sphere;
+        }
+
         public override Volume Clone()
         {
             return new Sphere(this);
         }
 
-        private Microsoft.Xna.Framework.BoundingSphere asXnaBoundingSphere()
+        #region Contains
+
+        public override ContainmentType Contains(Box box, ContainmentHint hint)
         {
-            xnaBoundingSphere.Center = center;
-            xnaBoundingSphere.Radius = radius;
-            return xnaBoundingSphere;
+            return ContainmentType.Intersects;
         }
 
-        public override Matrix WorldMatrix()
+        public override ContainmentType Contains(Sphere sphere)
         {
-            return Matrix.CreateScale(Radius) * Matrix.CreateTranslation(Center);
+            return ContainmentType.Intersects;
         }
 
-        public override void WorldMatrix(out Matrix m)
+        public override ContainmentType Contains(Frustum frustum)
         {
-            m = Matrix.CreateScale(Radius) * Matrix.CreateTranslation(Center);
+            return ContainmentType.Intersects;
         }
+
+        // FIXME inline
+        public override void Contains(ref Vector3 point, out bool result)
+        {
+            result = (Vector3.DistanceSquared(Center, point) <= Radius * Radius);
+        }
+
+        #endregion
+
+        #region Intersects
+
+        // FIXME inline
+        public override bool Intersects(Box box)
+        {
+            return box.Intersects(this);
+        }
+
+        // FIXME inline
+        public override bool Intersects(Sphere sphere)
+        {
+            float sumRadius = Radius + sphere.Radius;
+            return (Vector3.DistanceSquared(Center, sphere.Center) <= sumRadius * sumRadius);
+        }
+
+        public override bool Intersects(Frustum frustum)
+        {
+            return false;
+        }
+
+        public override void Intersects(ref Plane plane, out PlaneIntersectionType planeIntersectionType)
+        {
+            var distance = default(float);
+            // TODO: we might want to inline this for performance reasons
+            Vector3.Dot(ref plane.Normal, ref center, out distance);
+            distance += plane.D;
+            if (distance > this.Radius)
+                planeIntersectionType = PlaneIntersectionType.Front;
+            else if (distance < -this.Radius)
+                planeIntersectionType = PlaneIntersectionType.Back;
+            else
+                planeIntersectionType = PlaneIntersectionType.Intersecting;
+        }
+
+        /// <summary>
+        /// Determine if this volume intersects with the ray.
+        /// </summary>
+        /// <param name="ray">Ray to test against</param>
+        /// <returns>True if intersects, false otherwise</returns>
+        //public override bool Intersects(Ray3 ray)
+        //{
+        //    if (!MathUtils.IsValidVector(Center))
+        //    {
+        //        return false;
+        //    }
+
+        //    //Test if the origin is inside the sphere
+        //    Vector3 diff = ray.Origin - Center;
+        //    float radSquared = Radius * Radius;
+        //    float a = Vector3.Dot(diff, diff) - radSquared;
+        //    if (a <= 0.0f)
+        //    {
+        //        return true;
+        //    }
+
+        //    //Outside sphere
+        //    float b = Vector3.Dot(ray.Direction, diff);
+        //    if (b >= 0.0f)
+        //    {
+        //        return false;
+        //    }
+
+        //    return b * b >= a;
+        //}
+
+        #endregion
 
         /// <summary>
         /// Computes this BoundVolume from a set of 3D points
         /// </summary>
         /// <param name="points">Array of Vectors</param>
-        public override void ComputeFromPoints(Vector3[] points)
+        public void ComputeFromPoints(Vector3[] points)
         {
             //Vector3[] copy = new Vector3[points.Length];
             //System.Array.Copy(points, copy, points.Length);
@@ -129,21 +203,14 @@ namespace GameLibrary.SceneGraph.Bounding
         //    }
         //}
 
-        /// <summary>
-        /// Ask this BoundVolume if a point is within its volume.
-        /// </summary>
-        /// <param name="point">Vector3</param>
-        /// <returns>True if is inside the volume, false otherwise</returns>
-        public override bool Contains(Vector3 point)
+        public override float DistanceTo(Vector3 point)
         {
-            if (Vector3.DistanceSquared(Center, point) < Radius * Radius)
-            {
-                return true;
-            }
-            else
-            {
-                return false;
-            }
+            return 0;
+        }
+
+        public override float DistanceSquaredTo(Vector3 point)
+        {
+            return 0;
         }
 
         /// <summary>
@@ -167,144 +234,24 @@ namespace GameLibrary.SceneGraph.Bounding
         }
 
         /// <summary>
-        /// Return the type of bounding volume
-        /// </summary>
-        /// <returns>Bounding type</returns>
-        public override BoundingType GetBoundingType()
-        {
-            return BoundingType.Sphere;
-        }
-
-        /// <summary>
-        /// Determine if this volume intersects with another.
-        /// Intersection occurs when one contains the other,
-        /// they overlap, or if they touch.
-        /// </summary>
-        /// <param name="bv">BoundVolume to check</param>
-        /// <returns>True if intersects, false otherwise</returns>
-        public override bool Intersects(Volume bv)
-        {
-            if (bv == null)
-            {
-                return false;
-            }
-            return bv.IntersectsBoundSphere(this);
-        }
-
-        /// <summary>
-        /// Determine if this volume intersects with the ray.
-        /// </summary>
-        /// <param name="ray">Ray to test against</param>
-        /// <returns>True if intersects, false otherwise</returns>
-        //public override bool Intersects(Ray3 ray)
-        //{
-        //    if (!MathUtils.IsValidVector(Center))
-        //    {
-        //        return false;
-        //    }
-
-        //    //Test if the origin is inside the sphere
-        //    Vector3 diff = ray.Origin - Center;
-        //    float radSquared = Radius * Radius;
-        //    float a = Vector3.Dot(diff, diff) - radSquared;
-        //    if (a <= 0.0f)
-        //    {
-        //        return true;
-        //    }
-
-        //    //Outside sphere
-        //    float b = Vector3.Dot(ray.Direction, diff);
-        //    if (b >= 0.0f)
-        //    {
-        //        return false;
-        //    }
-
-        //    return b * b >= a;
-        //}
-
-        /// <summary>
-        /// Determine if this volume intersects with a
-        /// bounding box
-        /// </summary>
-        /// <param name="bb">BoundBox to check with</param>
-        /// <returns>True if intersects, false otherwise</returns>
-        //public override bool IntersectsBoundBox(BoundBox bb)
-        //{
-        //    if (!MathUtils.IsValidVector(Center) || !MathUtils.IsValidVector(bb.Center))
-        //    {
-        //        return false;
-        //    }
-
-        //    if (System.Math.Abs(bb.Center.X - Center.X) < Radius + bb.xExtent
-        //        && System.Math.Abs(bb.Center.Y - Center.Y) < Radius + bb.yExtent
-        //        && System.Math.Abs(bb.Center.Z - Center.Z) < Radius + bb.zExtent)
-        //    {
-        //        return true;
-        //    }
-        //    else
-        //    {
-        //        return false;
-        //    }
-        //}
-
-        /// <summary>
-        /// Determine if this volume intersects with a bounding sphere
-        /// </summary>
-        /// <param name="sphere">BoundSphere to check with</param>
-        /// <returns>True if intersects, false otherwise</returns>
-        public override bool IntersectsBoundSphere(Sphere sphere)
-        {
-            //if (!MathUtils.IsValidVector(Center) || !MathUtils.IsValidVector(sphere.Center))
-            //{
-            //    return false;
-            //}
-
-            Vector3 diff = Center - sphere.Center;
-            float radSum = Radius + sphere.Radius;
-            if (Vector3.Dot(diff, diff) <= radSum * radSum)
-            {
-                return true;
-            }
-            else
-            {
-                return false;
-            }
-        }
-
-        /// <summary>
-        /// Determine if this volume intersects with an OrientedBoundBox
-        /// </summary>
-        /// <param name="obb">OrientedBoundBox to check against</param>
-        /// <returns>True if intersects, false otherwise</returns>
-        //public override bool IntersectsOrientedBoundBox(OrientedBoundBox obb)
-        //{
-        //    return obb.IntersectsBoundSphere(this);
-        //}
-
-        public override ContainmentType IsContained(BoundingFrustum boundingFrustum, bool fast)
-        {
-            return boundingFrustum.Contains(asXnaBoundingSphere());
-        }
-
-        /// <summary>
         /// Merges the two bound volumes into a brand new
         /// bounding volume and leaves the two unchanged.
         /// </summary>
         /// <param name="bv">BoundVolume to merge with</param>
         /// <returns>A new volume containing both volumes</returns>
-        public override Volume Merge(Volume bv)
+        public /*override*/ Volume Merge(Volume bv)
         {
             if (bv == null)
             {
                 return this;
             }
 
-            switch (bv.GetBoundingType())
+            switch (bv.Type())
             {
                 //case BoundingType.AABB:
                 //    BoundBox box = bv as BoundBox;
                 //    return Merge(new Vector3(box.xExtent, box.yExtent, box.zExtent).Length(), box.Center, new BoundSphere());
-                case BoundingType.Sphere:
+                case VolumeType.Sphere:
                     Sphere sphere = bv as Sphere;
                     return Merge(sphere.Radius, sphere.Center, new Sphere());
                 //case BoundingType.OBB:
@@ -321,19 +268,19 @@ namespace GameLibrary.SceneGraph.Bounding
         /// </summary>
         /// <param name="bv">BoundVolume to merge with</param>
         /// <returns>Itself</returns>
-        public override Volume MergeLocal(Volume bv)
+        public /*override*/ Volume MergeLocal(Volume bv)
         {
             if (bv == null)
             {
                 return this;
             }
 
-            switch (bv.GetBoundingType())
+            switch (bv.Type())
             {
                 //case BoundingType.AABB:
                 //    BoundBox box = bv as BoundBox;
                 //    return Merge(new Vector3(box.xExtent, box.yExtent, box.zExtent).Length(), box.Center, this);
-                case BoundingType.Sphere:
+                case VolumeType.Sphere:
                     Sphere sphere = bv as Sphere;
                     return Merge(sphere.Radius, sphere.Center, this);
                 //case BoundingType.OBB:
@@ -385,6 +332,11 @@ namespace GameLibrary.SceneGraph.Bounding
                 return rVal;
             }
             return null;
+        }
+
+        public override void WorldMatrix(out Matrix m)
+        {
+            m = Matrix.CreateScale(Radius) * Matrix.CreateTranslation(Center);
         }
 
         private static float GetMaxAxis(Vector3 scale)

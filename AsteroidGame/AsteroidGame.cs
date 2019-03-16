@@ -112,7 +112,7 @@ namespace AsteroidGame
             {
                 cam.CurrentBehavior = DefaultCamera.Behavior.Orbit;
                 cam.OrbitOffsetDistance = 9.0f;
-                cam.LookAt(new Vector3(0, 0, 0), Vector3.Forward, Vector3.Up);
+                cam.LookAt(new Vector3(0, 1, 0), Vector3.Forward, Vector3.Up);
             }
 
             /*

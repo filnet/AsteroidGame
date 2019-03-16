@@ -132,6 +132,8 @@ namespace GameLibrary.SceneGraph
 
         #endregion
 
+        private readonly string name;
+
         private bool frustumCullingEnabled;
         internal ulong frustumCullingOwner;
 
@@ -185,8 +187,9 @@ namespace GameLibrary.SceneGraph
         public int DrawCount;
         public int VertexCount;
 
-        public RenderContext(GraphicsDevice graphicsDevice, Camera camera)
+        public RenderContext(string name, GraphicsDevice graphicsDevice, Camera camera)
         {
+            this.name = name;
             GraphicsDevice = graphicsDevice;
 
             this.camera = camera;
@@ -207,6 +210,11 @@ namespace GameLibrary.SceneGraph
 
             // state
             renderBins = new SortedDictionary<int, List<Drawable>>();
+        }
+
+        public string Name
+        {
+            get { return name; }
         }
 
         public virtual void Dispose()
@@ -247,7 +255,7 @@ namespace GameLibrary.SceneGraph
             // visible bounding box includes "whole" chunks
             // so we need to intersect with Frustum to get a tighter visible bounding box
             // FIXME should be done in RenderContext
-            Bounding.Box.CreateFromMinMax(sceneMin, sceneMax, sceneBoundingBox);
+            Bounding.Box.CreateFromMinMax(ref sceneMin, ref sceneMax, sceneBoundingBox);
         }
 
         public virtual void ResetStats()
@@ -367,10 +375,10 @@ namespace GameLibrary.SceneGraph
 
         public void AddBoundingVolume(Drawable drawable, bool culled)
         {
-            AddBoundingVolume(drawable, drawable.BoundingVolume.GetBoundingType(), culled);
+            AddBoundingVolume(drawable, drawable.BoundingVolume.Type(), culled);
         }
 
-        public void AddBoundingVolume(Drawable drawable, BoundingType boundingType, bool culled)
+        public void AddBoundingVolume(Drawable drawable, VolumeType boundingType, bool culled)
         {
             Boolean collided = false;
             if (false /*showCollisionVolumes*/)
@@ -381,11 +389,11 @@ namespace GameLibrary.SceneGraph
             {
                 if (collided)
                 {
-                    AddToBin((boundingType == BoundingType.Sphere) ? Scene.COLLISION_SPHERE : Scene.COLLISION_BOX, drawable);
+                    AddToBin((boundingType == VolumeType.Sphere) ? Scene.COLLISION_SPHERE : Scene.COLLISION_BOX, drawable);
                 }
                 else if (showBoundingVolumes)
                 {
-                    AddToBin((boundingType == BoundingType.Sphere) ? Scene.BOUNDING_SPHERE : Scene.BOUNDING_BOX, drawable);
+                    AddToBin((boundingType == VolumeType.Sphere) ? Scene.BOUNDING_SPHERE : Scene.BOUNDING_BOX, drawable);
                 }
             }
             else
@@ -393,7 +401,7 @@ namespace GameLibrary.SceneGraph
                 // handle culled Drawables
                 if (showCulledBoundingVolumes)
                 {
-                    AddToBin((boundingType == BoundingType.Sphere) ? Scene.CULLED_BOUNDING_SPHERE : Scene.CULLED_BOUNDING_BOX, drawable);
+                    AddToBin((boundingType == VolumeType.Sphere) ? Scene.CULLED_BOUNDING_SPHERE : Scene.CULLED_BOUNDING_BOX, drawable);
                 }
             }
         }
@@ -402,52 +410,49 @@ namespace GameLibrary.SceneGraph
         {
             if (ShowFrustum)
             {
-                // frustum
-                // geometry is rebuilt on each update!
+                // cull frustum
+                // FIXME geometry node is rebuilt on each update!
                 frustumGeo?.Dispose();
-                frustumGeo = GeometryUtil.CreateFrustum("FRUSTUM", CullCamera.BoundingFrustum);
-                frustumGeo.RenderGroupId = Scene.FRUSTUM;
-                frustumGeo.Initialize(GraphicsDevice);
+                frustumGeo = null;
 
-                // frustum
-                renderContext.AddToBin(Scene.FRUSTUM, frustumGeo);
+                frustumGeo = GeometryUtil.CreateFrustum(GeneratedName("CULL_FRUSTUM"), CullCamera.BoundingFrustum);
+                frustumGeo.Initialize(GraphicsDevice);
             }
             if (ShowFrustumHull)
             {
-                // frustum hull
-                // geometry is rebuilt on each update!
+                // cull frustum hull
+                // FIXME geometry node is rebuilt on each update!
                 frustumHullGeo?.Dispose();
+                frustumHullGeo = null;
+
                 Vector3 cameraPosition = renderCamera.Position;
-                Vector3[] hull = VectorUtil.Hull(cullCamera.BoundingFrustum, ref cameraPosition);
+                Vector3[] hull = VectorUtil.HullCorners(cullCamera.BoundingFrustum, ref cameraPosition);
                 if (hull.Length > 0)
                 {
-                    frustumHullGeo = new MeshNode("FRUSTUM_HULL", new LineMeshFactory(hull, true));
+                    frustumHullGeo = new MeshNode(GeneratedName("CULL_FRUSTUM_HULL"), new LineMeshFactory(hull, true));
                     frustumHullGeo.Initialize(GraphicsDevice);
-                    frustumHullGeo.BoundingVolume = CullCamera.BoundingSphere;
-                    frustumHullGeo.WorldBoundingVolume = CullCamera.BoundingSphere;
                 }
             }
             if (ShowFrustum && frustumGeo != null)
             {
-                // frustum
+                // cull frustum
                 renderContext.AddToBin(Scene.FRUSTUM, frustumGeo);
             }
             if (ShowFrustumHull && frustumHullGeo != null)
             {
-                // frustum hull
+                // cull frustum hull
                 renderContext.AddToBin(Scene.BOUNDING_HULL, frustumHullGeo);
             }
             if (ShowFrustumBoundingSphere && frustumBoundingSphereGeo != null)
             {
-                // frustum bounding sphere
+                // cull frustum bounding sphere
                 renderContext.AddToBin(Scene.BOUNDING_SPHERE, frustumBoundingSphereGeo);
             }
             if (ShowFrustumBoundingBox && frustumBoundingBoxGeo != null)
             {
-                // frustum bounding box
+                // cull frustum bounding box
                 renderContext.AddToBin(Scene.BOUNDING_BOX, frustumBoundingBoxGeo);
             }
-
             if (ShowSceneBoundingBox && sceneBoundingBoxGeo != null)
             {
                 // scene bounding box
@@ -459,10 +464,10 @@ namespace GameLibrary.SceneGraph
         {
             if (ShowFrustumBoundingSphere)
             {
-                // frustum bounding sphere
+                // cull frustum bounding sphere
                 if (frustumBoundingSphereGeo == null)
                 {
-                    frustumBoundingSphereGeo = GeometryUtil.CreateGeodesicWF("FRUSTUM_BOUNDING_SPHERE", 1);
+                    frustumBoundingSphereGeo = GeometryUtil.CreateGeodesicWF(GeneratedName("CULL_FRUSTUM_BOUNDING_SPHERE"), 1);
                     frustumBoundingSphereGeo.Initialize(GraphicsDevice);
                     frustumBoundingSphereGeo.BoundingVolume = CullCamera.BoundingSphere;
                     frustumBoundingSphereGeo.WorldBoundingVolume = CullCamera.BoundingSphere;
@@ -470,30 +475,21 @@ namespace GameLibrary.SceneGraph
             }
             if (ShowFrustumBoundingBox)
             {
-                // frustum bounding box
+                // cull frustum bounding box
                 if (frustumBoundingBoxGeo == null)
                 {
-                    frustumBoundingBoxGeo = GeometryUtil.CreateCubeWF("FRUSTUM_BOUNDING_BOX", 1);
+                    frustumBoundingBoxGeo = GeometryUtil.CreateCubeWF(GeneratedName("CULL_FRUSTUM_BOUNDING_BOX"), 1);
                     frustumBoundingBoxGeo.Initialize(GraphicsDevice);
                     frustumBoundingBoxGeo.BoundingVolume = CullCamera.BoundingBox;
                     frustumBoundingBoxGeo.WorldBoundingVolume = CullCamera.BoundingBox;
                 }
-                /*
-                // FIXME garbage (need to manage bb in camera (like bs)
-                Bounding.BoundingBox frustumBoundingBox = new Bounding.BoundingBox();
-                Vector3[] corners = new Vector3[BoundingFrustum.CornerCount];
-                CullCamera.BoundingFrustum.GetCorners(corners);
-                frustumBoundingBox.ComputeFromPoints(corners);
-                frustumBoundingBoxGeo.BoundingVolume = frustumBoundingBox;
-                frustumBoundingBoxGeo.WorldBoundingVolume = frustumBoundingBox;
-                */
             }
             if (ShowSceneBoundingBox)
             {
                 // scene bounding box
                 if (sceneBoundingBoxGeo == null)
                 {
-                    sceneBoundingBoxGeo = GeometryUtil.CreateCubeWF("SCENE_BOUNDING_BOX", 1);
+                    sceneBoundingBoxGeo = GeometryUtil.CreateCubeWF(GeneratedName("SCENE_BOUNDING_BOX"), 1);
                     sceneBoundingBoxGeo.Initialize(GraphicsDevice);
                     sceneBoundingBoxGeo.BoundingVolume = sceneBoundingBox;
                     sceneBoundingBoxGeo.WorldBoundingVolume = sceneBoundingBox;
@@ -507,6 +503,9 @@ namespace GameLibrary.SceneGraph
             frustumGeo?.Dispose();
             frustumGeo = null;
 
+            frustumHullGeo?.Dispose();
+            frustumHullGeo = null;
+
             frustumBoundingSphereGeo?.Dispose();
             frustumBoundingSphereGeo = null;
 
@@ -517,5 +516,10 @@ namespace GameLibrary.SceneGraph
             sceneBoundingBoxGeo = null;
         }
 
+
+        protected string GeneratedName(string name)
+        {
+            return this.name + "_" + name;
+        }
     }
 }
