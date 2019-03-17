@@ -1,16 +1,23 @@
 ﻿using Microsoft.Xna.Framework;
 using GameLibrary.Util;
 using System;
+using static GameLibrary.VolumeUtil;
 
 namespace GameLibrary.SceneGraph.Bounding
 {
     public class Sphere : Volume
     {
+        #region Private Fields
+
         private static readonly float EPSILON = 0.00001f;
         private static readonly float RADIUS_EPSILON = 1.0f + EPSILON;
 
         private Vector3 center;
         private float radius;
+
+        #endregion
+
+        #region Properties
 
         public Vector3 Center
         {
@@ -23,6 +30,10 @@ namespace GameLibrary.SceneGraph.Bounding
             get { return radius; }
             set { radius = value; }
         }
+
+        #endregion
+
+        #region Constructors
 
         public Sphere()
         {
@@ -48,6 +59,10 @@ namespace GameLibrary.SceneGraph.Bounding
             radius = sphere.Radius;
         }
 
+        #endregion
+
+        #region Public Methods
+
         public override VolumeType Type()
         {
             return VolumeType.Sphere;
@@ -62,17 +77,17 @@ namespace GameLibrary.SceneGraph.Bounding
 
         public override ContainmentType Contains(Box box, ContainmentHint hint)
         {
-            return ContainmentType.Intersects;
+            throw new NotImplementedException();
         }
 
         public override ContainmentType Contains(Sphere sphere)
         {
-            return ContainmentType.Intersects;
+            throw new NotImplementedException();
         }
 
         public override ContainmentType Contains(Frustum frustum)
         {
-            return ContainmentType.Intersects;
+            throw new NotImplementedException();
         }
 
         // FIXME inline
@@ -100,7 +115,7 @@ namespace GameLibrary.SceneGraph.Bounding
 
         public override bool Intersects(Frustum frustum)
         {
-            return false;
+            throw new NotImplementedException();
         }
 
         public override void Intersects(ref Plane plane, out PlaneIntersectionType planeIntersectionType)
@@ -147,6 +162,40 @@ namespace GameLibrary.SceneGraph.Bounding
 
         //    return b * b >= a;
         //}
+
+        #endregion
+
+        #region Hull
+
+        public override Vector3[] HullCorners(ref Vector3 eye)
+        {
+            throw new NotImplementedException();
+        }
+
+        public override Vector3[] HullProjectedCorners(ref Vector3 eye, ProjectToScreen projectToScreen)
+        {
+            throw new NotImplementedException();
+        }
+
+        public override float HullArea(ref Vector3 eye, ProjectToScreen projectToScreen)
+        {
+            throw new NotImplementedException();
+        }
+
+        public override int[] HullIndices(ref Vector3 eye)
+        {
+            throw new NotImplementedException();
+        }
+
+        public override Vector3[] HullCornersFromDirection(ref Vector3 dir)
+        {
+            throw new NotImplementedException();
+        }
+
+        public override int[] HullIndicesFromDirection(ref Vector3 dir)
+        {
+            throw new NotImplementedException();
+        }
 
         #endregion
 
@@ -205,12 +254,12 @@ namespace GameLibrary.SceneGraph.Bounding
 
         public override float DistanceTo(Vector3 point)
         {
-            return 0;
+            throw new NotImplementedException();
         }
 
         public override float DistanceSquaredTo(Vector3 point)
         {
-            return 0;
+            throw new NotImplementedException();
         }
 
         /// <summary>
@@ -309,7 +358,7 @@ namespace GameLibrary.SceneGraph.Bounding
             rVal.Center = center * scale;
             rVal.Center = Vector3.Transform(center, rotation);
             rVal.Center += translation;
-            rVal.Radius = Math.Abs(GetMaxAxis(scale) * radius) + EPSILON;
+            rVal.Radius = Math.Abs(VectorUtil.GetMaxAxis(scale) * radius) + EPSILON;
 
             return rVal;
         }
@@ -328,7 +377,7 @@ namespace GameLibrary.SceneGraph.Bounding
             if (m.Decompose(out scale, out rotation, out translation))
             {
                 rVal.Center = Vector3.Transform(center, m);
-                rVal.Radius = Math.Abs(GetMaxAxis(scale) * Radius) + EPSILON;
+                rVal.Radius = Math.Abs(VectorUtil.GetMaxAxis(scale) * Radius) + EPSILON;
                 return rVal;
             }
             return null;
@@ -339,24 +388,7 @@ namespace GameLibrary.SceneGraph.Bounding
             m = Matrix.CreateScale(Radius) * Matrix.CreateTranslation(Center);
         }
 
-        private static float GetMaxAxis(Vector3 scale)
-        {
-            float x = global::System.Math.Abs(scale.X);
-            float y = global::System.Math.Abs(scale.Y);
-            float z = global::System.Math.Abs(scale.Z);
-
-            if (x >= y)
-            {
-                if (x >= z)
-                    return x;
-                return z;
-            }
-
-            if (y >= z)
-                return y;
-
-            return z;
-        }
+        #endregion
 
         //private void SetSphere(Vector3 O, Vector3 A)
         //{

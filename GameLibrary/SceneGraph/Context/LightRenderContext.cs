@@ -307,7 +307,8 @@ namespace GameLibrary.SceneGraph
                     cullMax.Y = float.MinValue;
                     cullMax.Z = float.MinValue;
 
-                    int[] hull = VectorUtil.HullFromDirection(renderContext.CullCamera.BoundingFrustum, ref lightDirection);
+                    Bounding.Frustum frustum = renderContext.CullCamera.BoundingFrustum;
+                    int[] hull = frustum.HullIndicesFromDirection(ref lightDirection);
                     for (int i = 0; i < hull.Length; i++)
                     {
                         int j = hull[i];
@@ -407,7 +408,8 @@ namespace GameLibrary.SceneGraph
                 frustumHullGeo = null;
 
                 LightCamera lightCamera = cullCamera as LightCamera;
-                Vector3[] hull = VectorUtil.HullCornersFromDirection(renderContext.CullCamera.BoundingFrustum, ref lightCamera.lightDirection);
+                Bounding.Frustum frustum = renderContext.CullCamera.BoundingFrustum;
+                Vector3[] hull = frustum.HullCornersFromDirection(ref lightCamera.lightDirection);
                 if (hull.Length > 0)
                 {
                     // FIXME when rendering from light viewpoint the hull flickers badly and disappears because back face is z clipped...

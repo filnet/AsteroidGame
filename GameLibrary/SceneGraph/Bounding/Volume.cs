@@ -4,6 +4,7 @@ using System.Linq;
 using System.Text;
 using Microsoft.Xna.Framework;
 using Microsoft.Xna.Framework.Graphics;
+using static GameLibrary.VolumeUtil;
 
 namespace GameLibrary.SceneGraph.Bounding
 {
@@ -109,6 +110,22 @@ namespace GameLibrary.SceneGraph.Bounding
 
         #endregion
 
+        #region Hull
+
+        public abstract Vector3[] HullCorners(ref Vector3 eye);
+
+        public abstract Vector3[] HullProjectedCorners(ref Vector3 eye, ProjectToScreen projectToScreen);
+
+        public abstract float HullArea(ref Vector3 eye, ProjectToScreen projectToScreen);
+
+        public abstract int[] HullIndices(ref Vector3 eye);
+
+        public abstract Vector3[] HullCornersFromDirection(ref Vector3 dir);
+
+        public abstract int[] HullIndicesFromDirection(ref Vector3 dir);
+
+        #endregion
+
         /// <summary>
         /// Computes this BoundVolume from a set of 3D points
         /// </summary>
@@ -205,4 +222,5 @@ namespace GameLibrary.SceneGraph.Bounding
 
         public abstract void WorldMatrix(out Matrix m);
     }
+
 }

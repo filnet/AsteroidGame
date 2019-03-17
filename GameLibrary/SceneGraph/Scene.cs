@@ -665,7 +665,7 @@ namespace GameLibrary.SceneGraph
                         AddBBoxHull(ctxt, ref boundingBox);
                     }
                     Vector3 cameraPosition = ctxt.CullCamera.Position;
-                    float a = VectorUtil.HullArea(node.obj.BoundingBox, ref cameraPosition, ctxt.ProjectToScreen);
+                    float a = node.obj.BoundingBox.HullArea(ref cameraPosition, ctxt.ProjectToScreen);
                     if (a != -1 && a < minA)
                     {
                         minA = a;
@@ -800,7 +800,7 @@ namespace GameLibrary.SceneGraph
             if (addHull)
             {
                 Vector3 cameraPosition = ctxt.CullCamera.Position;
-                Vector3[] hull = VectorUtil.HullCorners(boundingBox, ref cameraPosition);
+                Vector3[] hull = boundingBox.HullCorners(ref cameraPosition);
                 if (hull.Length > 0)
                 {
                     GeometryNode n = new MeshNode("BBOX_HULL", new LineMeshFactory(hull, true));
@@ -812,7 +812,7 @@ namespace GameLibrary.SceneGraph
             if (addProjectedHull)
             {
                 Vector3 cameraPosition = ctxt.CullCamera.Position;
-                Vector3[] hull = VectorUtil.HullProjectedCorners(boundingBox, ref cameraPosition, ctxt.ProjectToScreen);
+                Vector3[] hull = boundingBox.HullProjectedCorners(ref cameraPosition, ctxt.ProjectToScreen);
                 if (hull.Length > 0)
                 {
                     GeometryNode n = new MeshNode("BBOX_PROJECTED_HULL", new LineMeshFactory(hull, true));

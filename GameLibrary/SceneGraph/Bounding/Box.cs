@@ -1,11 +1,13 @@
 ﻿using Microsoft.Xna.Framework;
 using GameLibrary.Util;
 using System;
+using static GameLibrary.VolumeUtil;
 
 namespace GameLibrary.SceneGraph.Bounding
 {
     public class Box : Volume
     {
+        #region Private Fields
 
         //private static readonly float EPSILON = 0.00001f;
         //private static readonly float RADIUS_EPSILON = 1.0f + EPSILON;
@@ -14,6 +16,10 @@ namespace GameLibrary.SceneGraph.Bounding
         // see https://bitbucket.org/sinbad/ogre/src/e40654a418bc10e39c97545d2a45966box7a274d2/OgreMain/src/Math/Simple/C/OgreAabox.cpp?at=v2-0&fileviewer=file-view-default
         protected Vector3 center;
         protected Vector3 halfSize;
+
+        #endregion
+
+        #region Properties
 
         public Vector3 Center
         {
@@ -26,6 +32,10 @@ namespace GameLibrary.SceneGraph.Bounding
             get { return halfSize; }
             set { halfSize = value; }
         }
+
+        #endregion
+
+        #region Constructors
 
         public Box()
         {
@@ -44,6 +54,10 @@ namespace GameLibrary.SceneGraph.Bounding
             center = box.center;
             halfSize = box.halfSize;
         }
+
+        #endregion
+
+        #region Public Methods
 
         public override VolumeType Type()
         {
@@ -71,17 +85,17 @@ namespace GameLibrary.SceneGraph.Bounding
 
         public override ContainmentType Contains(Box box, ContainmentHint hint)
         {
-            return ContainmentType.Intersects;
+            throw new NotImplementedException();
         }
 
         public override ContainmentType Contains(Sphere sphere)
         {
-            return ContainmentType.Intersects;
+            throw new NotImplementedException();
         }
 
         public override ContainmentType Contains(Frustum frustum)
         {
-            return ContainmentType.Intersects;
+            throw new NotImplementedException();
         }
 
         public override void Contains(ref Vector3 point, out bool result)
@@ -114,7 +128,7 @@ namespace GameLibrary.SceneGraph.Bounding
 
         public override bool Intersects(Frustum frustum)
         {
-            return false;
+            throw new NotImplementedException();
         }
 
         public override void Intersects(ref Plane plane, out PlaneIntersectionType planeIntersectionType)
@@ -209,6 +223,134 @@ namespace GameLibrary.SceneGraph.Bounding
 
         #endregion
 
+        #region Hull
+
+        public override Vector3[] HullCorners(ref Vector3 eye)
+        {
+            // transform eye to BB coordinates
+            Vector3 e = new Vector3(eye.X - Center.X, eye.Y - Center.Y, eye.Z - Center.Z);
+
+            // compute 6-bit code to classify eye with respect to the 6 defining planes
+            int pos = 0;
+            pos += (e.X < -HalfSize.X) ? 1 << 0 : 0; //  1 = left
+            pos += (e.X > +HalfSize.X) ? 1 << 1 : 0; //  2 = right
+            pos += (e.Y < -HalfSize.Y) ? 1 << 2 : 0; //  4 = bottom
+            pos += (e.Y > +HalfSize.Y) ? 1 << 3 : 0; //  8 = top
+            pos += (e.Z < -HalfSize.Z) ? 1 << 5 : 0; // 32 = back !!!
+            pos += (e.Z > +HalfSize.Z) ? 1 << 4 : 0; // 16 = front !!!
+
+            // return empty array if inside
+            if (pos == 0)
+            {
+                return new Vector3[0];
+            }
+
+            // look up number of vertices
+            pos *= 7;
+            int count = HULL_LOOKUP_TABLE[pos];
+            if (count == 0)
+            {
+                throw new InvalidOperationException("invalid hull lookup index: " + pos);
+            }
+
+            // compute the hull
+            Vector3[] dst = new Vector3[count];
+            for (int i = 0; i < count; i++)
+            {
+                int j = HULL_LOOKUP_TABLE[++pos];
+                Vector3 v = BB_HULL_VERTICES[j];
+                v.X *= HalfSize.X;
+                v.Y *= HalfSize.Y;
+                v.Z *= HalfSize.Z;
+                v.X += Center.X;
+                v.Y += Center.Y;
+                v.Z += Center.Z;
+                dst[i] = v;
+            }
+            return dst;
+        }
+
+        public override Vector3[] HullProjectedCorners(ref Vector3 eye, ProjectToScreen projectToScreen)
+        {
+            Vector3[] dst = this.HullCorners(ref eye);
+            for (int i = 0; i < dst.Length; i++)
+            {
+                Vector3 v = dst[i];
+                dst[i] = new Vector3(projectToScreen(ref v), 0);
+            }
+            return dst;
+        }
+
+        public override float HullArea(ref Vector3 eye, ProjectToScreen projectToScreen)
+        {
+            // transform eye to BB coordinates
+            Vector3 e = new Vector3(eye.X - Center.X, eye.Y - Center.Y, eye.Z - Center.Z);
+
+            // compute 6-bit code to classify eye with respect to the 6 defining planes
+            int pos = 0;
+            pos += ((e.X < -HalfSize.X ? 1 : 0) << 0); //  1 = left
+            pos += ((e.X > +HalfSize.X ? 1 : 0) << 1); //  2 = right
+            pos += ((e.Y < -HalfSize.Y ? 1 : 0) << 2); //  4 = bottom
+            pos += ((e.Y > +HalfSize.Y ? 1 : 0) << 3); //  8 = top
+            pos += ((e.Z < -HalfSize.Z ? 1 : 0) << 5); // 32 = back !!!
+            pos += ((e.Z > +HalfSize.Z ? 1 : 0) << 4); // 16 = front !!!
+
+            // return -1 if inside
+            if (pos == 0)
+            {
+                return -1.0f;
+            }
+
+            // look up number of vertices
+            pos *= 7;
+            int count = HULL_LOOKUP_TABLE[pos];
+            if (count == 0)
+            {
+                throw new InvalidOperationException("invalid hull lookup index: " + pos);
+            }
+
+            // project hull vertices
+            Vector2[] dst = new Vector2[count];
+            for (int i = 0; i < count; i++)
+            {
+                int j = HULL_LOOKUP_TABLE[++pos];
+                Vector3 v = BB_HULL_VERTICES[j];
+                v.X *= HalfSize.X;
+                v.Y *= HalfSize.Y;
+                v.Z *= HalfSize.Z;
+                v.X += Center.X;
+                v.Y += Center.Y;
+                v.Z += Center.Z;
+                dst[i] = projectToScreen(ref v);
+            }
+
+            // compute the area of the polygon using a contour integral
+            float sum = (dst[count - 1].X - dst[0].X) * (dst[count - 1].Y + dst[0].Y);
+            for (int i = 0; i < count - 1; i++)
+            {
+                sum += (dst[i].X - dst[i + 1].X) * (dst[i].Y + dst[i + 1].Y);
+            }
+            // return corrected value
+            return sum * 0.5f;
+        }
+
+        public override int[] HullIndices(ref Vector3 eye)
+        {
+            throw new NotImplementedException();
+        }
+
+        public override Vector3[] HullCornersFromDirection(ref Vector3 dir)
+        {
+            throw new NotImplementedException();
+        }
+
+        public override int[] HullIndicesFromDirection(ref Vector3 dir)
+        {
+            throw new NotImplementedException();
+        }
+
+        #endregion
+
         public override void WorldMatrix(out Matrix m)
         {
             m = Matrix.CreateScale(halfSize) * Matrix.CreateTranslation(center);
@@ -238,22 +380,22 @@ namespace GameLibrary.SceneGraph.Bounding
 
         public override float DistanceTo(Vector3 point)
         {
-            return 0;
+            throw new NotImplementedException();
         }
 
         public override float DistanceSquaredTo(Vector3 point)
         {
-            return 0;
+            throw new NotImplementedException();
         }
 
         public override float DistanceFromEdgeTo(Vector3 point)
         {
-            return 0;// Vector3.Distance(Center, point) - Radius;
+            throw new NotImplementedException();
         }
 
         public override float GetVolume()
         {
-            return 0;// (float)(4 * (1 / 3) * boxMath.PI * Radius * Radius * Radius);
+            throw new NotImplementedException();
         }
 
         public /*override*/ Volume Merge(Volume bv)
@@ -336,25 +478,6 @@ namespace GameLibrary.SceneGraph.Bounding
             rVal.halfSize.Z = Math.Abs(m.M31) * halfSize.X + Math.Abs(m.M32) * halfSize.Y + Math.Abs(m.M33) * halfSize.Z;
 
             return rVal;
-        }
-
-        private static float GetMaxAxis(Vector3 scale)
-        {
-            float x = Math.Abs(scale.X);
-            float y = Math.Abs(scale.Y);
-            float z = Math.Abs(scale.Z);
-
-            if (x >= y)
-            {
-                if (x >= z)
-                    return x;
-                return z;
-            }
-
-            if (y >= z)
-                return y;
-
-            return z;
         }
 
         //private void SetSphere(Vector3 O, Vector3 A)
@@ -456,6 +579,8 @@ namespace GameLibrary.SceneGraph.Bounding
         //    return Merge(oldRadius, oldCenter, sphere);
         //}
 
+        #endregion
+
         #region Object overrides
 
         public override bool Equals(object obj)
@@ -478,22 +603,5 @@ namespace GameLibrary.SceneGraph.Bounding
         }
 
         #endregion
-
-        //    public override Camera.FrustumIntersect CheckFrustumPlane(Plane plane)
-        //    {
-        //        float distance = plane.DotCoordinate(_center);
-        //        if (distance < -Radius)
-        //        {
-        //            return Camera.FrustumIntersect.Outside;
-        //        }
-        //        else if (distance > Radius)
-        //        {
-        //            return Camera.FrustumIntersect.Inside;
-        //        }
-        //        else
-        //        {
-        //            return Camera.FrustumIntersect.Intersects;
-        //        }
-        //    }
     }
 }

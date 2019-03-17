@@ -426,7 +426,8 @@ namespace GameLibrary.SceneGraph
                 frustumHullGeo = null;
 
                 Vector3 cameraPosition = renderCamera.Position;
-                Vector3[] hull = VectorUtil.HullCorners(cullCamera.BoundingFrustum, ref cameraPosition);
+                Bounding.Frustum frustum = cullCamera.BoundingFrustum;
+                Vector3[] hull = frustum.HullCorners(ref cameraPosition);
                 if (hull.Length > 0)
                 {
                     frustumHullGeo = new MeshNode(GeneratedName("CULL_FRUSTUM_HULL"), new LineMeshFactory(hull, true));

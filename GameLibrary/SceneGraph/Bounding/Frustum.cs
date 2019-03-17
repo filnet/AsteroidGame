@@ -1,5 +1,6 @@
 ﻿using Microsoft.Xna.Framework;
 using System;
+using static GameLibrary.VolumeUtil;
 
 namespace GameLibrary.SceneGraph.Bounding
 {
@@ -160,7 +161,7 @@ namespace GameLibrary.SceneGraph.Bounding
 
         public override VolumeType Type()
         {
-            return VolumeType.AABB;
+            return VolumeType.Frustum;
         }
 
         #region Contains
@@ -279,7 +280,7 @@ namespace GameLibrary.SceneGraph.Bounding
         }
 
         // FIXME duplicated in VectorUtil
-        public static float ClassifyPoint(ref Vector3 point, ref Plane plane)
+        private static float ClassifyPoint(ref Vector3 point, ref Plane plane)
         {
             return point.X * plane.Normal.X + point.Y * plane.Normal.Y + point.Z * plane.Normal.Z + plane.D;
         }
@@ -300,7 +301,7 @@ namespace GameLibrary.SceneGraph.Bounding
 
         #endregion
 
-        #region Contains
+        #region Intersects
 
         public override bool Intersects(Box box)
         {
@@ -317,7 +318,6 @@ namespace GameLibrary.SceneGraph.Bounding
             return (Contains(frustum) != ContainmentType.Disjoint);
         }
 
-
         public override void Intersects(ref Plane plane, out PlaneIntersectionType result)
         {
             result = Intersects(ref plane, ref corners[0]);
@@ -330,7 +330,7 @@ namespace GameLibrary.SceneGraph.Bounding
             }
         }
 
-        // Taken from XNA Frustum
+        // Taken from XNA BoundingFrustum
         internal static PlaneIntersectionType Intersects(ref Plane plane, ref Vector3 point)
         {
             float distance;
@@ -365,6 +365,168 @@ namespace GameLibrary.SceneGraph.Bounding
         public void Intersects(ref Ray ray, out float? result)
         {
             result = 0.0f;
+        }
+
+        #endregion
+
+        #region Hull
+
+        public override Vector3[] HullCorners(ref Vector3 eye)
+        {
+            // compute 6-bit code to classify eye with respect to the 6 defining planes
+            int pos = 0;
+            pos += (ClassifyPoint(ref eye, ref planes[2]) > 0.0f) ? 1 << 0 : 0; //  1 = left
+            pos += (ClassifyPoint(ref eye, ref planes[3]) > 0.0f) ? 1 << 1 : 0; //  2 = right
+            pos += (ClassifyPoint(ref eye, ref planes[5]) > 0.0f) ? 1 << 2 : 0; //  4 = bottom
+            pos += (ClassifyPoint(ref eye, ref planes[4]) > 0.0f) ? 1 << 3 : 0; //  8 = top
+            pos += (ClassifyPoint(ref eye, ref planes[1]) > 0.0f) ? 1 << 5 : 0; // 32 = back / far !!!
+            pos += (ClassifyPoint(ref eye, ref planes[0]) > 0.0f) ? 1 << 4 : 0; // 16 = front / near !!!
+
+            // return empty array if inside
+            if (pos == 0)
+            {
+                return new Vector3[0];
+            }
+
+            // look up number of vertices
+            pos *= 7;
+            int count = HULL_LOOKUP_TABLE[pos];
+            if (count == 0)
+            {
+                throw new InvalidOperationException("invalid hull lookup index: " + pos);
+            }
+
+            // compute the hull
+            Vector3[] dst = new Vector3[count];
+            for (int i = 0; i < count; i++)
+            {
+                int j = HULL_LOOKUP_TABLE[++pos];
+                // FIXME frustrum corners are not ordered the same as BB_HULL_VERTICES
+                if (j < 4) j = 3 - j; else j = 11 - j;
+                dst[i] = corners[j];
+            }
+            return dst;
+        }
+
+        public override Vector3[] HullProjectedCorners(ref Vector3 eye, ProjectToScreen projectToScreen)
+        {
+            throw new NotImplementedException();
+        }
+
+        public override float HullArea(ref Vector3 eye, ProjectToScreen projectToScreen)
+        {
+            throw new NotImplementedException();
+        }
+
+        public override int[] HullIndices(ref Vector3 eye)
+        {
+            // compute 6-bit code to classify eye with respect to the 6 defining planes
+            int pos = 0;
+            pos += (ClassifyPoint(ref eye, ref planes[2]) > 0.0f) ? 1 << 0 : 0; //  1 = left
+            pos += (ClassifyPoint(ref eye, ref planes[3]) > 0.0f) ? 1 << 1 : 0; //  2 = right
+            pos += (ClassifyPoint(ref eye, ref planes[5]) > 0.0f) ? 1 << 2 : 0; //  4 = bottom
+            pos += (ClassifyPoint(ref eye, ref planes[4]) > 0.0f) ? 1 << 3 : 0; //  8 = top
+            pos += (ClassifyPoint(ref eye, ref planes[1]) > 0.0f) ? 1 << 5 : 0; // 32 = back / far !!!
+            pos += (ClassifyPoint(ref eye, ref planes[0]) > 0.0f) ? 1 << 4 : 0; // 16 = front / near !!!
+
+            // return empty array if inside
+            if (pos == 0)
+            {
+                return new int[0];
+            }
+
+            // look up number of vertices
+            pos *= 7;
+            int count = HULL_LOOKUP_TABLE[pos];
+            if (count == 0)
+            {
+                throw new InvalidOperationException("invalid hull lookup index: " + pos);
+            }
+
+            // compute the hull
+            int[] dst = new int[count];
+            for (int i = 0; i < count; i++)
+            {
+                int j = HULL_LOOKUP_TABLE[++pos];
+                // FIXME frustrum corners are not ordered the same as BB_HULL_VERTICES
+                if (j < 4) j = 3 - j; else j = 11 - j;
+                dst[i] = j;
+            }
+            return dst;
+        }
+
+        public override Vector3[] HullCornersFromDirection(ref Vector3 dir)
+        {
+            // compute 6-bit code to classify eye with respect to the 6 defining planes
+            int pos = 0;
+            pos += (planes[2].DotNormal(dir) > 0.0f) ? 1 << 0 : 0; //  1 = left
+            pos += (planes[3].DotNormal(dir) > 0.0f) ? 1 << 1 : 0; //  2 = right
+            pos += (planes[5].DotNormal(dir) > 0.0f) ? 1 << 2 : 0; //  4 = bottom
+            pos += (planes[4].DotNormal(dir) > 0.0f) ? 1 << 3 : 0; //  8 = top
+            pos += (planes[1].DotNormal(dir) > 0.0f) ? 1 << 5 : 0; // 32 = back / far !!!
+            pos += (planes[0].DotNormal(dir) > 0.0f) ? 1 << 4 : 0; // 16 = front / near !!!
+
+            // return empty array if inside
+            if (pos == 0)
+            {
+                return new Vector3[0];
+            }
+
+            // look up number of vertices
+            pos *= 7;
+            int count = HULL_LOOKUP_TABLE[pos];
+            if (count == 0)
+            {
+                throw new InvalidOperationException("invalid hull lookup index: " + pos);
+            }
+
+            // compute the hull
+            Vector3[] dst = new Vector3[count];
+            for (int i = 0; i < count; i++)
+            {
+                int j = HULL_LOOKUP_TABLE[++pos];
+                // FIXME frustrum corners are not ordered the same as BB_HULL_VERTICES
+                if (j < 4) j = 3 - j; else j = 11 - j;
+                dst[i] = corners[j];
+            }
+            return dst;
+        }
+
+        public override int[] HullIndicesFromDirection(ref Vector3 dir)
+        {
+            // compute 6-bit code to classify direction with respect to the 6 defining planes
+            int pos = 0;
+            pos += (planes[2].DotNormal(dir) > 0.0f) ? 1 << 0 : 0; //  1 = left
+            pos += (planes[3].DotNormal(dir) > 0.0f) ? 1 << 1 : 0; //  2 = right
+            pos += (planes[5].DotNormal(dir) > 0.0f) ? 1 << 2 : 0; //  4 = bottom
+            pos += (planes[4].DotNormal(dir) > 0.0f) ? 1 << 3 : 0; //  8 = top
+            pos += (planes[1].DotNormal(dir) > 0.0f) ? 1 << 5 : 0; // 32 = back / far !!!
+            pos += (planes[0].DotNormal(dir) > 0.0f) ? 1 << 4 : 0; // 16 = front / near !!!
+
+            // return empty array if inside
+            if (pos == 0)
+            {
+                return new int[0];
+            }
+
+            // look up number of vertices
+            pos *= 7;
+            int count = HULL_LOOKUP_TABLE[pos];
+            if (count == 0)
+            {
+                throw new InvalidOperationException("invalid hull lookup index: " + pos);
+            }
+
+            // compute the hull
+            int[] dst = new int[count];
+            for (int i = 0; i < count; i++)
+            {
+                int j = HULL_LOOKUP_TABLE[++pos];
+                // FIXME frustrum corners are not ordered the same as BB_HULL_VERTICES
+                if (j < 4) j = 3 - j; else j = 11 - j;
+                dst[i] = j;
+            }
+            return dst;
         }
 
         #endregion
@@ -421,37 +583,37 @@ namespace GameLibrary.SceneGraph.Bounding
 
         public override float DistanceTo(Vector3 point)
         {
-            return 0;
+            throw new NotImplementedException();
         }
 
         public override float DistanceSquaredTo(Vector3 point)
         {
-            return 0;
+            throw new NotImplementedException();
         }
 
         public override float DistanceFromEdgeTo(Vector3 point)
         {
-            return 0;// Vector3.Distance(Center, point) - Radius;
+            throw new NotImplementedException();
         }
 
         public override float GetVolume()
         {
-            return 0;// (float)(4 * (1 / 3) * boxMath.PI * Radius * Radius * Radius);
+            throw new NotImplementedException();
         }
 
         public override Volume Transform(Vector3 scale, Quaternion rotation, Vector3 translation, Volume store)
         {
-            return null;
+            throw new NotImplementedException();
         }
 
         public override Volume Transform(Matrix m, Volume store)
         {
-            return null;
+            throw new NotImplementedException();
         }
 
         public override void WorldMatrix(out Matrix m)
         {
-            m = Matrix.Identity;
+            throw new NotImplementedException();
         }
 
         /// <summary>

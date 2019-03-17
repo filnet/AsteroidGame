@@ -12,7 +12,7 @@ namespace GameLibrary.Geometry
     {
         protected readonly Vector3[] vertices;
 
-        //private Frustum Frustum;
+        //private SceneGraph.Bounding.Frustum frustum;
 
         private VertexBufferBuilder<VertexPositionColor> builder;
 
@@ -29,7 +29,7 @@ namespace GameLibrary.Geometry
 
         public Mesh CreateMesh(GraphicsDevice gd)
         {
-            //vertices = Frustum.GetCorners();
+            //vertices = frustum.GetCorners();
 
             int lineCount = 12;
             builder = VertexBufferBuilder<VertexPositionColor>.createVertexPositionColorBufferBuilder(gd, vertices.Count(), 2 * lineCount);
@@ -37,7 +37,7 @@ namespace GameLibrary.Geometry
             generate();
 
             Mesh mesh = new Mesh(PrimitiveType.LineList, lineCount);
-            //mesh.BoundingVolume = new GameLibrary.SceneGraph.Bounding.BoundingSphere(new Vector3(0, 0, 0), (float) Math.Sqrt(2) / 2);
+            //mesh.BoundingVolume = new SceneGraph.Bounding.Sphere(new Vector3(0, 0, 0), (float) Math.Sqrt(2) / 2);
             builder.SetToMesh(mesh);
 
             return mesh;
