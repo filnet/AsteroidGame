@@ -13,15 +13,27 @@ namespace WpfLibrary
             InitializeComponent();
         }
 
-        public void setSelected1(object obj)
+        public void SetSelected1(object obj)
         {
             this.PropertyGrid1.SelectedObject = obj;
         }
 
-        public void setSelected2(object obj)
+        public void SetSelected2(object obj)
         {
             this.PropertyGrid2.SelectedObject = obj;
         }
 
+        public void SetSelected3(object obj)
+        {
+            this.PropertyGrid3.SelectedObject = obj;
+        }
+
+        public void Refresh()
+        {
+            //object obj = this.PropertyGrid1.SelectedObject;
+            //this.PropertyGrid1.SelectedObject = null;
+            //this.PropertyGrid1.SelectedObject = obj;
+            this.PropertyGrid1.RefreshPropertyList();
+        }
     }
 }

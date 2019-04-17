@@ -215,8 +215,7 @@ namespace StockEffects
         protected override void OnApply()
         {
             // Recompute the world+view+projection matrix or fog vector?
-            dirtyFlags = EffectHelpers.SetWorldViewProj(
-                dirtyFlags, ref world, ref view, ref projection, ref worldView, worldViewProjParam, worldParam);
+            dirtyFlags = EffectHelpers.SetWorldViewProj(dirtyFlags, ref world, ref view, ref projection, ref worldView, worldViewProjParam, worldParam);
             if ((dirtyFlags & EffectDirtyFlags.ClippingPlane) != 0)
             {
                 clippingPlane1Param.SetValue(clippingPlane1);

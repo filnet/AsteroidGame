@@ -1,4 +1,7 @@
-﻿Asteroid
+﻿https://www.opengl.org/archives/resources/code/samples/sig99/advanced99/notes/notes.html
+
+
+Asteroid
 
 http://www.atari.com/play/atari/asteroids
 
@@ -142,12 +145,30 @@ http://15462.courses.cs.cmu.edu/spring2018/lecture/persp/slide_016
 http://www.iquilezles.org/www/articles/voxellines/voxellines.htm
 Seem very good: http://www.iquilezles.org/www/index.htm
 
+Object Intersection / Frustum culling
+
+Complete list of references : http://www.realtimerendering.com/intersections.html
+
+Very good on theory : https://gamedev.stackexchange.com/questions/44500/how-many-and-which-axes-to-use-for-3d-obb-collision-with-sat
+
+http://www.iquilezles.org/www/articles/frustumcorrect/frustumcorrect.htm
+http://www.iquilezles.org/www/articles/frustum/frustum.htm
+
+https://gamedev.stackexchange.com/questions/156870/how-do-i-implement-a-aabb-sphere-collision
+
+http://zach.in.tu-clausthal.de/teaching/cg_literatur/lighthouse3d_view_frustum_culling/index.html
+https://www.gamedev.net/articles/programming/general-and-gameplay-programming/frustum-culling-r4613/
+
 Culling
 
 https://www.braynzarsoft.net/viewtutorial/q16390-34-aabb-cpu-side-frustum-culling
 https://zeuxcg.org/2009/01/31/view-frustum-culling-optimization-introduction/
 
 https://fgiesen.wordpress.com/2010/10/17/view-frustum-culling/
+
+// http://www.cse.chalmers.se/~uffe/vfc.pdf
+// https://cesium.com/blog/2017/02/02/tighter-frustum-culling-and-why-you-may-want-to-disregard-it/
+// https://www.gamedev.net/articles/programming/general-and-gameplay-programming/frustum-culling-r4613/
 
 Bit Manipulation
 

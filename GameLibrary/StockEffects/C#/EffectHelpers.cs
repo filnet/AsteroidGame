@@ -30,7 +30,8 @@ namespace StockEffects
         AlphaTest = 64,
         ShaderIndex = 128,
         ClippingPlane = 256,
-        LightWorldViewProj = 512,
+        LightView = 512,
+        ReflectionWorldViewProj = 1024,
         All = -1
     }
 
@@ -98,7 +99,9 @@ namespace StockEffects
             return dirtyFlags;
         }
 
-        internal static EffectDirtyFlags SetWorldViewProj(EffectDirtyFlags dirtyFlags, ref Matrix world, ref Matrix view, ref Matrix projection, ref Matrix worldView, EffectParameter worldViewProjParam)
+        internal static EffectDirtyFlags SetWorldViewProj(EffectDirtyFlags dirtyFlags,
+            ref Matrix world, ref Matrix view, ref Matrix projection, ref Matrix worldView,
+            EffectParameter worldViewProjParam)
         {
             // Recompute the world+view+projection matrix?
             if ((dirtyFlags & EffectDirtyFlags.WorldViewProj) != 0)
@@ -116,8 +119,8 @@ namespace StockEffects
         }
 
         internal static EffectDirtyFlags SetWorldViewProj(EffectDirtyFlags dirtyFlags,
-                                                         ref Matrix world, ref Matrix view, ref Matrix projection, ref Matrix worldView,
-                                                         EffectParameter worldViewProjParam, EffectParameter worldParam)
+            ref Matrix world, ref Matrix view, ref Matrix projection, ref Matrix worldView,
+            EffectParameter worldViewProjParam, EffectParameter worldParam)
         {
             // Recompute the world+view+projection matrix?
             if ((dirtyFlags & EffectDirtyFlags.WorldViewProj) != 0)

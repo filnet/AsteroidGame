@@ -110,8 +110,8 @@ namespace GameLibrary.SceneGraph.Bounding
         public Frustum(Frustum frustum)
         {
             matrix = frustum.matrix;
-            Array.Copy(frustum.planes, planes, frustum.planes.Length);
-            Array.Copy(frustum.corners, corners, frustum.corners.Length);
+            Array.Copy(frustum.planes, planes, PlaneCount);
+            Array.Copy(frustum.corners, corners, CornerCount);
         }
 
         public Frustum()
@@ -168,6 +168,27 @@ namespace GameLibrary.SceneGraph.Bounding
 
         public override ContainmentType Contains(Box box, ContainmentHint hint)
         {
+            // To be accurate SAT needs quite a few axis:
+            //
+            // Box / Box
+            // a - 3 axes from object A (face normals)
+            // b - 3 axes from object B (face normals)
+            // c - 9 axes from all the cross products of pairs of edges of A and B (3x3)
+            // Total 15
+            //
+            // AABox / AABox
+            // a - 3 axes from object A (face normals)
+            // b - 0 axes from object B (given by A)
+            // c - 0 axes from all the cross products of pairs of edges of A and B (given by A again)
+            // Total 3
+            //
+            // Frustum/Box we should have a = 5, b = 3, c = 15 (for a total of 23...) - TO CONFIRM
+            // a - 5 axes from frustum (face normals) : near/far + 4 sides
+            // b - 3 axes from object B
+            // c - 15 axes from all the cross products of pairs of edges of A and B (5x3)
+            // Total 23
+            // currently only a and b (8 axis) are done
+
             var intersects = false;
             for (int i = 0; i < Frustum.PlaneCount; i++)
             {
@@ -186,51 +207,51 @@ namespace GameLibrary.SceneGraph.Bounding
             {
                 return ContainmentType.Contains;
             }
-
             if (hint == ContainmentHint.Precise)
             {
-                int c;
                 // check frustum outside/inside box
+                // https://iquilezles.org/www/articles/frustumcorrect/frustumcorrect.htm
+
+                // FIXME use "SAT" to reduce the number of loops...
+                // FIXME do Y last ?
+                int c;
                 c = 0;
-                for (int i = 0; i < corners.Length; i++)
+                for (int i = 0; i < CornerCount; i++)
                 {
                     c += ((corners[i].X > box.Center.X + box.HalfSize.X) ? 1 : 0);
                 }
-                if (c == 8) return ContainmentType.Disjoint;
+                if (c == CornerCount) return ContainmentType.Disjoint;
                 c = 0;
-                for (int i = 0; i < corners.Length; i++)
+                for (int i = 0; i < CornerCount; i++)
                 {
                     c += ((corners[i].X < box.Center.X - box.HalfSize.X) ? 1 : 0);
                 }
-                if (c == 8) return ContainmentType.Disjoint;
-
+                if (c == CornerCount) return ContainmentType.Disjoint;
                 c = 0;
-                for (int i = 0; i < corners.Length; i++)
+                for (int i = 0; i < CornerCount; i++)
                 {
                     c += ((corners[i].Y > box.Center.Y + box.HalfSize.Y) ? 1 : 0);
                 }
-                if (c == 8) return ContainmentType.Disjoint;
+                if (c == CornerCount) return ContainmentType.Disjoint;
                 c = 0;
-                for (int i = 0; i < corners.Length; i++)
+                for (int i = 0; i < CornerCount; i++)
                 {
                     c += ((corners[i].Y < box.Center.Y - box.HalfSize.Y) ? 1 : 0);
                 }
-                if (c == 8) return ContainmentType.Disjoint;
-
+                if (c == CornerCount) return ContainmentType.Disjoint;
                 c = 0;
-                for (int i = 0; i < corners.Length; i++)
+                for (int i = 0; i < CornerCount; i++)
                 {
                     c += ((corners[i].Z > box.Center.Z + box.HalfSize.Z) ? 1 : 0);
                 }
-                if (c == 8) return ContainmentType.Disjoint;
+                if (c == CornerCount) return ContainmentType.Disjoint;
                 c = 0;
-                for (int i = 0; i < corners.Length; i++)
+                for (int i = 0; i < CornerCount; i++)
                 {
                     c += ((corners[i].Z < box.Center.Z - box.HalfSize.Z) ? 1 : 0);
                 }
-                if (c == 8) return ContainmentType.Disjoint;
+                if (c == CornerCount) return ContainmentType.Disjoint;
             }
-
             return ContainmentType.Intersects;
         }
 
@@ -279,18 +300,12 @@ namespace GameLibrary.SceneGraph.Bounding
             return intersects ? ContainmentType.Intersects : ContainmentType.Contains;
         }
 
-        // FIXME duplicated in VectorUtil
-        private static float ClassifyPoint(ref Vector3 point, ref Plane plane)
-        {
-            return point.X * plane.Normal.X + point.Y * plane.Normal.Y + point.Z * plane.Normal.Z + plane.D;
-        }
-
         public override void Contains(ref Vector3 point, out bool result)
         {
             for (var i = 0; i < PlaneCount; ++i)
             {
                 // TODO: we might want to inline this for performance reasons
-                if (ClassifyPoint(ref point, ref planes[i]) > 0)
+                if (ClassifyPoint(ref planes[i], ref point) > 0)
                 {
                     result = false;
                     return;
@@ -321,7 +336,7 @@ namespace GameLibrary.SceneGraph.Bounding
         public override void Intersects(ref Plane plane, out PlaneIntersectionType result)
         {
             result = Intersects(ref plane, ref corners[0]);
-            for (int i = 1; i < corners.Length; i++)
+            for (int i = 1; i < CornerCount; i++)
             {
                 if (Intersects(ref plane, ref corners[i]) != result)
                 {
@@ -375,12 +390,12 @@ namespace GameLibrary.SceneGraph.Bounding
         {
             // compute 6-bit code to classify eye with respect to the 6 defining planes
             int pos = 0;
-            pos += (ClassifyPoint(ref eye, ref planes[2]) > 0.0f) ? 1 << 0 : 0; //  1 = left
-            pos += (ClassifyPoint(ref eye, ref planes[3]) > 0.0f) ? 1 << 1 : 0; //  2 = right
-            pos += (ClassifyPoint(ref eye, ref planes[5]) > 0.0f) ? 1 << 2 : 0; //  4 = bottom
-            pos += (ClassifyPoint(ref eye, ref planes[4]) > 0.0f) ? 1 << 3 : 0; //  8 = top
-            pos += (ClassifyPoint(ref eye, ref planes[1]) > 0.0f) ? 1 << 5 : 0; // 32 = back / far !!!
-            pos += (ClassifyPoint(ref eye, ref planes[0]) > 0.0f) ? 1 << 4 : 0; // 16 = front / near !!!
+            pos += (ClassifyPoint(ref planes[2], ref eye) > 0.0f) ? 1 << 0 : 0; //  1 = left
+            pos += (ClassifyPoint(ref planes[3], ref eye) > 0.0f) ? 1 << 1 : 0; //  2 = right
+            pos += (ClassifyPoint(ref planes[5], ref eye) > 0.0f) ? 1 << 2 : 0; //  4 = bottom
+            pos += (ClassifyPoint(ref planes[4], ref eye) > 0.0f) ? 1 << 3 : 0; //  8 = top
+            pos += (ClassifyPoint(ref planes[1], ref eye) > 0.0f) ? 1 << 5 : 0; // 32 = back / far !!!
+            pos += (ClassifyPoint(ref planes[0], ref eye) > 0.0f) ? 1 << 4 : 0; // 16 = front / near !!!
 
             // return empty array if inside
             if (pos == 0)
@@ -422,12 +437,12 @@ namespace GameLibrary.SceneGraph.Bounding
         {
             // compute 6-bit code to classify eye with respect to the 6 defining planes
             int pos = 0;
-            pos += (ClassifyPoint(ref eye, ref planes[2]) > 0.0f) ? 1 << 0 : 0; //  1 = left
-            pos += (ClassifyPoint(ref eye, ref planes[3]) > 0.0f) ? 1 << 1 : 0; //  2 = right
-            pos += (ClassifyPoint(ref eye, ref planes[5]) > 0.0f) ? 1 << 2 : 0; //  4 = bottom
-            pos += (ClassifyPoint(ref eye, ref planes[4]) > 0.0f) ? 1 << 3 : 0; //  8 = top
-            pos += (ClassifyPoint(ref eye, ref planes[1]) > 0.0f) ? 1 << 5 : 0; // 32 = back / far !!!
-            pos += (ClassifyPoint(ref eye, ref planes[0]) > 0.0f) ? 1 << 4 : 0; // 16 = front / near !!!
+            pos += (ClassifyPoint(ref planes[2], ref eye) > 0.0f) ? 1 << 0 : 0; //  1 = left
+            pos += (ClassifyPoint(ref planes[3], ref eye) > 0.0f) ? 1 << 1 : 0; //  2 = right
+            pos += (ClassifyPoint(ref planes[5], ref eye) > 0.0f) ? 1 << 2 : 0; //  4 = bottom
+            pos += (ClassifyPoint(ref planes[4], ref eye) > 0.0f) ? 1 << 3 : 0; //  8 = top
+            pos += (ClassifyPoint(ref planes[1], ref eye) > 0.0f) ? 1 << 5 : 0; // 32 = back / far !!!
+            pos += (ClassifyPoint(ref planes[0], ref eye) > 0.0f) ? 1 << 4 : 0; // 16 = front / near !!!
 
             // return empty array if inside
             if (pos == 0)
@@ -529,7 +544,117 @@ namespace GameLibrary.SceneGraph.Bounding
             return dst;
         }
 
+        public /*override*/ bool RegionFromDirection(ref Vector3 dir, Region region)
+        {
+            // 
+            region.Clear();
+
+            // compute 6-bit code to classify eye with respect to the 6 defining planes
+            // and add back faces
+            int pos = 0;
+            if (planes[2].DotNormal(dir) > 0.0f)
+            {
+                pos |= 1 << 0; //  1 = left
+                region.addPlane(ref planes[2]);
+            }
+            if (planes[3].DotNormal(dir) > 0.0f)
+            {
+                pos |= 1 << 1; //  2 = right
+                region.addPlane(ref planes[3]);
+            }
+            if (planes[5].DotNormal(dir) > 0.0f)
+            {
+                pos |= 1 << 2; //  4 = bottom
+                region.addPlane(ref planes[5]);
+            }
+            if (planes[4].DotNormal(dir) > 0.0f)
+            {
+                pos |= 1 << 3; //  8 = top
+                region.addPlane(ref planes[4]);
+            }
+            if (planes[1].DotNormal(dir) > 0.0f)
+            {
+                pos |= 1 << 5; // 32 = back / far !!!
+                region.addPlane(ref planes[1]);
+            }
+            if (planes[0].DotNormal(dir) > 0.0f)
+            {
+                pos |= 1 << 4; // 16 = front / near !!!
+                region.addPlane(ref planes[0]);
+            }
+
+            // return false if inside
+            // FIXME makes no sense for a direction to be inside the frustum...
+            if (pos == 0)
+            {
+                return false;// new Vector3[0];
+            }
+
+            // look up number of vertices
+            pos *= 7;
+            int count = HULL_LOOKUP_TABLE[pos];
+
+            //Console.WriteLine((pos / 7) + " " + region.PlaneCount + " " + count);
+
+            if (count == 0)
+            {
+                throw new InvalidOperationException("invalid hull lookup index: " + pos);
+            }
+
+            // add corners
+            // the frustum and the generated region share the same corners
+            // note: this is true only because the region is open ended (no near plane)
+            // note: unlike for the frustum, it is not possible to use the corners to draw the region
+            //       as we don't know how to connect them into faces..
+            // FIXME : in some cases, some corners are redundant (they are inside the region and not on its boundary
+            //         they don't cause harm... but waste CPU (see case 32 is such a case...)
+            // FIXME : performances...
+            for (int i = 0; i < CornerCount; i++)
+            {
+                region.addCorner(ref corners[i]);
+            }
+            Vector3 fakeDir = 100000.0f * dir;
+
+            // compute lateral faces
+            Vector3[] dst = new Vector3[count];
+            int index = HULL_LOOKUP_TABLE[pos + count];
+            // FIXME frustrum corners are not ordered the same as BB_HULL_VERTICES
+            if (index < 4) index = 3 - index; else index = 11 - index;
+            Vector3 v1 = corners[index];
+            for (int i = 0; i < count; i++)
+            {
+                index = HULL_LOOKUP_TABLE[++pos];
+                // FIXME frustrum corners are not ordered the same as BB_HULL_VERTICES
+                if (index < 4) index = 3 - index; else index = 11 - index;
+                Vector3 v2 = corners[index];
+
+                Plane p = new Plane(v1, v2, v1 - dir);
+                region.addPlane(ref p);
+
+                // add fake corners...
+                // HACK
+                Vector3 c = v1 - fakeDir;
+                region.addCorner(ref c);
+
+                v1 = v2;
+            }
+            return true;
+        }
+
         #endregion
+
+        public void ComputeBoundingBox(Bounding.Box box)
+        {
+            box.ComputeFromPoints(corners);
+        }
+
+        public void NearFaceCenter(float dz, out Vector3 center)
+        {
+            Vector3 nearFaceCenter = (corners[0] + corners[2]) / 2;
+            Vector3 farFaceCenter = (corners[4] + corners[6]) / 2;
+            Vector3 dir = Vector3.Normalize(farFaceCenter - nearFaceCenter);
+            center = nearFaceCenter + dir * (float)dz;
+        }
 
         /// <summary>
         /// Compares whether current instance is equal to specified <see cref="Frustum"/>.
@@ -579,6 +704,17 @@ namespace GameLibrary.SceneGraph.Bounding
             if (corners.Length < CornerCount) throw new ArgumentOutOfRangeException("corners");
 
             this.corners.CopyTo(corners, 0);
+        }
+
+        public void GetTransformedCorners(Vector3[] corners, ref Matrix m)
+        {
+            if (corners == null) throw new ArgumentNullException("corners");
+            if (corners.Length < CornerCount) throw new ArgumentOutOfRangeException("corners");
+
+            for (int i = 0; i < corners.Length; i++)
+            {
+                Vector3.Transform(ref this.corners[i], ref m, out corners[i]);
+            }
         }
 
         public override float DistanceTo(Vector3 point)
@@ -663,52 +799,6 @@ namespace GameLibrary.SceneGraph.Bounding
             NormalizePlane(ref planes[3]);
             NormalizePlane(ref planes[4]);
             NormalizePlane(ref planes[5]);
-        }
-
-        private static void IntersectionPoint(ref Plane a, ref Plane b, ref Plane c, out Vector3 result)
-        {
-            // Formula used
-            //                d1 ( N2 * N3 ) + d2 ( N3 * N1 ) + d3 ( N1 * N2 )
-            //P =   -------------------------------------------------------------------------
-            //                             N1 . ( N2 * N3 )
-            //
-            // Note: N refers to the normal, d refers to the displacement. '.' means dot product. '*' means cross product
-
-            Vector3 v1, v2, v3;
-            Vector3 cross;
-
-            Vector3.Cross(ref b.Normal, ref c.Normal, out cross);
-
-            float f;
-            Vector3.Dot(ref a.Normal, ref cross, out f);
-            f *= -1.0f;
-
-            Vector3.Cross(ref b.Normal, ref c.Normal, out cross);
-            Vector3.Multiply(ref cross, a.D, out v1);
-            //v1 = (a.D * (Vector3.Cross(b.Normal, c.Normal)));
-
-
-            Vector3.Cross(ref c.Normal, ref a.Normal, out cross);
-            Vector3.Multiply(ref cross, b.D, out v2);
-            //v2 = (b.D * (Vector3.Cross(c.Normal, a.Normal)));
-
-
-            Vector3.Cross(ref a.Normal, ref b.Normal, out cross);
-            Vector3.Multiply(ref cross, c.D, out v3);
-            //v3 = (c.D * (Vector3.Cross(a.Normal, b.Normal)));
-
-            result.X = (v1.X + v2.X + v3.X) / f;
-            result.Y = (v1.Y + v2.Y + v3.Y) / f;
-            result.Z = (v1.Z + v2.Z + v3.Z) / f;
-        }
-
-        private void NormalizePlane(ref Plane p)
-        {
-            float factor = 1f / p.Normal.Length();
-            p.Normal.X *= factor;
-            p.Normal.Y *= factor;
-            p.Normal.Z *= factor;
-            p.D *= factor;
         }
 
         #endregion

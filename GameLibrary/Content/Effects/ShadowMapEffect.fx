@@ -46,7 +46,27 @@ VSOutput VSBasicTx(VSInput vin)
     return vout;
 }
 
-float4 PSBasicTx(VSOutput pin) : SV_Target0
+float4 PSBasicTx0(VSOutput pin) : SV_Target0
+{
+    return SAMPLE_TEXTURE_ARRAY(Texture, float3(pin.TexCoord, 0));
+}
+
+float4 PSBasicTx1(VSOutput pin) : SV_Target0
+{
+    return SAMPLE_TEXTURE_ARRAY(Texture, float3(pin.TexCoord, 1));
+}
+
+float4 PSBasicTx2(VSOutput pin) : SV_Target0
+{
+    return SAMPLE_TEXTURE_ARRAY(Texture, float3(pin.TexCoord, 2));
+}
+
+float4 PSBasicTx3(VSOutput pin) : SV_Target0
+{
+    return SAMPLE_TEXTURE_ARRAY(Texture, float3(pin.TexCoord, 3));
+}
+
+float4 PSBasicTx4x4(VSOutput pin) : SV_Target0
 {
     // target space is 2x2, tex coord is 1x1
     pin.TexCoord *= 2.0f;
@@ -56,4 +76,9 @@ float4 PSBasicTx(VSOutput pin) : SV_Target0
     return SAMPLE_TEXTURE_ARRAY(Texture, float3(pin.TexCoord, textureIndex));
 }
 
-TECHNIQUE(ShadowMapEffect, VSBasicTx, PSBasicTx);
+TECHNIQUE(ShadowMapEffect, VSBasicTx, PSBasicTx0);
+TECHNIQUE(ShadowMapEffect0, VSBasicTx, PSBasicTx0);
+TECHNIQUE(ShadowMapEffect1, VSBasicTx, PSBasicTx1);
+TECHNIQUE(ShadowMapEffect2, VSBasicTx, PSBasicTx2);
+TECHNIQUE(ShadowMapEffect3, VSBasicTx, PSBasicTx3);
+TECHNIQUE(ShadowMapEffect2x2, VSBasicTx, PSBasicTx4x4);

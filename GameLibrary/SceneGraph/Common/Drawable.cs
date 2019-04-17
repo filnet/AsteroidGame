@@ -19,12 +19,12 @@ namespace GameLibrary.SceneGraph.Common
         bool BoundingVolumeVisible { get; set; }
 
         /// <summary>
-        /// Gets or sets the geometry bounding volume, which contains the entire geometry in model (local) space.
+        /// Gets the geometry bounding volume, which contains the entire geometry in model (local) space.
         /// </summary>
         Volume BoundingVolume { get; }
 
         /// <summary>
-        /// Gets or sets the geometry bounding volume, which contains the entire geometry in model (local) space.
+        /// Gets the geometry bounding volume, which contains the entire geometry in world space.
         /// </summary>
         Volume WorldBoundingVolume { get; }
 
@@ -34,8 +34,8 @@ namespace GameLibrary.SceneGraph.Common
         void Draw(GraphicsDevice gd);
         void PostDraw(GraphicsDevice gd);
 
-        void PreDrawInstanced(GraphicsDevice gd);
-        void DrawInstanced(GraphicsDevice gd);
+        void PreDrawInstanced(GraphicsDevice gd, VertexBuffer instanceVertexBuffer, int instanceOffset);
+        void DrawInstanced(GraphicsDevice gd, int instanceCount);
         void PostDrawInstanced(GraphicsDevice gd);
     }
 }

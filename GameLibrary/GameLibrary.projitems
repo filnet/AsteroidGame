@@ -35,10 +35,16 @@
     <Compile Include="$(MSBuildThisFileDirectory)SceneGraph\Bounding\Sphere.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)SceneGraph\Bounding\VolumeUtil.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)SceneGraph\Bounding\Volume.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)SceneGraph\Common\AbstractDrawable.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)SceneGraph\Context\LightRenderContext.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)SceneGraph\Context\RefractionRenderContext.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)SceneGraph\Context\SceneRenderContext.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)SceneGraph\Context\AbstractMapRenderContext.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)SceneGraph\Context\ReflectionRenderContext.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)SceneGraph\SimpleCamera.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)StockEffects\C#\ShadowCascadeEffect.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)StockEffects\C#\ShadowEffect.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)Voxel\Effect\VoxelWaterEffect.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Voxel\Mesh\VoxelVertex.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Geometry\Common\VertexPositionColorNormalTextureArray.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Geometry\Common\VertexPositionNormalTextureArray.cs" />
@@ -59,7 +65,6 @@
     <Compile Include="$(MSBuildThisFileDirectory)Util\Noise\SimplexNoiseGenerator.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Util\Noise\SimplexNoise.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Voxel\Effect\VoxelShadowEffect.cs" />
-    <Compile Include="$(MSBuildThisFileDirectory)Voxel\Effect\VoxelEffect1.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Voxel\Effect\VoxelEffect.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)System\DebugManager.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)System\DebugSystem.cs" />
@@ -215,8 +220,8 @@
     <None Include="$(MSBuildThisFileDirectory)Content\Effects\Lighting.fxh" />
     <None Include="$(MSBuildThisFileDirectory)Content\Effects\Structures.fxh" />
     <None Include="$(MSBuildThisFileDirectory)Content\Effects\ShadowEffect.fx" />
+    <None Include="$(MSBuildThisFileDirectory)Content\Effects\VoxelWaterEffect.fx" />
     <None Include="$(MSBuildThisFileDirectory)Content\Effects\VoxelShadowEffect.fx" />
-    <None Include="$(MSBuildThisFileDirectory)Content\Effects\VoxelEffect1.fx" />
     <None Include="$(MSBuildThisFileDirectory)Content\Effects\VoxelEffect.fx" />
     <None Include="$(MSBuildThisFileDirectory)Content\Effects\BasicEffect.fx" />
     <None Include="$(MSBuildThisFileDirectory)Content\Effects\ClippingEffect.fx" />
@@ -224,9 +229,6 @@
     <None Include="$(MSBuildThisFileDirectory)Content\Effects\Macros.fxh" />
     <None Include="$(MSBuildThisFileDirectory)Content\Effects\VoxelStructures.fxh" />
     <None Include="$(MSBuildThisFileDirectory)Content\Fonts\Arial-12pt.spritefont" />
-    <None Include="$(MSBuildThisFileDirectory)Content\DemoFont12pt.xnb">
-      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-    </None>
     <None Include="$(MSBuildThisFileDirectory)Content\Fonts\Font.spritefont" />
     <None Include="$(MSBuildThisFileDirectory)Doc\GPU Gems 3\Chapter 10 - Parallel-Split Shadow Maps on Programmable GPUs\GPU Gems   NVIDIA Developer_fichiers\626218844182568.js" />
     <None Include="$(MSBuildThisFileDirectory)Doc\GPU Gems 3\Chapter 10 - Parallel-Split Shadow Maps on Programmable GPUs\GPU Gems   NVIDIA Developer_fichiers\9557dbf16c" />

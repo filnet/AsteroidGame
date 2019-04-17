@@ -35,12 +35,19 @@ namespace Voxel
         EffectParameter fogVectorParam;
         EffectParameter worldParam;
         EffectParameter worldInverseTransposeParam;
+        EffectParameter worldViewParam;
         EffectParameter worldViewProjParam;
 
         EffectParameter wireframeTextureParam;
 
-        EffectParameter lightWorldViewProjParam;
+        EffectParameter lightViewParam;
+        EffectParameter lightViewsParam;
+        EffectParameter splitDistancesParam;
+        EffectParameter splitScalesParam;
+        EffectParameter splitOffsetsParam;
         EffectParameter shadowMapTextureParam;
+
+        EffectParameter visualizeSplitsParam;
 
         #endregion
 
@@ -59,7 +66,14 @@ namespace Voxel
 
         Matrix worldView;
 
-        Matrix lightWorldViewProj;
+        Matrix lightView;
+        Matrix[] lightViews;
+
+        Vector4[] splitDistances;
+        Vector4[] splitOffsets;
+        Vector4[] splitScales;
+
+        bool visualizeSplits;
 
         Vector3 ambientColor = Vector3.Zero;
         Vector3 diffuseColor = Vector3.One;
@@ -353,21 +367,69 @@ namespace Voxel
         /// <summary>
         /// Gets or sets the projection matrix.
         /// </summary>
-        public Matrix LightWorldViewProj
+        public Matrix LightView
         {
-            get { return lightWorldViewProj; }
+            get { return lightView; }
 
             set
             {
-                lightWorldViewProj = value;
-                dirtyFlags |= EffectDirtyFlags.LightWorldViewProj;
+                lightView = value;
+                dirtyFlags |= EffectDirtyFlags.LightView;
             }
         }
+
+        public Matrix[] LightViews
+        {
+            get { return lightViews; }
+
+            set
+            {
+                lightViews = value;
+                dirtyFlags |= EffectDirtyFlags.LightView;
+            }
+        }
+
+        public Vector4[] SplitDistances
+        {
+            get { return splitDistances; }
+
+            set
+            {
+                splitDistances = value;
+            }
+        }
+
+        public Vector4[] SplitScales
+        {
+            get { return splitScales; }
+
+            set
+            {
+                splitScales = value;
+            }
+        }
+
+        public Vector4[] SplitOffsets
+        {
+            get { return splitOffsets; }
+
+            set
+            {
+                splitOffsets = value;
+            }
+        }
+
 
         public Texture2D ShadowMapTexture
         {
             get { return shadowMapTextureParam.GetValueTexture2D(); }
             set { shadowMapTextureParam.SetValue(value); }
+        }
+
+        public bool VisualizeSplits
+        {
+            get { return visualizeSplits; }
+            set { visualizeSplits = value; }
         }
 
         #endregion
@@ -414,7 +476,13 @@ namespace Voxel
             fogStart = cloneSource.fogStart;
             fogEnd = cloneSource.fogEnd;
 
-            lightWorldViewProjParam = cloneSource.lightWorldViewProjParam;
+            lightView = cloneSource.lightView;
+            lightViews = cloneSource.lightViews;
+            splitDistances = cloneSource.splitDistances;
+            splitScales = cloneSource.splitScales;
+            splitOffsets = cloneSource.splitOffsets;
+
+            visualizeSplits = cloneSource.visualizeSplits;
         }
 
 
@@ -450,6 +518,7 @@ namespace Voxel
             fogVectorParam = Parameters["FogVector"];
             worldParam = Parameters["World"];
             worldInverseTransposeParam = Parameters["WorldInverseTranspose"];
+            worldViewParam = Parameters["WorldView"];
             worldViewProjParam = Parameters["WorldViewProj"];
 
             textureParam = Parameters["Texture"];
@@ -471,8 +540,14 @@ namespace Voxel
 
             wireframeTextureParam = Parameters["WireframeTexture"];
 
-            lightWorldViewProjParam = Parameters["LightWorldViewProj"];
+            lightViewParam = Parameters["LightView"];
+            lightViewsParam = Parameters["LightViews"];
+            splitDistancesParam = Parameters["SplitDistances"];
+            splitScalesParam = Parameters["SplitScales"];
+            splitOffsetsParam = Parameters["SplitOffsets"];
             shadowMapTextureParam = Parameters["ShadowMapTexture"];
+
+            visualizeSplitsParam = Parameters["VisualizeSplits"];
         }
 
 
@@ -483,6 +558,8 @@ namespace Voxel
         {
             // Recompute the world+view+projection matrix or fog vector?
             dirtyFlags = EffectHelpers.SetWorldViewProj(dirtyFlags, ref world, ref view, ref projection, ref worldView, worldViewProjParam);
+            worldViewParam.SetValue(worldView);
+
             dirtyFlags |= EffectHelpers.SetFog(dirtyFlags, ref worldView, fogEnabled, fogStart, fogEnd, fogVectorParam);
 
             // Recompute the diffuse/emissive/alpha material color parameters?
@@ -499,10 +576,11 @@ namespace Voxel
                 dirtyFlags = EffectHelpers.SetLightingMatrices(dirtyFlags, ref world, ref view, worldParam, worldInverseTransposeParam, eyePositionParam);
 
                 // 
-                if ((dirtyFlags & EffectDirtyFlags.LightWorldViewProj) != 0)
+                if ((dirtyFlags & EffectDirtyFlags.LightView) != 0)
                 {
-                    lightWorldViewProjParam.SetValue(lightWorldViewProj);
-                    dirtyFlags &= ~EffectDirtyFlags.LightWorldViewProj;
+                    lightViewParam.SetValue(lightView);
+                    lightViewsParam.SetValue(lightViews);
+                    dirtyFlags &= ~EffectDirtyFlags.LightView;
                 }
 
                 // Check if we can use the only-bother-with-the-first-light shader optimization.
@@ -543,6 +621,12 @@ namespace Voxel
 
                 CurrentTechnique = Techniques[shaderIndex];
             }
+
+            splitDistancesParam.SetValue(splitDistances);
+            splitScalesParam.SetValue(splitScales);
+            splitOffsetsParam.SetValue(splitOffsets);
+
+            visualizeSplitsParam.SetValue(visualizeSplits);
         }
 
         #endregion

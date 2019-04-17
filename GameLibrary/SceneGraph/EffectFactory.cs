@@ -55,7 +55,7 @@ namespace GameLibrary.SceneGraph
             return CreateBasicEffect3(gd, color);
         }
 
-        public static Effect CreateBillboardEffect(GraphicsDevice gd)
+        public static StockEffects.ShadowMapEffect CreateBillboardEffect(GraphicsDevice gd)
         {
             //BasicEffect effect = new BasicEffect(gd);
             StockEffects.ShadowMapEffect effect = new StockEffects.ShadowMapEffect(gd);

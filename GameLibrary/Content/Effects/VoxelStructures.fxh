@@ -120,7 +120,8 @@ struct VSOutputTx
     float WF2TexCoord   : TEXCOORD2;
     // shadow
     float4 PositionWS : POSITIONWS;
-	float4 ShadowPosition : TEXCOOR3;
+    float DepthVS : TEXCOOR3;
+    //float4 PositionLightVS : TEXCOOR4;
 };
 
 struct VSOutputTxNoFog
@@ -137,7 +138,8 @@ struct VSOutputTxNoFog
     float WF2TexCoord : TEXCOORD2;
     // shadow
     float4 PositionWS : POSITIONWS;
-    float4 ShadowPosition : TEXCOOR3;
+    float DepthVS : TEXCOOR3;
+    //float4 PositionLightVS : TEXCOOR4;
 };
 
 struct VSOutputPixelLighting
@@ -157,4 +159,15 @@ struct VSOutputPixelLightingTx
     float4 Diffuse    : COLOR0;
     uint4 TextureIndex : BLENDINDICES0;
 	float4 AmbientOcclusionFactors : BLENDWEIGHT0;
+};
+
+struct VSOutputPixelLightingTxWater
+{
+    float4 PositionCS : SV_Position;
+    float2 TexCoord : TEXCOORD0;
+    float4 PositionWS : TEXCOORD1;
+    float3 NormalWS : TEXCOORD2;
+    float4 Diffuse : COLOR0;
+    uint4 TextureIndex : BLENDINDICES0;
+    float4 ReflectionPositionCS : TEXCOORD3;
 };

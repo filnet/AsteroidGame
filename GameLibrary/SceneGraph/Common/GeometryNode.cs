@@ -81,16 +81,14 @@ namespace GameLibrary.SceneGraph.Common
 
         public Physics Physics { get { return physics; } }
 
-        public GeometryNode(String name)
-            : base(name)
+        public GeometryNode(String name) : base(name)
         {
             physics = new Physics();
             CollisionGroupId = -1;
             BoundingVolumeVisible = true;
         }
 
-        public GeometryNode(GeometryNode node)
-            : base(node)
+        public GeometryNode(GeometryNode node) : base(node)
         {
             RenderGroupId = node.RenderGroupId;
             CollisionGroupId = node.CollisionGroupId;
@@ -132,8 +130,8 @@ namespace GameLibrary.SceneGraph.Common
         public virtual void Draw(GraphicsDevice gd) { throw new NotSupportedException(); }
         public virtual void PostDraw(GraphicsDevice gd) { throw new NotSupportedException(); }
 
-        public virtual void PreDrawInstanced(GraphicsDevice gd) { throw new NotSupportedException(); }
-        public virtual void DrawInstanced(GraphicsDevice gd) { throw new NotSupportedException(); }
+        public virtual void PreDrawInstanced(GraphicsDevice gd, VertexBuffer instanceVertexBuffer, int intstanceOffset) { throw new NotSupportedException(); }
+        public virtual void DrawInstanced(GraphicsDevice gd, int intstanceCount) { throw new NotSupportedException(); }
         public virtual void PostDrawInstanced(GraphicsDevice gd) { throw new NotSupportedException(); }
 
     }

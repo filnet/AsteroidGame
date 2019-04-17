@@ -16,23 +16,29 @@ using System;
 
 namespace StockEffects
 {
-    public class ShadowCascadeEffect : Effect, IEffectMatrices
+    public class ShadowCascadeEffect : Effect /*, IEffectMatrices*/
     {
         #region Effect Parameters
 
-        EffectParameter worldViewProjParam;
+        EffectParameter worldParam;
+        EffectParameter viewProjectionsParam;
 
         #endregion
 
         #region Fields
 
+        /*
         Matrix world = Matrix.Identity;
         Matrix view = Matrix.Identity;
         Matrix projection = Matrix.Identity;
 
         Matrix worldView;
+        */
+        Matrix world;
+        Matrix[] viewProjections;
 
         GraphicsDevice device;
+
         SharpDX.Direct3D11.GeometryShader geometryShader;
 
         EffectDirtyFlags dirtyFlags = EffectDirtyFlags.All;
@@ -41,10 +47,32 @@ namespace StockEffects
 
         #region Public Properties
 
+        public Matrix[] ViewProjections
+        {
+            get { return viewProjections; }
+
+            set
+            {
+                viewProjections = value;
+                dirtyFlags |= EffectDirtyFlags.World | EffectDirtyFlags.WorldViewProj | EffectDirtyFlags.Fog;
+            }
+        }
+
+        public Matrix World
+        {
+            get { return world; }
+
+            set
+            {
+                world = value;
+                dirtyFlags |= EffectDirtyFlags.World | EffectDirtyFlags.WorldViewProj | EffectDirtyFlags.Fog;
+            }
+        }
+
         /// <summary>
         /// Gets or sets the world matrix.
         /// </summary>
-        public Matrix World
+        /*public Matrix World
         {
             get { return world; }
 
@@ -83,14 +111,14 @@ namespace StockEffects
                 projection = value;
                 dirtyFlags |= EffectDirtyFlags.WorldViewProj;
             }
-        }
+        }*/
 
         #endregion
 
         #region Methods
 
         /// <summary>
-        /// Creates a new VoxelEffect with default parameter settings.
+        /// Creates a new ShadowCascadeEffect with default parameter settings.
         /// </summary>
         public ShadowCascadeEffect(GraphicsDevice device)
             : base(AsteroidGame.AsteroidGame.Instance().Content.Load<Effect>("Effects/ShadowCascadeEffect"))
@@ -99,20 +127,23 @@ namespace StockEffects
 
             this.device = device;
 
-            var CompiledGS = SharpDX.D3DCompiler.ShaderBytecode.CompileFromFile(@"Content\Effects\ShadowCascadeGS.hlsl", "MainGS", "gs_4_0");
-            geometryShader = new SharpDX.Direct3D11.GeometryShader((SharpDX.Direct3D11.Device)device.Handle, CompiledGS.Bytecode);
+            //var CompiledGS = SharpDX.D3DCompiler.ShaderBytecode.CompileFromFile(@"Content\Effects\ShadowCascadeGS.hlsl", "MainGS", "gs_4_0");
+            //geometryShader = new SharpDX.Direct3D11.GeometryShader((SharpDX.Direct3D11.Device)device.Handle, CompiledGS.Bytecode);
+            geometryShader = null;
         }
 
         /// <summary>
-        /// Creates a new VoxelEffect by cloning parameter settings from an existing instance.
+        /// Creates a new ShadowCascadeEffect by cloning parameter settings from an existing instance.
         /// </summary>
         protected ShadowCascadeEffect(ShadowCascadeEffect cloneSource) : base(cloneSource)
         {
             CacheEffectParameters(cloneSource);
 
-            world = cloneSource.world;
+            /*world = cloneSource.world;
             view = cloneSource.view;
-            projection = cloneSource.projection;
+            projection = cloneSource.projection;*/
+            world = cloneSource.world;
+            viewProjections = cloneSource.viewProjections;
 
             // TODO not sure it works...
             geometryShader = cloneSource.geometryShader;
@@ -121,7 +152,7 @@ namespace StockEffects
         }
 
         /// <summary>
-        /// Creates a clone of the current VoxelEffect instance.
+        /// Creates a clone of the current ShadowCascadeEffect instance.
         /// </summary>
         public override Effect Clone()
         {
@@ -133,7 +164,8 @@ namespace StockEffects
         /// </summary>
         void CacheEffectParameters(ShadowCascadeEffect cloneSource)
         {
-            worldViewProjParam = Parameters["WorldViewProj"];
+            worldParam = Parameters["World"];
+            viewProjectionsParam = Parameters["ViewProjections"];
         }
 
         /// <summary>
@@ -142,11 +174,16 @@ namespace StockEffects
         protected override void OnApply()
         {
             // Recompute the world+view+projection matrix or fog vector?
-            dirtyFlags = EffectHelpers.SetWorldViewProj(dirtyFlags, ref world, ref view, ref projection, ref worldView, worldViewProjParam);
+            //dirtyFlags = EffectHelpers.SetWorldViewProj(dirtyFlags, ref world, ref view, ref projection, ref worldView, worldViewProjParam);
+            worldParam.SetValue(world);
+            viewProjectionsParam.SetValue(viewProjections);
 
             // FIXME: could be done only when needed (i.e. when the CBuffers are dirty) ?
-            ((SharpDX.Direct3D11.DeviceContext)device.ContextHandle).GeometryShader.Set(geometryShader);
-            CopyCBuffers(device);
+            if (geometryShader != null)
+            {
+                ((SharpDX.Direct3D11.DeviceContext)device.ContextHandle).GeometryShader.Set(geometryShader);
+                CopyCBuffers(device);
+            }
 
             //CurrentTechnique = Techniques[shaderIndex];
         }

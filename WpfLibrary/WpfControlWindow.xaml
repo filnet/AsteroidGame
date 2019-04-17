@@ -7,12 +7,13 @@
         xmlns:wpg="clr-namespace:System.Windows.Controls"
         mc:Ignorable="d" ResizeMode="CanResizeWithGrip"
         Title="Controls"
-        Width="700" Height="360" MinWidth="360" MinHeight="400"
+        Width="900" Height="360" MinWidth="360" MinHeight="400"
         WindowStartupLocation="Manual"
         Left="10" Top="10">
 
     <Grid>
         <Grid.ColumnDefinitions>
+            <ColumnDefinition />
             <ColumnDefinition />
             <ColumnDefinition />
         </Grid.ColumnDefinitions>
@@ -21,6 +22,7 @@
         </Grid.RowDefinitions>
         <wpg:WpfPropertyGrid x:Name="PropertyGrid1" Grid.Column="0" ToolbarVisible="False" HelpVisible="False" PropertySort="Categorized"/>
         <wpg:WpfPropertyGrid x:Name="PropertyGrid2" Grid.Column="1" ToolbarVisible="False" HelpVisible="False" PropertySort="Categorized"/>
+        <wpg:WpfPropertyGrid x:Name="PropertyGrid3" Grid.Column="2" ToolbarVisible="False" HelpVisible="False" PropertySort="Categorized"/>
 
         <GridSplitter Grid.Column="0" Width="4"
                 HorizontalAlignment="Right" VerticalAlignment="Stretch"/>

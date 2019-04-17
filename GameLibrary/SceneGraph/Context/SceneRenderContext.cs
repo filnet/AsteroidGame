@@ -19,14 +19,19 @@ namespace GameLibrary.SceneGraph
             get { return lightNodes.Count; }
         }
 
-        public Camera LightCamera(int index)
-        {
-            return LightRenderContext(index).RenderCamera;
-        }
-
         public LightRenderContext LightRenderContext(int index)
         {
             return lightRenderContextes[index];
+        }
+
+        public RefractionRenderContext RefractionRenderContext(int index)
+        {
+            return refractionRenderContextes[index];
+        }
+
+        public ReflectionRenderContext ReflectionRenderContext(int index)
+        {
+            return reflectionRenderContextes[index];
         }
 
         [Category("Camera")]
@@ -53,11 +58,15 @@ namespace GameLibrary.SceneGraph
         #endregion
 
         // lights
+        private bool shadowsEnabled;
         private readonly List<LightNode> lightNodes;
         private readonly List<LightRenderContext> lightRenderContextes;
 
-        // shadows
-        private bool shadowsEnabled;
+        // refraction
+        private readonly List<RefractionRenderContext> refractionRenderContextes;
+
+        // reflection
+        private readonly List<ReflectionRenderContext> reflectionRenderContextes;
 
         // debugging
         private bool showCollisionVolumes;
@@ -67,10 +76,13 @@ namespace GameLibrary.SceneGraph
 
         public SceneRenderContext(GraphicsDevice graphicsDevice, Camera camera) : base("VIEW", graphicsDevice, camera)
         {
+            shadowsEnabled = true;
             lightNodes = new List<LightNode>(1);
             lightRenderContextes = new List<LightRenderContext>(1);
 
-            shadowsEnabled = true;
+            refractionRenderContextes = new List<RefractionRenderContext>(1);
+
+            reflectionRenderContextes = new List<ReflectionRenderContext>(1);
 
             DebugGeometryUpdate();
         }
@@ -78,7 +90,15 @@ namespace GameLibrary.SceneGraph
         public override void Dispose()
         {
             base.Dispose();
-            foreach (LightRenderContext context in lightRenderContextes)
+            foreach (RenderContext context in lightRenderContextes)
+            {
+                context.Dispose();
+            }
+            foreach (RenderContext context in refractionRenderContextes)
+            {
+                context.Dispose();
+            }
+            foreach (RenderContext context in reflectionRenderContextes)
             {
                 context.Dispose();
             }
@@ -96,7 +116,15 @@ namespace GameLibrary.SceneGraph
             base.Clear();
 
             lightNodes.Clear();
-            foreach (LightRenderContext context in lightRenderContextes)
+            foreach (RenderContext context in lightRenderContextes)
+            {
+                context.Clear();
+            }
+            foreach (RenderContext context in refractionRenderContextes)
+            {
+                context.Clear();
+            }
+            foreach (RenderContext context in reflectionRenderContextes)
             {
                 context.Clear();
             }
@@ -109,7 +137,21 @@ namespace GameLibrary.SceneGraph
                 return true;
             }
             // FIXME performance: most fequent case (i.e. no request) is the worst case scenario...
-            foreach (LightRenderContext context in lightRenderContextes)
+            foreach (RenderContext context in lightRenderContextes)
+            {
+                if (context.RedrawRequested())
+                {
+                    return true;
+                }
+            }
+            foreach (RenderContext context in refractionRenderContextes)
+            {
+                if (context.RedrawRequested())
+                {
+                    return true;
+                }
+            }
+            foreach (RenderContext context in reflectionRenderContextes)
             {
                 if (context.RedrawRequested())
                 {
@@ -122,7 +164,15 @@ namespace GameLibrary.SceneGraph
         public override void ClearRedrawRequested()
         {
             base.ClearRedrawRequested();
-            foreach (LightRenderContext context in lightRenderContextes)
+            foreach (RenderContext context in lightRenderContextes)
+            {
+                context.ClearRedrawRequested();
+            }
+            foreach (RenderContext context in refractionRenderContextes)
+            {
+                context.ClearRedrawRequested();
+            }
+            foreach (RenderContext context in reflectionRenderContextes)
             {
                 context.ClearRedrawRequested();
             }
@@ -132,29 +182,63 @@ namespace GameLibrary.SceneGraph
         {
             lightNodes.Add(lightNode);
 
+            LightRenderContext lightRenderContext;
             int index = lightNodes.Count - 1;
             if (index >= lightRenderContextes.Count)
             {
                 Console.WriteLine("Creating light render context");
-                LightCamera lightCamera = new LightCamera();
-                lightCamera.lightDirection = -lightNode.Translation;
-                lightCamera.lightDirection.Normalize();
+                Vector3 lightDirection = -lightNode.Translation;
+                lightDirection.Normalize();
+                LightCamera lightCamera = new LightCamera(lightDirection);
 
-                LightRenderContext lightRenderContext = new LightRenderContext(GraphicsDevice, lightCamera);
+                lightRenderContext = new LightRenderContext(GraphicsDevice, lightCamera);
                 lightRenderContext.ShowShadowMap = true;
 
                 lightRenderContextes.Add(lightRenderContext);
+
+            }
+            else
+            {
+                lightRenderContext = lightRenderContextes[index];
+            }
+            lightRenderContext.FitToViewStable(this);
+        }
+
+        public void AddRefraction()
+        {
+            if (0 >= refractionRenderContextes.Count)
+            {
+                Console.WriteLine("Creating refraction render context");
+
+                RefractionRenderContext refractionRenderContext = new RefractionRenderContext(GraphicsDevice, CullCamera);
+                refractionRenderContext.Enabled = false;
+                //refractionRenderContext.ShowMap = true;
+
+                refractionRenderContextes.Add(refractionRenderContext);
             }
         }
 
+        public void AddReflection()
+        {
+            if (0 >= reflectionRenderContextes.Count)
+            {
+                Console.WriteLine("Creating reflection render context");
+
+                ReflectionRenderContext reflectionRenderContext = new ReflectionRenderContext(GraphicsDevice, CullCamera);
+                reflectionRenderContext.Enabled = true;
+                //reflectionRenderContext.ShowMap = true;
+
+                reflectionRenderContextes.Add(reflectionRenderContext);
+            }
+        }
 
         private Matrix previousViewProjectionMatrix = Matrix.Identity;
 
         public bool CameraDirty()
         {
-            if (!previousViewProjectionMatrix.Equals(Camera.ViewProjectionMatrix))
+            if (!previousViewProjectionMatrix.Equals(camera.ViewProjectionMatrix))
             {
-                previousViewProjectionMatrix = Camera.ViewProjectionMatrix;
+                previousViewProjectionMatrix = camera.ViewProjectionMatrix;
                 return true;
             }
             return false;
@@ -196,10 +280,16 @@ namespace GameLibrary.SceneGraph
                 case CameraMode.LightRender:
                     cullCamera = camera;
                     renderCamera = LightRenderContext(0).RenderCamera;
+                    ShowFrustum = true;
+                    LightRenderContext(0).ShowFrustum = true;
+                    LightRenderContext(0).ShowViewFrustumHull = true;
+                    LightRenderContext(0).ViewSplitsMode = ViewSplitsMode.None;
+                    //savedZFar = camera.ZFar;
+                    //renderCamera.ZFar = 2000;
                     break;
                 case CameraMode.LightCull:
                     cullCamera = camera;
-                    renderCamera = LightRenderContext(0).CullCamera;                    
+                    renderCamera = LightRenderContext(0).CullCamera;
                     break;
                 case CameraMode.Default:
                 default:
@@ -224,6 +314,14 @@ namespace GameLibrary.SceneGraph
             {
                 context.ResetStats();
             }
+            foreach (RenderContext context in refractionRenderContextes)
+            {
+                context.ResetStats();
+            }
+            foreach (RenderContext context in reflectionRenderContextes)
+            {
+                context.ResetStats();
+            }
         }
 
         public void ShowStats()
@@ -239,12 +337,51 @@ namespace GameLibrary.SceneGraph
             {
                 context.ShowStats("Light #" + i++);
             }
+            i = 1;
+            foreach (RenderContext context in refractionRenderContextes)
+            {
+                context.ShowStats("Refraction #" + i++);
+            }
+            i = 1;
+            foreach (RenderContext context in reflectionRenderContextes)
+            {
+                context.ShowStats("Reflection #" + i++);
+            }
+        }
+
+        protected override void AddToRenderBin(RenderBin renderBin, Drawable drawable)
+        {
+            base.AddToRenderBin(renderBin, drawable);
+            // HACK
+            if (renderBin.Id >= Scene.DEBUG)
+            {
+                return;
+            }
+            if (ShadowsEnabled)
+            {
+                for (int i = 0; i < LightCount; i++)
+                {
+                    LightRenderContext lightRenderContext = LightRenderContext(i);
+                    if (lightRenderContext.Enabled)
+                    {
+                        lightRenderContext.AddShadowReceiver(renderBin, drawable);
+                    }
+                }
+            }
         }
 
         public override void DebugGeometryAddTo(RenderContext renderContext)
         {
             base.DebugGeometryAddTo(renderContext);
-            foreach (LightRenderContext context in lightRenderContextes)
+            foreach (RenderContext context in lightRenderContextes)
+            {
+                context.DebugGeometryAddTo(renderContext);
+            }
+            foreach (RenderContext context in refractionRenderContextes)
+            {
+                context.DebugGeometryAddTo(renderContext);
+            }
+            foreach (RenderContext context in reflectionRenderContextes)
             {
                 context.DebugGeometryAddTo(renderContext);
             }
@@ -254,6 +391,14 @@ namespace GameLibrary.SceneGraph
         {
             base.DebugGeometryUpdate();
             foreach (RenderContext context in lightRenderContextes)
+            {
+                context.DebugGeometryUpdate();
+            }
+            foreach (RenderContext context in refractionRenderContextes)
+            {
+                context.DebugGeometryUpdate();
+            }
+            foreach (RenderContext context in reflectionRenderContextes)
             {
                 context.DebugGeometryUpdate();
             }

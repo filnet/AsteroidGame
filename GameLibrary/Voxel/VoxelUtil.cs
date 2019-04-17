@@ -50,9 +50,9 @@ namespace GameLibrary.Voxel
             return effect;
         }
 
-        public static VoxelEffect CreateVoxelWaterEffect(GraphicsDevice gd)
+        public static VoxelWaterEffect CreateVoxelWaterEffect(GraphicsDevice gd)
         {
-            VoxelEffect effect = CreateVoxelEffect(gd);
+            VoxelWaterEffect effect = new VoxelWaterEffect(gd);
 
             // primitive color
             effect.SpecularColor = new Vector3(1.0f, 1.0f, 1.0f); ; // new Vector3(0.25f, 0.25f, 0.25f);
@@ -62,7 +62,27 @@ namespace GameLibrary.Voxel
             //effect.VertexColorEnabled = true;
             effect.PreferPerPixelLighting = true;
 
-            effect.DirectionalLight0.SpecularColor = Vector3.One;
+            effect.LightingEnabled = true;
+            if (effect.LightingEnabled)
+            {
+                effect.DirectionalLight0.Enabled = true;
+                if (effect.DirectionalLight0.Enabled)
+                {
+                    effect.DirectionalLight0.DiffuseColor = new Vector3(0.6f, 0.6f, 0.6f); // range is 0 to 1
+                    effect.DirectionalLight0.Direction = Vector3.Normalize(new Vector3(-1, -1, -1));
+                    effect.DirectionalLight0.SpecularColor = Vector3.One;
+
+                    // points from the light to the origin of the scene
+                    //effect.DirectionalLight0.SpecularColor = Vector3.One;
+                }
+
+                effect.DirectionalLight1.Enabled = false;
+                effect.DirectionalLight2.Enabled = false;
+            }
+
+            effect.TextureEnabled = true;
+            effect.Texture = createTileTextureArray(gd, getTiles());
+            //effect.WireframeTexture = createWireframeTexture(gd, 1.0f);
 
             return effect;
         }

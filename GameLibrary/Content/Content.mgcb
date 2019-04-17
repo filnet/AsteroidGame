@@ -64,19 +64,18 @@
 /processorParam:DebugMode=Auto
 /build:Effects/VoxelShadowEffect.fx
 
+#begin Effects/VoxelWaterEffect.fx
+/importer:EffectImporter
+/processor:EffectProcessor
+/processorParam:DebugMode=Auto
+/build:Effects/VoxelWaterEffect.fx
+
 #begin Fonts/Arial-12pt.spritefont
 /importer:FontDescriptionImporter
 /processor:FontDescriptionProcessor
 /processorParam:PremultiplyAlpha=True
 /processorParam:TextureFormat=Compressed
 /build:Fonts/Arial-12pt.spritefont
-
-#begin Fonts/Font.spritefont
-/importer:FontDescriptionImporter
-/processor:FontDescriptionProcessor
-/processorParam:PremultiplyAlpha=True
-/processorParam:TextureFormat=Compressed
-/build:Fonts/Font.spritefont
 
 #begin glass.png
 /importer:TextureImporter

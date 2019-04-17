@@ -93,7 +93,7 @@ namespace GameLibrary.SceneGraph.Common
 
         public virtual void Initialize(GraphicsDevice graphicsDevice)
         {
-            Console.WriteLine("Initializing " + name);
+            //Console.WriteLine("Initializing " + name);
             setDirty(DirtyFlag.Initialized);
         }
 

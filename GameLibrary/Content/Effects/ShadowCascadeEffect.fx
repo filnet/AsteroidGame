@@ -11,7 +11,8 @@ BEGIN_CONSTANTS
 
 MATRIX_CONSTANTS
 
-    float4x4 WorldViewProj          _vs(c15)          _cb(c0);
+    float4x4 World          _vs(c15)          _cb(c0);
+    float4x4 ViewProjections[4]          _vs(c16)          _cb(c0);
 
 END_CONSTANTS
 
@@ -20,23 +21,27 @@ END_CONSTANTS
 struct VSInput
 {
     float4 Position : POSITION;
-    //float3 Normal : NORMAL;
-    uint Instance : SV_InstanceID;
+    //float3 Normal   : NORMAL;
+    //float2 TexCoord : TEXCOORD;
+	//uint Instance : SV_InstanceID;
 };
 
 struct VSOutput
 {
     float4 PositionPS     : POSITION;
-    uint SplitIndex : TEXTURE0;
+    //uint SplitIndex : TEXTURE0;
+	uint RTIndex : SV_RenderTargetArrayIndex;
 };
 
-VSOutput VSShadow(VSInput vin)
+VSOutput VSShadow(VSInput vin, uint4 splitIndex : BLENDINDICES1)
 {
     VSOutput vout;
 
-    vout.SplitIndex = vin.Instance;
+    //vout.SplitIndex = splitIndex[0];
+	//vout.SplitIndex = vin.Instance;
+	vout.RTIndex = splitIndex[0];
 
-    vout.PositionPS = mul(vin.Position, WorldViewProj);
+    vout.PositionPS = mul(mul(vin.Position, World), ViewProjections[splitIndex[0]]);
     vout.PositionPS.z += 0.002f;
 
     return vout;
@@ -44,9 +49,9 @@ VSOutput VSShadow(VSInput vin)
 
 //TECHNIQUE(ShadowCascadeEffect, VSShadow, PSShadow);
 
-technique Render
+technique ShadowRender
 {
-    pass P0
+    pass
     {
         VertexShader = compile vs_5_0 VSShadow();
     }

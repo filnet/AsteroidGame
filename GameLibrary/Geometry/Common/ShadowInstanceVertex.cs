@@ -78,7 +78,7 @@ namespace GameLibrary.Geometry.Common
         static ShadowInstanceVertex()
         {
             VertexElement[] elements = new VertexElement[] {
-                new VertexElement(0, VertexElementFormat.Byte4, VertexElementUsage.BlendIndices, 0),
+                new VertexElement(0, VertexElementFormat.Byte4, VertexElementUsage.BlendIndices, 1),
             };
             VertexDeclaration declaration = new VertexDeclaration(elements);
             VertexDeclaration = declaration;

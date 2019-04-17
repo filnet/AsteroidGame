@@ -9,8 +9,8 @@ namespace GameLibrary.SceneGraph.Bounding
         #region Private Fields
 
         //private Matrix matrix;
-        //private readonly Vector3[] corners = new Vector3[CornerCount];
-        private readonly Plane[] planes;// = new Plane[PlaneCount];
+        private readonly Vector3[] corners = new Vector3[MaxCornerCount];
+        private readonly Plane[] planes = new Plane[MaxPlaneCount];
 
         #endregion
 
@@ -21,10 +21,14 @@ namespace GameLibrary.SceneGraph.Bounding
         /// </summary>
         public int PlaneCount;
 
+        public const int MaxPlaneCount = 10;
+
         /// <summary>
         /// The number of corner corners in the frustum.
         /// </summary>
-        //public const int CornerCount = 8;
+        public const int MaxCornerCount = 8 + 6;
+
+        public int CornerCount;
 
         #endregion
 
@@ -36,8 +40,8 @@ namespace GameLibrary.SceneGraph.Bounding
 
         public Region(Region region)
         {
-            Array.Copy(region.planes, planes, region.planes.Length);
-            //Array.Copy(frustum.corners, corners, frustum.corners.Length);
+            Array.Copy(region.planes, planes, region.PlaneCount);
+            Array.Copy(region.corners, corners, region.CornerCount);
         }
 
         public Region()
@@ -90,10 +94,29 @@ namespace GameLibrary.SceneGraph.Bounding
             return VolumeType.Region;
         }
 
+        public void Clear()
+        {
+            PlaneCount = 0;
+            CornerCount = 0;
+        }
+
+        public void addPlane(ref Plane plane)
+        {
+            planes[PlaneCount] = plane;
+            PlaneCount++;
+        }
+
+        public void addCorner(ref Vector3 point)
+        {
+            corners[CornerCount] = point;
+            CornerCount++;
+        }
+
         #region Contains
 
         public override ContainmentType Contains(Box box, ContainmentHint hint)
         {
+            // See frustum for comments
             var intersects = false;
             for (int i = 0; i < PlaneCount; i++)
             {
@@ -112,51 +135,51 @@ namespace GameLibrary.SceneGraph.Bounding
             {
                 return ContainmentType.Contains;
             }
-
-            /*if (hint == ContainmentHint.Precise)
+            if (hint == ContainmentHint.Precise)
             {
+                // check region outside/inside box
+                // https://iquilezles.org/www/articles/frustumcorrect/frustumcorrect.htm
+
+                // FIXME use "SAT" to reduce the number of loops...
+                // FIXME do Y last ?
                 int c;
-                // check frustum outside/inside box
                 c = 0;
-                for (int i = 0; i < corners.Length; i++)
+                for (int i = 0; i < CornerCount; i++)
                 {
                     c += ((corners[i].X > box.Center.X + box.HalfSize.X) ? 1 : 0);
                 }
-                if (c == 8) return ContainmentType.Disjoint;
+                if (c == CornerCount) return ContainmentType.Disjoint;
                 c = 0;
-                for (int i = 0; i < corners.Length; i++)
+                for (int i = 0; i < CornerCount; i++)
                 {
                     c += ((corners[i].X < box.Center.X - box.HalfSize.X) ? 1 : 0);
                 }
-                if (c == 8) return ContainmentType.Disjoint;
-
+                if (c == CornerCount) return ContainmentType.Disjoint;
                 c = 0;
-                for (int i = 0; i < corners.Length; i++)
+                for (int i = 0; i < CornerCount; i++)
                 {
                     c += ((corners[i].Y > box.Center.Y + box.HalfSize.Y) ? 1 : 0);
                 }
-                if (c == 8) return ContainmentType.Disjoint;
+                if (c == CornerCount) return ContainmentType.Disjoint;
                 c = 0;
-                for (int i = 0; i < corners.Length; i++)
+                for (int i = 0; i < CornerCount; i++)
                 {
                     c += ((corners[i].Y < box.Center.Y - box.HalfSize.Y) ? 1 : 0);
                 }
-                if (c == 8) return ContainmentType.Disjoint;
-
+                if (c == CornerCount) return ContainmentType.Disjoint;
                 c = 0;
-                for (int i = 0; i < corners.Length; i++)
+                for (int i = 0; i < CornerCount; i++)
                 {
                     c += ((corners[i].Z > box.Center.Z + box.HalfSize.Z) ? 1 : 0);
                 }
-                if (c == 8) return ContainmentType.Disjoint;
+                if (c == CornerCount) return ContainmentType.Disjoint;
                 c = 0;
-                for (int i = 0; i < corners.Length; i++)
+                for (int i = 0; i < CornerCount; i++)
                 {
                     c += ((corners[i].Z < box.Center.Z - box.HalfSize.Z) ? 1 : 0);
                 }
-                if (c == 8) return ContainmentType.Disjoint;
-            }*/
-
+                if (c == CornerCount) return ContainmentType.Disjoint;
+            }
             return ContainmentType.Intersects;
         }
 
@@ -201,18 +224,12 @@ namespace GameLibrary.SceneGraph.Bounding
             return intersects ? ContainmentType.Intersects : ContainmentType.Contains;
         }
 
-        // FIXME duplicated in VectorUtil
-        private static float ClassifyPoint(ref Vector3 point, ref Plane plane)
-        {
-            return point.X * plane.Normal.X + point.Y * plane.Normal.Y + point.Z * plane.Normal.Z + plane.D;
-        }
-
         public override void Contains(ref Vector3 point, out bool result)
         {
             for (var i = 0; i < PlaneCount; ++i)
             {
                 // TODO: we might want to inline this for performance reasons
-                if (ClassifyPoint(ref point, ref planes[i]) > 0)
+                if (ClassifyPoint(ref planes[i], ref point) > 0)
                 {
                     result = false;
                     return;
@@ -243,7 +260,7 @@ namespace GameLibrary.SceneGraph.Bounding
         public override void Intersects(ref Plane plane, out PlaneIntersectionType result)
         {
             /*result = Intersects(ref plane, ref corners[0]);
-            for (int i = 1; i < corners.Length; i++)
+            for (int i = 1; i < CornerCount; i++)
             {
                 if (Intersects(ref plane, ref corners[i]) != result)
                 {

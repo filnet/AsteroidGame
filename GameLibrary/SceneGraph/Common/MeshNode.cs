@@ -21,6 +21,11 @@ namespace GameLibrary.SceneGraph.Common
             get { return mesh; }
         }
 
+        public override int VertexCount
+        {
+            get { return mesh.VertexCount; }
+        }
+
         public MeshNode(String name, IMeshFactory meshFactory) : base(name)
         {
             this.meshFactory = meshFactory;
@@ -81,8 +86,6 @@ namespace GameLibrary.SceneGraph.Common
             }
         }
 
-        public override int VertexCount { get { return mesh.VertexCount; } }
-
         public override void PreDraw(GraphicsDevice gd)
         {
             gd.SetVertexBuffer(mesh.VertexBuffer);
@@ -107,6 +110,28 @@ namespace GameLibrary.SceneGraph.Common
         }
 
         public override void PostDraw(GraphicsDevice gd)
+        {
+        }
+
+        public override void PreDrawInstanced(GraphicsDevice gd, VertexBuffer instanceVertexBuffer, int instanceOffset)
+        {
+            VertexBufferBinding[] vertexBufferBindings = {
+                new VertexBufferBinding(mesh.VertexBuffer, 0, 0),
+                new VertexBufferBinding(instanceVertexBuffer, instanceOffset, 1)
+            };
+            gd.SetVertexBuffers(vertexBufferBindings);
+            if (mesh.IndexBuffer != null)
+            {
+                gd.Indices = mesh.IndexBuffer;
+            }
+        }
+
+        public override void DrawInstanced(GraphicsDevice gd, int instanceCount)
+        {
+            gd.DrawInstancedPrimitives(mesh.PrimitiveType, 0, 0, mesh.PrimitiveCount, instanceCount);
+        }
+
+        public override void PostDrawInstanced(GraphicsDevice gd)
         {
         }
 

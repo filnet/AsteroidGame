@@ -61,7 +61,7 @@ namespace GameLibrary.SceneGraph.Bounding
 
         public override VolumeType Type()
         {
-            return VolumeType.AABB;
+            return VolumeType.Box;
         }
 
         public override Volume Clone()
@@ -121,9 +121,7 @@ namespace GameLibrary.SceneGraph.Bounding
         // FIXME inline
         public override bool Intersects(Sphere sphere)
         {
-            return ((Math.Abs(Center.X - sphere.Center.X) <= HalfSize.X + sphere.Radius) &&
-                    (Math.Abs(Center.Y - sphere.Center.Y) <= HalfSize.Y + sphere.Radius) &&
-                    (Math.Abs(Center.Z - sphere.Center.Z) <= HalfSize.Z + sphere.Radius));
+            throw new NotImplementedException();
         }
 
         public override bool Intersects(Frustum frustum)
@@ -133,8 +131,31 @@ namespace GameLibrary.SceneGraph.Bounding
 
         public override void Intersects(ref Plane plane, out PlaneIntersectionType planeIntersectionType)
         {
-            // See http://zach.in.tu-clausthal.de/teaching/cg_literatur/lighthouse3d_view_frustum_culling/index.html
+            Intersects1(ref plane, out planeIntersectionType);
+        }
 
+        private void Intersects1(ref Plane plane, out PlaneIntersectionType planeIntersectionType)
+        {
+            // Compute the projection interval of box half size onto plane
+            float r = halfSize.X * Math.Abs(plane.Normal.X) + halfSize.Y * Math.Abs(plane.Normal.Y) + halfSize.Z * Math.Abs(plane.Normal.Z);
+
+            // Compute signed distance of box center to plane
+            // TODO inline
+            float s;
+            plane.DotCoordinate(ref center, out s);
+
+            // Intersection occurs when distance s falls within [-r,+r] interval
+            if (s > r)
+                planeIntersectionType = PlaneIntersectionType.Front;
+            else if (s < -r)
+                planeIntersectionType = PlaneIntersectionType.Back;
+            else
+                planeIntersectionType = PlaneIntersectionType.Intersecting;
+            return;
+        }
+
+        private void Intersects2(ref Plane plane, out PlaneIntersectionType planeIntersectionType)
+        {
             Vector3 positiveVertex = center;
             Vector3 negativeVertex = center;
 
@@ -172,16 +193,16 @@ namespace GameLibrary.SceneGraph.Bounding
             }
 
             // Inline Vector3.Dot(plane.Normal, negativeVertex) + plane.D;
-            var distance = plane.Normal.X * negativeVertex.X + plane.Normal.Y * negativeVertex.Y + plane.Normal.Z * negativeVertex.Z + plane.D;
-            if (distance > 0)
+            var distanceSquared = plane.Normal.X * negativeVertex.X + plane.Normal.Y * negativeVertex.Y + plane.Normal.Z * negativeVertex.Z + plane.D;
+            if (distanceSquared > 0)
             {
                 planeIntersectionType = PlaneIntersectionType.Front;
                 return;
             }
 
             // Inline Vector3.Dot(plane.Normal, positiveVertex) + plane.D;
-            distance = plane.Normal.X * positiveVertex.X + plane.Normal.Y * positiveVertex.Y + plane.Normal.Z * positiveVertex.Z + plane.D;
-            if (distance < 0)
+            distanceSquared = plane.Normal.X * positiveVertex.X + plane.Normal.Y * positiveVertex.Y + plane.Normal.Z * positiveVertex.Z + plane.D;
+            if (distanceSquared < 0)
             {
                 planeIntersectionType = PlaneIntersectionType.Back;
                 return;

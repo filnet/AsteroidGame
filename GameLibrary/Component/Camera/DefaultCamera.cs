@@ -28,9 +28,10 @@ namespace GameLibrary.Component.Camera
 
         public const float DEFAULT_FOVX = MathHelper.Pi / 3.0f;
         public const float DEFAULT_ZNEAR = 0.1f;
-        public const float DEFAULT_ZFAR = 50;
         //public const float DEFAULT_ZFAR = 1000;
-        //public const float DEFAULT_ZFAR = 125.5375f;
+        public const float DEFAULT_ZFAR = 500;
+        //public const float DEFAULT_ZFAR = 55.7965f;
+        //public const float DEFAULT_ZFAR = 50;
 
         public const float DEFAULT_ORBIT_MIN_ZOOM = DEFAULT_ZNEAR + 1.0f;
         public const float DEFAULT_ORBIT_MAX_ZOOM = DEFAULT_ZFAR * 0.5f;
@@ -71,8 +72,7 @@ namespace GameLibrary.Component.Camera
 
         private int visitOrder;
 
-        private SceneGraph.Bounding.Frustum boundingFrustum;
-        private readonly Vector3[] frustumCorners = new Vector3[SceneGraph.Bounding.Frustum.CornerCount];
+        private SceneGraph.Bounding.Frustum frustum;
 
         private readonly SceneGraph.Bounding.Box boundingBox = new SceneGraph.Bounding.Box();
         private readonly SceneGraph.Bounding.Sphere boundingSphere = new SceneGraph.Bounding.Sphere();
@@ -124,7 +124,7 @@ namespace GameLibrary.Component.Camera
             viewProjectionDirty = true;
             frustumDirty = true;
 
-            boundingFrustum = new SceneGraph.Bounding.Frustum();
+            frustum = new SceneGraph.Bounding.Frustum();
         }
 
         /// <summary>
@@ -277,8 +277,8 @@ namespace GameLibrary.Component.Camera
             float aspectInv = 1.0f / aspect;
             float e = 1.0f / (float)Math.Tan(fovx / 2.0f);
             float fovy = 2.0f * (float)Math.Atan(aspectInv / e);
-            float xScale = 1.0f / (float)Math.Tan(fovy / 2.0f);
-            float yScale = xScale / aspectInv;
+            //float xScale = 1.0f / (float)Math.Tan(fovy / 2.0f);
+            //float yScale = xScale / aspectInv;
 
             /*
             projectionMatrix.M11 = xScale;
@@ -793,10 +793,22 @@ namespace GameLibrary.Component.Camera
             set { target = value; }
         }
 
+        public float FovX
+        {
+            get { return fovx; }
+            set { Perspective(value, this.aspectRatio, this.znear, this.zfar); }
+        }
+
         public float AspectRatio
         {
             get { return aspectRatio; }
             set { Perspective(this.fovx, value, this.znear, this.zfar); }
+        }
+
+        public float ZNear
+        {
+            get { return znear; }
+            set { Perspective(this.fovx, this.aspectRatio, value, this.zfar); }
         }
 
         public float ZFar
@@ -970,8 +982,7 @@ namespace GameLibrary.Component.Camera
             }
         }
 
-
-        public SceneGraph.Bounding.Frustum BoundingFrustum
+        public SceneGraph.Bounding.Frustum Frustum
         {
             get
             {
@@ -979,7 +990,7 @@ namespace GameLibrary.Component.Camera
                 {
                     UpdateBounding();
                 }
-                return boundingFrustum;
+                return frustum;
             }
         }
 
@@ -1011,13 +1022,11 @@ namespace GameLibrary.Component.Camera
 
         private void UpdateBounding()
         {
-            boundingFrustum.Matrix = ViewProjectionMatrix;
+            frustum.Matrix = ViewProjectionMatrix;
             // FIXME: garbage
             //boundingFrustum = new SceneGraph.Bounding.Frustum(ViewProjectionMatrix);
 
-            // FIXME move to Frustum class
-            boundingFrustum.GetCorners(frustumCorners);
-            boundingBox.ComputeFromPoints(frustumCorners);
+            frustum.ComputeBoundingBox(boundingBox);
 
             ComputeBoundingSphere();
 
@@ -1029,106 +1038,21 @@ namespace GameLibrary.Component.Camera
 
         private void ComputeBoundingSphere()
         {
+            double dz;
+            double radius;
+            // compute frustum best fitting sphere (in frustum space)
+            // bounding sphere is given by distance on the Z axis from near face center 
+            // and radius (radius is independant from transformations...)
+            VolumeUtil.ComputeFrustumBestFittingSphere(fovx, aspectRatio, znear, zfar, out dz, out radius);
+
+            // compute actual bounding sphere center
             Vector3 center;
-            float radius;
-            if (false)
-            {
-                // method 1
-                // - center = view frustrum centroid
-                // - radius = maximum distance between center and (all?) view frustrum corners
-                // works but bounding sphere is not optimal
-                // all computations can be done in WS as the computed BS is rotation invariant
-
-                // compute frustrum centroid
-                // TODO do we really need to use all 8 corners?
-                center = frustumCorners[0];
-                for (int i = 1; i < frustumCorners.Length; i++)
-                {
-                    center += frustumCorners[i];
-                }
-                center /= 8.0f;
-
-                // find maximum distance from centroid to (all?) 
-                // the resulting bounding sphere surrounds the frustum corners
-                // TODO do we need to check all 8 corners? two antagonist corners should suffice?
-                radius = 0.0f;
-                for (int i = 0; i < frustumCorners.Length; i++)
-                {
-                    Vector3 v = frustumCorners[i] - center;
-                    radius = Math.Max(v.Length(), radius);
-                }
-            }
-            else if (true)
-            {
-                // method 2
-                // The basic idea is to pick four points that form a maximal cross section
-                // (two opposite corners from the near plane, the corresponding corners from the far plane).
-                // Then find the minimal circle that encloses those four points in 2D, and finally extrude that into a sphere in 3D.
-                // Sample code for the minimal enclosing circle (in 2D) is much easier to find than the corresponding 3D problems.
-
-                // see https://lxjk.github.io/2017/04/15/Calculate-Minimal-Bounding-Sphere-of-Frustum.html
-
-                //double w = 1280;
-                //double h = 720;
-
-                //double w2 = w * w;
-                //double h2 = h * h;
-                double h2w2 = (1 / (aspectRatio * aspectRatio));
-
-                double n = znear; //0.1;
-                double f = zfar; //500;
-
-                double fovX = fovx; //MathHelper.Pi / 3.0f;
-
-                double k = Math.Sqrt(1.0f + h2w2) * Math.Tan(fovX / 2.0);
-                double k2 = k * k;
-
-                double z;
-                double r;
-                if (k2 >= ((f - n) / (f + n)))
-                {
-                    z = f;
-                    r = f * k;
-                }
-                else
-                {
-                    z = (f + n) * (1.0f + k2) / 2;
-                    r = Math.Sqrt((f - n) * (f - n) + 2 * (f * f + n * n) * k2 + (f + n) * (f + n) * k2 * k2) / 2;
-                }
-
-                Vector3 nearFaceCenter = (frustumCorners[0] + frustumCorners[2]) / 2;
-                Vector3 farFaceCenter = (frustumCorners[4] + frustumCorners[6]) / 2;
-                Vector3 dir = Vector3.Normalize(farFaceCenter - nearFaceCenter);
-
-                center = nearFaceCenter + dir * (float)z;
-                radius = (float)r;
-            }
-            else
-            {
-                // see http://gsteph.blogspot.com/2010/11/minimum-bounding-sphere-for-frustum.html
-            }
-            // sphere from 4 points: http://www.ambrsoft.com/TrigoCalc/Sphere/Spher3D_.htm
+            frustum.NearFaceCenter((float)dz, out center);
 
             boundingSphere.Center = center;
-            boundingSphere.Radius = radius;
+            boundingSphere.Radius = (float)radius;
         }
 
-        private void ComputeShadowMapCascade()
-        {
-            //Console.WriteLine("split");
-            float n = znear;
-            float f = zfar;
-            float weight = 0.22f;
-            int splitCount = 4;
-            for (int i = 0; i < splitCount; ++i)
-            {
-                float p = (float)i / splitCount;
-                float cLog = n * (float)Math.Pow(f / n, p);
-                float cLin = MathUtil.Lerp(n, f, p);
-                float split = MathUtil.Lerp(cLog, cLin, weight);
-                //Console.WriteLine(split);
-            }
-        }
     }
 }
 

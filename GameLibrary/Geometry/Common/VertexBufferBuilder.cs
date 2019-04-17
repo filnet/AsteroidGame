@@ -46,6 +46,29 @@ namespace GameLibrary.Geometry.Common
             }
         }
 
+        public void ExtractBoundingBox(SceneGraph.Bounding.Box box)
+        {
+            Vector3 min = new Vector3(float.MaxValue);
+            Vector3 max = new Vector3(float.MinValue);
+            for (int i = 0; i < vertexCount; i++)
+            {
+                T vertex = vertices[i];
+                Vector3 position = VertexPosition(vertex);
+                max.X = Math.Max(max.X, position.X);
+                max.Y = Math.Max(max.Y, position.Y);
+                max.Z = Math.Max(max.Z, position.Z);
+                min.X = Math.Min(min.X, position.X);
+                min.Y = Math.Min(min.Y, position.Y);
+                min.Z = Math.Min(min.Z, position.Z);
+            }
+            SceneGraph.Bounding.Box.CreateFromMinMax(ref min, ref max, box);
+        }
+
+        protected virtual Vector3 VertexPosition(T vertex)
+        {
+            throw new NotImplementedException();
+        }
+        
         public int AddVertex(Vector3 position, Vector3 normal, Vector2 textureCoordinate)
         {
             return AddVertex(position, normal, Color.White, textureCoordinate);
@@ -203,6 +226,12 @@ namespace GameLibrary.Geometry.Common
             {
                 return new VertexPositionNormalTexture(position, normal, textureCoordinate);
             }
+
+            protected override Vector3 VertexPosition(VertexPositionNormalTexture vertex)
+            {
+                return vertex.Position;
+            }
+
         }
 
         // VertexPositionNormalTextureArray
@@ -227,6 +256,11 @@ namespace GameLibrary.Geometry.Common
             protected override VertexPositionNormalTextureArray createVertex(Vector3 position, Vector3 normal, Color color, Vector2 textureCoordinate, int textureIndex, int lightTextureIndex)
             {
                 return new VertexPositionNormalTextureArray(position, normal, new Vector3(textureCoordinate, textureIndex));
+            }
+
+            protected override Vector3 VertexPosition(VertexPositionNormalTextureArray vertex)
+            {
+                return vertex.Position;
             }
         }
 
@@ -254,6 +288,10 @@ namespace GameLibrary.Geometry.Common
                 return new VertexPositionColorNormalTexture(position, color, normal, textureCoordinate);
             }
 
+            protected override Vector3 VertexPosition(VertexPositionColorNormalTexture vertex)
+            {
+                return vertex.Position;
+            }
         }
 
         // VertexPositionColorNormalTextureArray
@@ -280,6 +318,10 @@ namespace GameLibrary.Geometry.Common
                 return new VertexPositionColorNormalTextureArray(position, color, normal, new Vector3(textureCoordinate, textureIndex));
             }
 
+            protected override Vector3 VertexPosition(VertexPositionColorNormalTextureArray vertex)
+            {
+                return vertex.Position;
+            }
         }
 
         // VertexPositionColor
@@ -306,6 +348,10 @@ namespace GameLibrary.Geometry.Common
                 return new VertexPositionColor(position, color);
             }
 
+            protected override Vector3 VertexPosition(VertexPositionColor vertex)
+            {
+                return vertex.Position;
+            }
         }
 
         // VoxelVertex
@@ -330,6 +376,11 @@ namespace GameLibrary.Geometry.Common
             protected override VoxelVertex createVertex(Vector3 position, Vector3 normal, Color color, Vector2 textureCoordinate, int textureIndex, int lightTextureIndex)
             {
                 return new VoxelVertex(position, normal, textureCoordinate, textureIndex, lightTextureIndex);
+            }
+
+            protected override Vector3 VertexPosition(VoxelVertex vertex)
+            {
+                return vertex.Position;
             }
         }
 

@@ -6,13 +6,13 @@ using Microsoft.Xna.Framework;
 using Microsoft.Xna.Framework.Graphics;
 using static GameLibrary.VolumeUtil;
 
+// Real-Time Collision Detection https://books.google.fr/books?id=WGpL6Sk9qNAC
 namespace GameLibrary.SceneGraph.Bounding
 {
     public enum VolumeType
     {
         Sphere,
-        AABB,
-        OBB,
+        Box,
         Frustum,
         Region
     }
@@ -50,32 +50,54 @@ namespace GameLibrary.SceneGraph.Bounding
 
         #region Contains
 
+
         /// <summary>
-        /// Containment test between this <see cref="Frustum"/> and specified <see cref="Box"/>.
+        /// Containment test between this <see cref="Volume"/> and specified <see cref="Box"/>.
         /// </summary>
         /// <param name="box">A <see cref="Box"/> for testing.</param>
-        /// <returns>Result of testing for containment between this <see cref="Frustum"/> and specified <see cref="Box"/>.</returns>
+        /// <returns>Result of testing for containment between this <see cref="Volume"/> and specified <see cref="Box"/>.</returns>
+        public ContainmentType Contains(Volume volume, ContainmentHint hint)
+        {
+            switch(volume.Type())
+            {
+                case VolumeType.Box:
+                    return Contains(volume as Box, hint);
+                case VolumeType.Sphere:
+                    return Contains(volume as Sphere);
+                case VolumeType.Frustum:
+                    return Contains(volume as Frustum);
+                /*case VolumeType.Region:
+                    return Contains(volume as Region);*/
+            }
+            throw new ArgumentException("Invalid volume type");
+        }
+
+        /// <summary>
+        /// Containment test between this <see cref="Volume"/> and specified <see cref="Box"/>.
+        /// </summary>
+        /// <param name="box">A <see cref="Box"/> for testing.</param>
+        /// <returns>Result of testing for containment between this <see cref="Volume"/> and specified <see cref="Box"/>.</returns>
         public abstract ContainmentType Contains(Box box, ContainmentHint hint);
 
         /// <summary>
-        /// Containment test between this <see cref="Frustum"/> and specified <see cref="Sphere"/>.
+        /// Containment test between this <see cref="Volume"/> and specified <see cref="Sphere"/>.
         /// </summary>
         /// <param name="sphere">A <see cref="Sphere"/> for testing.</param>
-        /// <returns>Result of testing for containment between this <see cref="Frustum"/> and specified <see cref="Sphere"/>.</returns>
+        /// <returns>Result of testing for containment between this <see cref="Volume"/> and specified <see cref="Sphere"/>.</returns>
         public abstract ContainmentType Contains(Sphere sphere);
 
         /// <summary>
-        /// Containment test between this <see cref="Frustum"/> and specified <see cref="Frustum"/>.
+        /// Containment test between this <see cref="Volume"/> and specified <see cref="Frustum"/>.
         /// </summary>
         /// <param name="frustum">A <see cref="Frustum"/> for testing.</param>
-        /// <returns>Result of testing for containment between this <see cref="Frustum"/> and specified <see cref="Frustum"/>.</returns>
+        /// <returns>Result of testing for containment between this <see cref="Volume"/> and specified <see cref="Frustum"/>.</returns>
         public abstract ContainmentType Contains(Frustum frustum);
 
         /// <summary>
-        /// Containment test between this <see cref="Frustum"/> and specified <see cref="Vector3"/>.
+        /// Containment test between this <see cref="Volume"/> and specified <see cref="Vector3"/>.
         /// </summary>
         /// <param name="point">A <see cref="Vector3"/> for testing.</param>
-        /// <returns>Result of testing for containment between this <see cref="Frustum"/> and specified <see cref="Vector3"/>.</returns>
+        /// <returns>Result of testing for containment between this <see cref="Volume"/> and specified <see cref="Vector3"/>.</returns>
         public bool Contains(Vector3 point)
         {
             bool result;

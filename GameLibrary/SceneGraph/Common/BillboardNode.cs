@@ -6,6 +6,13 @@ namespace GameLibrary.SceneGraph.Common
 {
     public class BillboardNode : MeshNode
     {
+        // Hack to handle texture arrays...
+        public int Mode
+        {
+            get;
+            set;
+        }
+
         public Texture2D Texture
         {
             get;

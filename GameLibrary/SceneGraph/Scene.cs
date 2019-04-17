@@ -11,6 +11,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using Voxel;
+using static GameLibrary.SceneGraph.RenderContext;
 using static GameLibrary.SceneGraph.SceneRenderContext;
 
 namespace GameLibrary.SceneGraph
@@ -197,7 +198,7 @@ namespace GameLibrary.SceneGraph
         {
             if (renderContext.LightCount > 0)
             {
-                Camera lightCamera = renderContext.LightCamera(0);
+                Camera lightCamera = renderContext.LightRenderContext(0).RenderCamera;
                 //Vector3 target = lightCamera.Position;
                 //Vector3 eye = target - lightCamera.ViewDirection * 100;
                 Vector3 eye = lightCamera.Position;
@@ -269,23 +270,31 @@ namespace GameLibrary.SceneGraph
                 if (cameraDirty || renderContext.RedrawRequested())
                 {
                     renderContext.ClearRedrawRequested();
-                    /*if (cameraDirty)
-                    {
-                        previousProjectionMatrix = renderContext.RenderCamera.ProjectionMatrix;
-                        previousViewMatrix = renderContext.RenderCamera.ViewMatrix;
-                    }*/
                 }
                 if (structureDirty)
                 {
                     if (Debug) Console.WriteLine("Structure Dirty");
                 }
 
-                bool FindOccluders = true;
-
                 // FIXME most of the time nodes stay in the same render group
                 // so doing a clear + full reconstruct is not very efficient
                 // but RENDER_GROUP_VISITOR does the culling...
                 renderContext.Clear();
+
+                // setup light render context
+                // need to do it before view culling to handle shadow receivers
+                // this is done in SceneRenderContext.AddLight()...
+                /*if (renderContext.ShadowsEnabled)
+                {
+                    for (int i = 0; i < renderContext.LightCount; i++)
+                    {
+                        LightRenderContext lightRenderContext = renderContext.LightRenderContext(i);
+                        if (lightRenderContext.Enabled)
+                        {
+                            lightRenderContext.FitToViewStable(renderContext);
+                        }
+                    }
+                }*/
 
                 // view camera culling
                 renderContext.CullBegin();
@@ -298,48 +307,52 @@ namespace GameLibrary.SceneGraph
                     for (int i = 0; i < renderContext.LightCount; i++)
                     {
                         LightRenderContext lightRenderContext = renderContext.LightRenderContext(i);
-                        if (!lightRenderContext.ShadowsEnabled)
+                        if (lightRenderContext.Enabled)
                         {
-                            continue;
-                        }
-
-                        // create initial light frustum
-                        // if we are looking for occluders then push near plane outwards
-                        float nearClipOffset = FindOccluders ? 1000.0f : 0.0f;
-                        lightRenderContext.FitToViewStable(renderContext, nearClipOffset);
-
-                        if (FindOccluders)
-                        {
-                            // FIXME we get spurious occluders that are too far away to really
-                            // contribute shadows... no idea atm on how to ignore them
+                            // TODO if there are no occludees (i.e. main view is not rendering anything then there is not point in finding occluders)
                             // FIXME this will trigger chunk loading in conflict with main camera
                             // TODO should load occluders at a lower priority (but will cause shadow pops)
-                            // find occluders
-                            // TODO directional light frustrum is an OOBB and culling could be optimized for that
+                            // TODO non casters (water, transparent, ...) are currently not excluded from culling
                             lightRenderContext.CullBegin();
                             rootNode.Visit(CULL_VISITOR, lightRenderContext);
                             lightRenderContext.CullEnd();
-                            // FIXME should add geometry from main context...
-                        }
-                        else
-                        {
-                            // no culling was done to find occluders: just copy geometry from main context
-                            foreach (KeyValuePair<int, List<Drawable>> renderBinKVP in renderContext.renderBins)
-                            {
-                                int renderBinId = renderBinKVP.Key;
-                                // HACK HACK HACK
-                                if (renderBinId == VOXEL)
-                                {
-                                    List<Drawable> drawableList = renderBinKVP.Value;
-                                    lightRenderContext.AddToBin(renderBinId, drawableList);
-                                }
-                            }
                         }
                     }
-
-                    // debug geometry
-                    renderContext.DebugGeometryAddTo(renderContext);
                 }
+
+                // refraction
+                // TODO skip if no water in scene...
+                // TODO tighter frustum culling around water...
+                // TODO exclude refractive surface itself
+                // DO IT ONLY IF THERE ARE elements in VOXEL_WATER bin
+                renderContext.AddRefraction();
+                RefractionRenderContext refractionRenderContext = renderContext.RefractionRenderContext(0);
+                if (refractionRenderContext.Enabled)
+                {
+                    refractionRenderContext.Update(renderContext.CullCamera);
+
+                    //refractionRenderContext.CullBegin();
+                    //rootNode.Visit(CULL_VISITOR, refractionRenderContext);
+                    //refractionRenderContext.CullEnd();
+                }
+
+                // reflection
+                // TODO skip if no water in scene...
+                // TODO tighter frustum culling around water...
+                // TODO exclude reflective surface itself
+                // DO IT ONLY IF THERE ARE elements in VOXEL_WATER bin
+                renderContext.AddReflection();
+                ReflectionRenderContext reflectionRenderContext = renderContext.ReflectionRenderContext(0);
+                if (reflectionRenderContext.Enabled)
+                {
+                    reflectionRenderContext.Update(renderContext.CullCamera);
+
+                    reflectionRenderContext.CullBegin();
+                    rootNode.Visit(CULL_VISITOR, reflectionRenderContext);
+                    reflectionRenderContext.CullEnd();
+                }
+                // debug geometry
+                renderContext.DebugGeometryAddTo(renderContext);
             }
 
         }
@@ -359,12 +372,46 @@ namespace GameLibrary.SceneGraph
                     // HACK
                     VoxelEffect voxelEffect = ((VoxelRenderer)renderers[VOXEL]).effect;
                     voxelEffect.DirectionalLight0.Direction = lightRenderContext.RenderCamera.ViewDirection;
-                    voxelEffect.LightWorldViewProj = lightRenderContext.RenderCamera.ViewProjectionMatrix;
-                    voxelEffect.ShadowMapTexture = lightRenderContext.RenderTarget;
+
+                    //voxelEffect.LightView = lightRenderContext.RenderCamera.ViewProjectionMatrix;
+                    voxelEffect.LightView = lightRenderContext.RenderCamera.ViewMatrix;
+                    voxelEffect.LightViews = lightRenderContext.viewMatrices;
+                    voxelEffect.SplitDistances = lightRenderContext.splitDistances;
+                    voxelEffect.SplitOffsets = lightRenderContext.splitOffsets;
+                    voxelEffect.SplitScales = lightRenderContext.splitScales;
+                    voxelEffect.ShadowMapTexture = lightRenderContext.ShadowRenderTarget;
+                    voxelEffect.VisualizeSplits = lightRenderContext.ShowSplits;
+
+                    // HACK
+                    VoxelWaterEffect voxelWaterEffect = ((VoxelWaterRenderer)renderers[VOXEL_WATER]).effect;
+                    voxelWaterEffect.DirectionalLight0.Direction = lightRenderContext.RenderCamera.ViewDirection;
+                    voxelWaterEffect.LightWorldViewProj = lightRenderContext.RenderCamera.ViewProjectionMatrix;
                 }
             }
 
-            Render(renderContext, renderContext.renderBins, renderers);
+            RefractionRenderContext refractionRenderContext = renderContext.RefractionRenderContext(0);
+            if (refractionRenderContext.Enabled)
+            {
+                // FIXME no culling is done so we use same geometry as main view
+                Render(refractionRenderContext, renderContext.renderBins, renderers);
+
+                // HACK
+                VoxelWaterEffect voxelWaterEffect = ((VoxelWaterRenderer)renderers[VOXEL_WATER]).effect;
+                voxelWaterEffect.RefractionMapTexture = refractionRenderContext.MapRenderTarget;
+            }
+
+            ReflectionRenderContext reflectionRenderContext = renderContext.ReflectionRenderContext(0);
+            if (reflectionRenderContext.Enabled)
+            {
+                Render(reflectionRenderContext, reflectionRenderContext.renderBins, renderers);
+
+                // HACK
+                VoxelWaterEffect voxelWaterEffect = ((VoxelWaterRenderer)renderers[VOXEL_WATER]).effect;
+                voxelWaterEffect.ReflectionWorldViewProj = reflectionRenderContext.RenderCamera.ViewProjectionMatrix;
+                voxelWaterEffect.ReflectionMapTexture = reflectionRenderContext.MapRenderTarget;
+            }
+
+            Render(renderContext, renderContext.renderBins, renderers, true);
 
             if (ShowStats)
             {
@@ -373,20 +420,29 @@ namespace GameLibrary.SceneGraph
             }
         }
 
-        public void Render(RenderContext renderContext, SortedDictionary<int, List<Drawable>> renderBins, Dictionary<int, Renderer> renderers)
+        public void Render(RenderContext renderContext, SortedDictionary<int, RenderBin> renderBins, Dictionary<int, Renderer> renderers, bool debug = false)
         {
-            BlendState oldBlendState = GraphicsDevice.BlendState;
+            /*BlendState oldBlendState = GraphicsDevice.BlendState;
             DepthStencilState oldDepthStencilState = GraphicsDevice.DepthStencilState;
             RasterizerState oldRasterizerState = GraphicsDevice.RasterizerState;
-            SamplerState oldSamplerState = GraphicsDevice.SamplerStates[0];
+            SamplerState oldSamplerState0 = GraphicsDevice.SamplerStates[0];
+            SamplerState oldSamplerState1 = GraphicsDevice.SamplerStates[1];
+            SamplerState oldSamplerState2 = GraphicsDevice.SamplerStates[2];
+            SamplerState oldSamplerState3 = GraphicsDevice.SamplerStates[3];*/
 
             renderContext.SetupGraphicsDevice();
 
             // FIXME should iterate over ordered by key...
-            foreach (KeyValuePair<int, List<Drawable>> renderBinKVP in renderBins)
+            foreach (KeyValuePair<int, RenderBin> renderBinKVP in renderBins)
             {
                 int renderBinId = renderBinKVP.Key;
-                List<Drawable> drawableList = renderBinKVP.Value;
+                // HACK...
+                if (!debug && (renderBinId >= Scene.DEBUG))
+                {
+                    break;
+                }
+                RenderBin renderBin = renderBinKVP.Value;
+                List<Drawable> drawableList = renderBin.DrawableList;
                 if (drawableList.Count() == 0) continue;
 
                 if (Debug) Console.WriteLine(renderBinId + " " + drawableList.Count);
@@ -395,7 +451,7 @@ namespace GameLibrary.SceneGraph
                 renderers.TryGetValue(renderBinId, out renderer);
                 if (renderer != null)
                 {
-                    renderer.Render(renderContext, drawableList);
+                    renderer.Render(renderContext, renderBin);
                 }
                 else
                 {
@@ -409,10 +465,13 @@ namespace GameLibrary.SceneGraph
             // Drop the render target
             GraphicsDevice.SetRenderTargets(null);
 
-            GraphicsDevice.BlendState = oldBlendState;
+            /*GraphicsDevice.BlendState = oldBlendState;
             GraphicsDevice.DepthStencilState = oldDepthStencilState;
             GraphicsDevice.RasterizerState = oldRasterizerState;
-            GraphicsDevice.SamplerStates[0] = oldSamplerState;
+            GraphicsDevice.SamplerStates[0] = oldSamplerState0;
+            GraphicsDevice.SamplerStates[1] = oldSamplerState1;
+            GraphicsDevice.SamplerStates[2] = oldSamplerState2;
+            GraphicsDevice.SamplerStates[3] = oldSamplerState3;*/
         }
 
         private static readonly Node.Visitor UPDATE_VISITOR = delegate (Node node, ref object arg)
@@ -502,43 +561,40 @@ namespace GameLibrary.SceneGraph
                 }
                 else if (node is Drawable drawable)
                 {
-                    Volume bv = drawable.WorldBoundingVolume;
-                    bool cull = false;
-                    if (bv != null)
+                    Volume boundingVolume = drawable.WorldBoundingVolume;
+                    bool culled = false;
+                    if (boundingVolume != null)
                     {
-                        SceneGraph.Bounding.Frustum boundingFrustum = ctxt.CullCamera.BoundingFrustum;
+                        SceneGraph.Bounding.Volume cullVolume = ctxt.CullCamera.Frustum;
+                        // HACK
+                        if (ctxt.CullCamera is LightCamera lightCamera)
+                        {
+                            cullVolume = lightCamera.cullRegion;
+                        }
                         // TODO use a more accurate test for leaf nodes (but still not 100% accurate...)
                         ContainmentHint hint = ContainmentHint.Precise;
-                        ContainmentType containmentType = ContainmentType.Disjoint;
-                        if (bv is SceneGraph.Bounding.Box boundingBox)
-                        {
-                            containmentType = boundingFrustum.Contains(boundingBox, hint);
-                        }
-                        if (bv is SceneGraph.Bounding.Sphere boundingSphere)
-                        {
-                            containmentType = boundingFrustum.Contains(boundingSphere);
-                        }
+                        ContainmentType containmentType = cullVolume.Contains(boundingVolume, hint);
                         if (containmentType == ContainmentType.Disjoint)
                         {
                             //if (Debug) Console.WriteLine("Culling " + node.Name);
-                            cull = true;
+                            culled = true;
                             ctxt.FrustumCullCount++;
                         }
                     }
-                    if (!cull)
+                    if (!culled)
                     {
                         ctxt.AddToBin(drawable);
                     }
                     if (drawable.BoundingVolumeVisible)
                     {
-                        ctxt.AddBoundingVolume(drawable, cull);
+                        ctxt.AddBoundingVolume(drawable, culled);
                     }
                 }
-                else if (node is LightNode lightNode && ctxt is SceneRenderContext sceneCtxt)
+                else if (node is LightNode lightNode && ctxt is SceneRenderContext sceneRenderContext)
                 {
-                    sceneCtxt.AddLightNode(lightNode);
+                    sceneRenderContext.AddLightNode(lightNode);
                 }
-                // TODO should return !cull
+                // TODO should return !culled
                 return true;
             };
 
@@ -548,134 +604,26 @@ namespace GameLibrary.SceneGraph
         {
             RenderContext ctxt = arg as RenderContext;
 
-            bool culled = false;
+            // used to capture culling modes (see cull method below)
+            ctxt.cullingOwner = node.locCode;
 
-            Bounding.Box boundingBox = (node.obj.Drawable != null) ?
-                node.obj.Drawable.BoundingVolume as Bounding.Box : node.obj.BoundingBox;
+            // cull test octree node bounding box
+            ContainmentType containmentType = Scene.cull(ctxt, node.obj.BoundingBox, ContainmentHint.Fast);
+            bool culled = (containmentType == ContainmentType.Disjoint);
 
-            // frustum culling
-            if (!culled && ctxt.FrustumCullingEnabled)
+            if (ctxt.ShowBoundingVolumes || (culled && ctxt.ShowCulledBoundingVolumes))
             {
-                // TODO start from node that fully encompass the frustum (no need to recurse from root)
-                // when recursing down some collision tests are not needed (possible to extend that from frame to frame)
-                // see TODO.txt for links that show how to do that
-
-                // http://www.cse.chalmers.se/~uffe/vfc.pdf
-                // https://cesium.com/blog/2017/02/02/tighter-frustum-culling-and-why-you-may-want-to-disregard-it/
-                // https://github.com/labnation/MonoGame/blob/master/MonoGame.Framework/Frustum.cs
-                // https://github.com/labnation/MonoGame/blob/master/MonoGame.Framework/BoundingBox.cs
-
-                SceneGraph.Bounding.Frustum boundingFrustum = ctxt.CullCamera.BoundingFrustum;
-
-                // use a more accurate test for leaf nodes (but still not 100% accurate...)
-                ContainmentHint hint = (node.obj.Drawable != null) ? ContainmentHint.Precise : ContainmentHint.Fast;
-                ContainmentType containmentType = boundingFrustum.Contains(boundingBox, hint);
-                if (containmentType == ContainmentType.Disjoint)
+                Drawable d = node.obj.NodeDrawable;
+                if (d != null)
                 {
-                    culled = true;
-                    ctxt.FrustumCullCount++;
-                    //Console.WriteLine("Frustum Culling " + node.Name);
-                }
-                else if (containmentType == ContainmentType.Contains)
-                {
-                    // contained: no need to cull further down
-                    // take ownership of frustum culling
-                    ctxt.frustumCullingOwner = node.locCode;
-                    //Console.WriteLine("Fully contained");
-                }
-            }
-
-            // distance culling
-            if (!culled && ctxt.DistanceCullingEnabled)
-            {
-                Vector3 center = boundingBox.Center;
-                Vector3 halfSize = boundingBox.HalfSize;
-                // TODO move to BoundingBox
-                // compute min and max distance (squared) of a point to an AABB
-                // see http://mcmains.me.berkeley.edu/pubs/TVCG2010finalKrishnamurthyMcMains.pdf
-                // the above reference also shows how to compute min and max distance (squared) between two AABBs
-                Vector3 cameraPosition = ctxt.CullCamera.Position;
-                Vector3 centerDist;
-                centerDist.X = Math.Abs(center.X - cameraPosition.X);
-                centerDist.Y = Math.Abs(center.Y - cameraPosition.Y);
-                centerDist.Z = Math.Abs(center.Z - cameraPosition.Z);
-
-                Vector3 dist;
-
-                // max distance
-                dist.X = centerDist.X + halfSize.X;
-                dist.Y = centerDist.Y + halfSize.Y;
-                dist.Z = centerDist.Z + halfSize.Z;
-                float maxDistanceSquared = (dist.X * dist.X) + (dist.Y * dist.Y) + (dist.Z * dist.Z);
-
-                // min distance
-                dist.X = Math.Max(centerDist.X - halfSize.X, 0);
-                dist.Y = Math.Max(centerDist.Y - halfSize.Y, 0);
-                dist.Z = Math.Max(centerDist.Z - halfSize.Z, 0);
-                float minDistanceSquared = (dist.X * dist.X) + (dist.Y * dist.Y) + (dist.Z * dist.Z);
-
-                if (minDistanceSquared > ctxt.cullDistanceSquared && maxDistanceSquared > ctxt.cullDistanceSquared)
-                {
-                    // disjoint
-                    culled = true;
-                    ctxt.DistanceCullCount++;
-
-                    //Console.WriteLine("Distance Culling: DISJOINT");
-                    //Console.WriteLine("Distance Culling " + minDistanceSquared + ", " + maxDistanceSquared + " / " + ctxt.CullDistanceSquared);
-                }
-                else if (minDistanceSquared < ctxt.cullDistanceSquared && maxDistanceSquared < ctxt.cullDistanceSquared)
-                {
-                    // contained: no need to cull further down
-                    // take ownership of frustum culling
-                    ctxt.distanceCullingOwner = node.locCode;
-
-                    //Console.WriteLine("Distance Culling: CONTAINED " + Octree<VoxelChunk>.LocCodeToString(node.locCode));
-                    //Console.WriteLine("Distance Culling " + minDistanceSquared + ", " + maxDistanceSquared + " / " + ctxt.CullDistanceSquared);
-                }
-            }
-
-            if (!culled && ctxt.ScreenSizeCullingEnabled)
-            {
-                // https://gdbooks.gitbooks.io/3dcollisions/content/Chapter2/static_aabb_plane.html
-
-                Vector3 center = boundingBox.Center;
-                Vector3 halfSize = boundingBox.HalfSize;
-
-                // plane normal
-                Vector3 n = ctxt.CullCamera.ViewDirection;
-
-                // Compute the projection interval radius of b onto L(t) = b.c + t * p.n
-                float r = halfSize.X * Math.Abs(n.X) + halfSize.Y * Math.Abs(n.Y) + halfSize.Z * Math.Abs(n.Z);
-
-                // FIXME performance no need to compute d each time...
-                Vector3 p = ctxt.CullCamera.Position;
-                float d = n.X * p.X + n.Y * p.Y + n.Z * p.Z; ;
-
-                // Compute distance of box center from plane
-                float s = Vector3.Dot(n, center) - d;
-
-                // Intersection occurs when distance s falls within [-r,+r] interval
-                if (Math.Abs(s) > r)
-                {
-                    if (node.locCode == 0b1000)
+                    if (d.BoundingVolumeVisible)
                     {
-                        // TODO use dynamic vertex buffer
-                        // then use dynamic vertex buffer to plot graph of mouse dx / dy (using line strip)
-                        // and for camera Frustums...
-                        AddBBoxHull(ctxt, ref boundingBox);
+                        ctxt.AddBoundingVolume(d, VolumeType.Box, culled);
                     }
-                    Vector3 cameraPosition = ctxt.CullCamera.Position;
-                    float a = node.obj.BoundingBox.HullArea(ref cameraPosition, ctxt.ProjectToScreen);
-                    if (a != -1 && a < minA)
-                    {
-                        minA = a;
-                        Console.WriteLine("* " + minA);
-                    }
-                    //ctxt.ScreenSizeCullCount++;
                 }
             }
 
-            if (culled && !ctxt.ShowCulledBoundingVolumes)
+            if (culled)
             {
                 // early exit !
                 return false;
@@ -696,13 +644,28 @@ namespace GameLibrary.SceneGraph
                 return false;
             }
 
-            Drawable drawable = node.obj.Drawable;
-            if (drawable != null)
+            cullDrawable(ctxt, node.obj.Drawable, containmentType);
+            cullDrawable(ctxt, node.obj.TransparentDrawable, containmentType);
+
+            return !culled;
+        };
+
+        public static void cullDrawable(RenderContext ctxt, Drawable drawable, ContainmentType parentContainmentType)
+        {
+            if ((drawable != null) && drawable.Visible)
             {
-                if (drawable.Visible && !culled)
+                Bounding.Box boundingBox = drawable.BoundingVolume as Bounding.Box;
+                ContainmentType containmentType = parentContainmentType;
+                // no need to do a precise test if the parent is contained 
+                // false positives happen on intersect only...
+                if (containmentType == ContainmentType.Intersects)
+                {
+                    containmentType = Scene.cull(ctxt, boundingBox, ContainmentHint.Precise);
+                }
+                bool culled = (containmentType == ContainmentType.Disjoint);
+                if (!culled)
                 {
                     ctxt.AddToBin(drawable);
-
                     ctxt.sceneMin.X = Math.Min(ctxt.sceneMin.X, boundingBox.Center.X - boundingBox.HalfSize.X);
                     ctxt.sceneMin.Y = Math.Min(ctxt.sceneMin.Y, boundingBox.Center.Y - boundingBox.HalfSize.Y);
                     ctxt.sceneMin.Z = Math.Min(ctxt.sceneMin.Z, boundingBox.Center.Z - boundingBox.HalfSize.Z);
@@ -710,21 +673,163 @@ namespace GameLibrary.SceneGraph
                     ctxt.sceneMax.Y = Math.Max(ctxt.sceneMax.Y, boundingBox.Center.Y + boundingBox.HalfSize.Y);
                     ctxt.sceneMax.Z = Math.Max(ctxt.sceneMax.Z, boundingBox.Center.Z + boundingBox.HalfSize.Z);
                 }
-                if (drawable.BoundingVolumeVisible)
+                if (ctxt.ShowBoundingVolumes || (culled && ctxt.ShowCulledBoundingVolumes))
                 {
-                    ctxt.AddBoundingVolume(drawable, VolumeType.AABB, culled);
+                    if (drawable.BoundingVolumeVisible)
+                    {
+                        ctxt.AddBoundingVolume(drawable, VolumeType.Box, culled);
+                    }
                 }
             }
-            Drawable transparentDrawable = node.obj.TransparentDrawable;
-            if (transparentDrawable != null)
+        }
+
+        public static ContainmentType cull(RenderContext ctxt, Bounding.Box boundingBox, ContainmentHint hint)
+        {
+            SceneGraph.Bounding.Volume cullVolume = ctxt.CullCamera.Frustum;
+            // HACK
+            if (ctxt.CullCamera is LightCamera lightCamera)
             {
-                if (transparentDrawable.Visible && !culled)
+                cullVolume = lightCamera.cullRegion;
+            }
+
+            // First do a fast cull check against node bounding box (full or merge of opaque + transparent)
+            // Then precise cull against:
+            // - opaque geometry
+            // - transparent geometry
+            // TODO optimize cull calls away when bounding box of opaque or transparent geometry is equal to the node bounding box.
+            // or if opaque or transparent include each other
+            // TODO start from node that fully encompass the frustum (no need to recurse from root)
+            // when recursing down some collision tests are not needed (possible to extend that from frame to frame)
+            // see http://www.cse.chalmers.se/~uffe/vfc.pdf
+            // see TODO.txt for links that show how to do that
+
+            ContainmentType containmentType = ContainmentType.Contains;
+
+            // frustum culling
+            if ((ctxt.frustumCullingOwner == 0) && ctxt.frustumCullingEnabled)
+            {
+                ContainmentType type = cullVolume.Contains(boundingBox, hint);
+                if (type == ContainmentType.Disjoint)
                 {
-                    ctxt.AddToBin(transparentDrawable);
+                    ctxt.FrustumCullCount++;
+                    //Console.WriteLine("Frustum Culling " + node.Name);
+                    return ContainmentType.Disjoint;
+                }
+                else if (type == ContainmentType.Contains)
+                {
+                    // contained: no need to cull further down
+                    // take ownership of frustum culling
+                    ctxt.frustumCullingOwner = ctxt.cullingOwner;
+                    //Console.WriteLine("Fully contained");                   
+                }
+                else
+                {
+                    containmentType = ContainmentType.Intersects;
                 }
             }
-            return !culled;
-        };
+
+            // distance culling
+            if ((ctxt.distanceCullingOwner == 0) && ctxt.distanceCullingEnabled)
+            {
+                Vector3 center = boundingBox.Center;
+                Vector3 halfSize = boundingBox.HalfSize;
+                // TODO move to BoundingBox
+                // compute min and max distance (squared) of a point to an AABB
+                // see http://mcmains.me.berkeley.edu/pubs/TVCG2010finalKrishnamurthyMcMains.pdf
+                // the above reference also shows how to compute min and max distance (squared) between two AABBs
+                Vector3 cameraPosition = ctxt.CullCamera.Position;
+                Vector3 centerDist;
+                centerDist.X = Math.Abs(center.X - cameraPosition.X);
+                centerDist.Y = Math.Abs(center.Y - cameraPosition.Y);
+                centerDist.Z = Math.Abs(center.Z - cameraPosition.Z);
+
+                Vector3 dist;
+
+                // TODO use Intersect to get distance to box...
+                // max distance
+                dist.X = centerDist.X + halfSize.X;
+                dist.Y = centerDist.Y + halfSize.Y;
+                dist.Z = centerDist.Z + halfSize.Z;
+                float maxDistanceSquared = (dist.X * dist.X) + (dist.Y * dist.Y) + (dist.Z * dist.Z);
+
+                // min distance
+                dist.X = Math.Max(centerDist.X - halfSize.X, 0);
+                dist.Y = Math.Max(centerDist.Y - halfSize.Y, 0);
+                dist.Z = Math.Max(centerDist.Z - halfSize.Z, 0);
+                float minDistanceSquared = (dist.X * dist.X) + (dist.Y * dist.Y) + (dist.Z * dist.Z);
+
+                if (minDistanceSquared > ctxt.cullDistanceSquared && maxDistanceSquared > ctxt.cullDistanceSquared)
+                {
+                    // disjoint
+                    ctxt.DistanceCullCount++;
+
+                    //Console.WriteLine("Distance Culling: DISJOINT");
+                    //Console.WriteLine("Distance Culling " + minDistanceSquared + ", " + maxDistanceSquared + " / " + ctxt.CullDistanceSquared);
+                    return ContainmentType.Disjoint;
+                }
+                else if (minDistanceSquared < ctxt.cullDistanceSquared && maxDistanceSquared < ctxt.cullDistanceSquared)
+                {
+                    // contained: no need to cull further down
+                    // take ownership of frustum culling
+                    ctxt.distanceCullingOwner = ctxt.cullingOwner;
+
+                    //Console.WriteLine("Distance Culling: CONTAINED " + Octree<VoxelChunk>.LocCodeToString(node.locCode));
+                    //Console.WriteLine("Distance Culling " + minDistanceSquared + ", " + maxDistanceSquared + " / " + ctxt.CullDistanceSquared);
+                }
+                else
+                {
+                    containmentType = ContainmentType.Intersects;
+                }
+            }
+
+            if (ctxt.ScreenSizeCullingEnabled)
+            {
+                // https://gdbooks.gitbooks.io/3dcollisions/content/Chapter2/static_aabb_plane.html
+                // TODO use Box/Plane interception
+
+                // computing the visible hull area of box does not work if camera plane intersects it
+                // in that case some hull vertices are projected behind the camera
+
+                // camera plane
+                // FIXME cache plane...
+                Vector3 n = ctxt.CullCamera.ViewDirection;
+                Vector3 p = ctxt.CullCamera.Position;
+                // D = N.P
+                float d = n.X * p.X + n.Y * p.Y + n.Z * p.Z;
+                Plane cameraPlane = new Plane(n, d);
+
+                // Compute the projection interval radius of b onto L(t) = b.c + t * p.n
+                //Vector3 center = boundingBox.Center;
+                //Vector3 halfSize = boundingBox.HalfSize;
+                //float r = halfSize.X * Math.Abs(n.X) + halfSize.Y * Math.Abs(n.Y) + halfSize.Z * Math.Abs(n.Z);
+                // Compute distance of box center from plane
+                //float s = Vector3.Dot(n, center) - d;
+                // Intersection occurs when distance s falls within [-r,+r] interval
+                //if (Math.Abs(s) > r)
+
+                PlaneIntersectionType planeIntersectionType;
+                boundingBox.Intersects(ref cameraPlane, out planeIntersectionType);
+                if (planeIntersectionType != PlaneIntersectionType.Intersecting)
+                {
+                    if (ctxt.cullingOwner == 0b1000)
+                    {
+                        // TODO use dynamic vertex buffer
+                        // then use dynamic vertex buffer to plot graph of mouse dx / dy (using line strip)
+                        // and for camera Frustums...
+                        AddBBoxHull(ctxt, ref boundingBox);
+                    }
+                    Vector3 cameraPosition = ctxt.CullCamera.Position;
+                    float a = 0;// node.obj.BoundingBox.HullArea(ref cameraPosition, ctxt.ProjectToScreen);
+                    if (a != -1 && a < minA)
+                    {
+                        minA = a;
+                        Console.WriteLine("* " + minA);
+                    }
+                    //ctxt.ScreenSizeCullCount++;
+                }
+            }
+            return containmentType;
+        }
 
         private static readonly VoxelOctree.Visitor<VoxelChunk> VOXEL_OCTREE_CULL_POST_VISITOR = delegate (Octree<VoxelChunk> octree, OctreeNode<VoxelChunk> node, ref Object arg)
         {
@@ -738,10 +843,10 @@ namespace GameLibrary.SceneGraph
             {
                 ctxt.distanceCullingOwner = 0;
             }
-            if (ctxt.screenSizeCullingOwner == node.locCode)
+            /*if (ctxt.screenSizeCullingOwner == node.locCode)
             {
                 ctxt.screenSizeCullingOwner = 0;
-            }
+            }*/
             return true;
         };
 
@@ -775,6 +880,7 @@ namespace GameLibrary.SceneGraph
             return true;
         };
 
+        // TODO  move to render context
         public static void AddBBoxHull(RenderContext ctxt, ref Bounding.Box boundingBox)
         {
             bool addHull = false;

@@ -63,7 +63,7 @@ namespace GameLibrary
             graphics = createGraphicsDeviceManager();
 
             IsFixedTimeStep = true;
-            IsMouseVisible = false;
+            IsMouseVisible = true;
 
             Window.AllowUserResizing = true;
             Window.ClientSizeChanged += new EventHandler<EventArgs>(WindowClientSizeChanged);
@@ -249,7 +249,7 @@ namespace GameLibrary
             System.DebugSystem.Instance.TimeRuler.EndMark("Update");
         }
 
-        protected void UpdateScene(GameTime gameTime)
+        protected virtual void UpdateScene(GameTime gameTime)
         {
             scene.Update(gameTime);
         }

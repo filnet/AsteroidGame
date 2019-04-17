@@ -18,30 +18,40 @@ namespace GameLibrary.SceneGraph
 
         public override Matrix ViewProjectionMatrix { get { return viewProjectionMatrix; } }
 
-        public override Matrix InverseViewProjectionMatrix { get { return invViewProjectionMatrix; } }
+        public override Matrix InverseViewProjectionMatrix { get { return inverseViewProjectionMatrix; } }
 
         public override int VisitOrder { get { return visitOrder; } }
 
-        public override SceneGraph.Bounding.Frustum BoundingFrustum { get { return boundingFrustum; } }
+        public override Bounding.Frustum Frustum { get { return boundingFrustum; } }
 
-        public Vector3 lightPosition;
         public Vector3 lightDirection;
+        public Vector3 lightPosition;
 
         public Matrix viewMatrix;
         public Matrix projectionMatrix;
         public Matrix viewProjectionMatrix;
 
-        public Matrix invViewProjectionMatrix;
+        public Matrix inverseViewProjectionMatrix;
 
         public int visitOrder;
 
-        public SceneGraph.Bounding.Frustum boundingFrustum;
+        public Bounding.Frustum boundingFrustum;
+        public Bounding.Region cullRegion;
 
         public Rectangle ScissorRectangle;
 
-        public LightCamera() : base()
+        public LightCamera(Vector3 direction) : base()
         {
-            boundingFrustum = new SceneGraph.Bounding.Frustum();
+            lightDirection = direction;
+            boundingFrustum = new Bounding.Frustum();
+            cullRegion = new Bounding.Region();
+        }
+
+        public LightCamera(LightCamera camera) : base()
+        {
+            lightDirection = camera.lightDirection;
+            boundingFrustum = new Bounding.Frustum();
+            cullRegion = new Bounding.Region();
         }
 
     }

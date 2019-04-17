@@ -15,8 +15,7 @@ using GameLibrary.SceneGraph.Common;
 using GameLibrary.Geometry;
 using GameLibrary.Geometry.Common;
 using AsteroidGame.Geometry;
-using GameLibrary.Util;
-using GameLibrary.Voxel;
+using GameLibrary.Util;using GameLibrary.Voxel;
 using System.Threading;
 using WpfLibrary;
 using static GameLibrary.VectorUtil;
@@ -34,7 +33,7 @@ namespace AsteroidGame
         private GroupNode bulletGroupNode;
         private GroupNode asteroidGroupNode;
 
-        private bool DebugWindowEnabled = true;
+        private readonly bool DebugWindowEnabled = true;
         private WpfControlWindow wnd;
 
         public static AsteroidGame Instance()
@@ -53,29 +52,55 @@ namespace AsteroidGame
             base.Initialize();
             if (DebugWindowEnabled)
             {
-                Thread t = new Thread((ThreadStart)delegate
-                {
-                    wnd = new WpfControlWindow();
-                    // Do stuff here, e.g. to the window
-                    //wnd.Title = "Something else";
-                    //wnd.setSelected(Scene.CameraComponent);
-                    wnd.setSelected1(Scene.RenderContext);
-                    wnd.setSelected2(Scene.RenderContext.LightRenderContext(0));
-                    // Show the window
-                    wnd.ShowDialog();
-                });
-                t.SetApartmentState(ApartmentState.STA);
-                t.Start();
+                openWpf();
             }
         }
 
         protected override void Dispose(bool disposing)
         {
+            closeWpf();
+            base.Dispose(disposing);
+        }
+
+        private void openWpf()
+        {
+            Thread t = new Thread((ThreadStart)delegate
+            {
+                wnd = new WpfControlWindow();
+                // Do stuff here, e.g. to the window
+                //wnd.Title = "Something else";
+                //wnd.setSelected(Scene.CameraComponent);
+                wnd.SetSelected1(Scene.RenderContext);
+                wnd.SetSelected2(Scene.RenderContext.LightRenderContext(0));
+                wnd.SetSelected3(Scene.RenderContext.ReflectionRenderContext(0));
+                // Show the window
+                wnd.ShowDialog();
+            });
+            t.SetApartmentState(ApartmentState.STA);
+            t.Start();
+        }
+
+        private void closeWpf()
+        {
             if (wnd != null)
             {
                 wnd.Dispatcher.BeginInvoke(new ThreadStart(() => wnd.Close()));
             }
-            base.Dispose(disposing);
+        }
+
+        //int c = 0;
+        private void refreshWpf()
+        {
+            if (wnd != null)
+            {
+                /*c++;
+                //Console.WriteLine((c % 1000));
+                if ((c % 33) == 0)
+                {
+                    Console.WriteLine("XXXXXXXXXXXXXXXXXXXXXXXXXXX");
+                    wnd.Dispatcher.BeginInvoke(new ThreadStart(() => wnd.Refresh()));
+                }*/
+            }
         }
 
         /// <summary>
@@ -94,6 +119,12 @@ namespace AsteroidGame
         protected override void UnloadContent()
         {
             base.UnloadContent();
+        }
+
+        protected override void UpdateScene(GameTime gameTime)
+        {
+            base.UpdateScene(gameTime);
+            refreshWpf();
         }
 
         /// <summary>
@@ -370,7 +401,7 @@ namespace AsteroidGame
                         //Hull hull = VectorUtil.AABB_HULLS[p];
 
                         p *= 7;
-                        int verticeCount = VectorUtil.HULL_LOOKUP_TABLE[p];
+                        int verticeCount = VolumeUtil.HULL_LOOKUP_TABLE[p];
                         if (verticeCount == 0)
                         {
                             continue;
@@ -379,7 +410,7 @@ namespace AsteroidGame
                         Vector3[] vertices = new Vector3[verticeCount];
                         for (int i = 0; i < verticeCount; i++)
                         {
-                            vertices[i] = VectorUtil.BB_HULL_VERTICES[VectorUtil.HULL_LOOKUP_TABLE[++p]];
+                            vertices[i] = VolumeUtil.BB_HULL_VERTICES[VolumeUtil.HULL_LOOKUP_TABLE[++p]];
                         }
                         //Console.WriteLine(verticeCount + " " + vertices);
 

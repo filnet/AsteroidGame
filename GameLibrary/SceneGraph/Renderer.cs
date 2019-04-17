@@ -9,6 +9,7 @@ using GameLibrary.SceneGraph.Bounding;
 using GameLibrary.Geometry.Common;
 using GameLibrary.Geometry;
 using Voxel;
+using StockEffects;
 
 namespace GameLibrary.SceneGraph
 {
@@ -31,10 +32,15 @@ namespace GameLibrary.SceneGraph
             BlendState = BlendState.Opaque;
             DepthStencilState = DepthStencilState.Default;
             RasterizerState = RasterizerState.CullClockwise;
-            SamplerState = SamplerState.LinearWrap;
+            SamplerState = SamplerState.LinearClamp;
         }
 
-        public abstract void Render(RenderContext rc, List<Drawable> drawableList);
+        public virtual void Render(RenderContext rc, RenderBin renderBin)
+        {
+            Render(rc, renderBin.DrawableList);
+        }
+
+        internal abstract void Render(RenderContext rc, List<Drawable> drawableList);
     }
 
     public class ShowTimeRenderer : Renderer
@@ -54,7 +60,7 @@ namespace GameLibrary.SceneGraph
             //Enabled = true;
         }
 
-        public override void Render(RenderContext rc, List<Drawable> drawableList)
+        internal override void Render(RenderContext rc, List<Drawable> drawableList)
         {
             if (!Enabled)
             {
@@ -87,7 +93,7 @@ namespace GameLibrary.SceneGraph
             effectMatrices = effect as IEffectMatrices;
         }
 
-        public override void Render(RenderContext rc, List<Drawable> drawableList)
+        internal override void Render(RenderContext rc, List<Drawable> drawableList)
         {
             rc.GraphicsDevice.BlendState = BlendState;
             rc.GraphicsDevice.DepthStencilState = DepthStencilState;
@@ -166,7 +172,7 @@ namespace GameLibrary.SceneGraph
             BlendState = BlendState.AlphaBlend;
         }
 
-        public override void Render(RenderContext rc, List<Drawable> drawableList)
+        internal override void Render(RenderContext rc, List<Drawable> drawableList)
         {
             rc.GraphicsDevice.BlendState = BlendState;
             rc.GraphicsDevice.DepthStencilState = DepthStencilState;
@@ -214,7 +220,7 @@ namespace GameLibrary.SceneGraph
             //BlendState = BlendState.AlphaBlend;        
         }
 
-        public override void Render(RenderContext rc, List<Drawable> drawableList)
+        internal override void Render(RenderContext rc, List<Drawable> drawableList)
         {
             rc.GraphicsDevice.BlendState = BlendState;
             rc.GraphicsDevice.DepthStencilState = DepthStencilState;
@@ -255,7 +261,7 @@ namespace GameLibrary.SceneGraph
                     if (drawable is BillboardNode billboard)
                     {
                         // HACK
-                        ((BasicEffect)effect).Texture = billboard.Texture;
+                        ((StockEffects.BasicEffect)effect).Texture = billboard.Texture;
                         //pass.Apply();
                     }
                     drawable.PreDraw(rc.GraphicsDevice);
@@ -269,12 +275,12 @@ namespace GameLibrary.SceneGraph
         }
     }
 
-    public class BillboardRenderer : BasicRenderer
+    public class BillboardRenderer : EffectRenderer<ShadowMapEffect>
     {
         //private Matrix projectionMatrix;
         //private Matrix viewMatrix;
 
-        public BillboardRenderer(Effect effect) : base(effect)
+        public BillboardRenderer(ShadowMapEffect effect) : base(effect)
         {
             RasterizerState = RasterizerState.CullNone;
             //BlendState = BlendState.AlphaBlend;
@@ -285,66 +291,95 @@ namespace GameLibrary.SceneGraph
             DepthStencilState = depthState;
         }
 
-        public override void Render(RenderContext rc, List<Drawable> drawableList)
+        internal override void Render(RenderContext rc, List<Drawable> drawableList)
         {
             rc.GraphicsDevice.BlendState = BlendState;
             rc.GraphicsDevice.DepthStencilState = DepthStencilState;
             rc.GraphicsDevice.RasterizerState = RasterizerState;
             rc.GraphicsDevice.SamplerStates[0] = SamplerState;
 
-            int width = rc.GraphicsDevice.Viewport.Width;
-            int height = rc.GraphicsDevice.Viewport.Height;
             if (effectMatrices != null)
             {
-                Vector2 eye;
-                eye.X = 0;// width / 2;
-                eye.Y = 0;// height / 2;
-
-                Matrix view = Matrix.CreateLookAt(new Vector3(eye.X, eye.Y, 0), new Vector3(eye.X, eye.Y, -1), new Vector3(0, 1, 0));
-                //Matrix projection = Matrix.CreateOrthographic(width, height, -0.5f, 1);
-                //Matrix projection = Matrix.CreateOrthographicOffCenter(-10, width, -10, height, -0.5f, 1);
-                Matrix projection = Matrix.CreateOrthographicOffCenter(0, width, 0, height, -0.5f, 1);
-
-                // FIXME...
-                effectMatrices.Projection = projection;
+                // FIXME no need to create each time
+                Matrix view = Matrix.CreateLookAt(new Vector3(0, 0, 0), new Vector3(0, 0, -1), new Vector3(0, 1, 0));
                 effectMatrices.View = view;
 
-                effectMatrices.World = Matrix.CreateScale(256, 256, 0);
+                // FIXME no need to create each time
+                int width = rc.GraphicsDevice.Viewport.Width;
+                int height = rc.GraphicsDevice.Viewport.Height;
+                Matrix projection = Matrix.CreateOrthographicOffCenter(0, width, 0, height, -0.5f, 1);
+                effectMatrices.Projection = projection;
             }
 
-            foreach (EffectPass pass in effect.CurrentTechnique.Passes)
+            //((StockEffects.ShadowMapEffect)effect).CurrentTechnique = ((StockEffects.ShadowMapEffect)effect).Techniques[1];
+            //effect.CurrentTechnique = effect.Techniques[Technique];
+
+            float x = 0;
+            float y = 0;
+            // FIXME we should not change technique for each drawable...
+            foreach (Drawable drawable in drawableList)
             {
-                pass.Apply();
-                foreach (Drawable drawable in drawableList)
+                if (!drawable.Enabled || !drawable.Visible)
                 {
-                    if (!drawable.Enabled || !drawable.Visible)
+                    break;
+                }
+                // HACK
+                // HACK
+                // HACK
+                float aspect = 1.0f;
+                float width = 1.0f;
+                float height = 1.0f;
+                if (drawable is BillboardNode billboard)
+                {
+                    //Console.WriteLine(billboard.Name);
+
+                    // HACK
+                    //((BasicEffect)effect).Texture = billboard.Texture;
+                    //Console.WriteLine(billboard.Mode);
+                    effect.CurrentTechnique = effect.Techniques[billboard.Mode];
+                    effect.Texture = billboard.Texture;
+
+                    aspect = (float)billboard.Texture.Width / (float)billboard.Texture.Height;
+
+                    /*if (billboard.Texture.)
                     {
-                        break;
-                    }
-                    // HACK
-                    // HACK
-                    // HACK
-                    if (drawable is BillboardNode billboard)
+
+                    }*/
+
+                }
+                if (effectMatrices != null)
+                {
+                    bool scaleY = false;
+                    bool centerY = true;
+                    if (scaleY)
                     {
-                        // HACK
-                        //((BasicEffect)effect).Texture = billboard.Texture;
-                        ((StockEffects.ShadowMapEffect)effect).Texture = billboard.Texture;
-                        //pass.Apply();
-                        /*
-                        if ((effectMatrices != null) && (drawable is Transform transform))
+                        float h = height;
+                        height /= aspect;
+                        if (centerY && (h > height))
                         {
-                            effectMatrices.World = transform.WorldTransform;
-                            //effectMatrices.World = Matrix.CreateTranslation(new Vector3(0, height - billboard.Texture.Height, 0));
-                            pass.Apply();
+                            y = (h - height) / 2.0f;
                         }
-                        */
                     }
+                    else
+                    {
+                        width *= aspect;
+                        y = 0.0f;
+                    }
+                    float scale = 256.0f;
+                    effectMatrices.World = Matrix.CreateScale(width * scale, height * scale, 0.0f) * Matrix.CreateTranslation(x * scale, y * scale, 0);
+                }
+                foreach (EffectPass pass in effect.CurrentTechnique.Passes)
+                {
+
+                    pass.Apply();
+
                     drawable.PreDraw(rc.GraphicsDevice);
                     drawable.Draw(rc.GraphicsDevice);
                     drawable.PostDraw(rc.GraphicsDevice);
 
                     rc.DrawCount++;
                     rc.VertexCount += drawable.VertexCount;
+                    x += 1f * aspect;
                 }
             }
         }
@@ -376,7 +411,7 @@ namespace GameLibrary.SceneGraph
             shadowSamplerState.BorderColor = Color.White;
         }
 
-        public override void Render(RenderContext rc, List<Drawable> drawableList)
+        internal override void Render(RenderContext rc, List<Drawable> drawableList)
         {
             rc.GraphicsDevice.BlendState = BlendState;
             rc.GraphicsDevice.DepthStencilState = DepthStencilState;
@@ -418,9 +453,11 @@ namespace GameLibrary.SceneGraph
         }
     }
 
-    public class VoxelWaterRenderer : VoxelRenderer
+    public class VoxelWaterRenderer : EffectRenderer<VoxelWaterEffect>
     {
-        public VoxelWaterRenderer(VoxelEffect effect) : base(effect)
+        private readonly SamplerState reflectionSamplerState = new SamplerState();
+
+        public VoxelWaterRenderer(VoxelWaterEffect effect) : base(effect)
         {
             RasterizerState = RasterizerState.CullNone;
             BlendState = BlendState.AlphaBlend;
@@ -439,12 +476,63 @@ namespace GameLibrary.SceneGraph
             depthState.DepthBufferWriteEnable = false;
             DepthStencilState = depthState;
             */
+
+            // shadow texture sampler
+            //reflectionSamplerState.Filter = TextureFilter.Linear;
+            //reflectionSamplerState.Filter = TextureFilter.Anisotropic;
+            //reflectionSamplerState.AddressU = TextureAddressMode.Border;
+            //reflectionSamplerState.AddressV = TextureAddressMode.Border;
+            //reflectionSamplerState.ComparisonFunction = CompareFunction.LessEqual;
+            //reflectionSamplerState.FilterMode = TextureFilterMode.Comparison;
+            //reflectionSamplerState.BorderColor = Color.White;
+        }
+
+        public override void Render(RenderContext rc, RenderBin renderBin)
+        {
+            rc.GraphicsDevice.BlendState = BlendState;
+            rc.GraphicsDevice.DepthStencilState = DepthStencilState;
+            rc.GraphicsDevice.RasterizerState = RasterizerState;
+
+            // main texture
+            rc.GraphicsDevice.SamplerStates[0] = SamplerState;
+
+            // refraction map textures
+            rc.GraphicsDevice.SamplerStates[1] = reflectionSamplerState;
+
+            // reflection map textures
+            rc.GraphicsDevice.SamplerStates[2] = reflectionSamplerState;
+
+            if (effectMatrices != null)
+            {
+                effectMatrices.Projection = rc.RenderCamera.ProjectionMatrix;
+                effectMatrices.View = rc.RenderCamera.ViewMatrix;
+                effectMatrices.World = Matrix.Identity;
+            }
+
+            List<Drawable> drawableList = renderBin.DrawableList;
+            foreach (EffectPass pass in effect.CurrentTechnique.Passes)
+            {
+                pass.Apply();
+                int i = 0;
+                foreach (Drawable drawable in drawableList)
+                {
+                    if (drawable.Enabled && drawable.Visible)
+                    {
+                        drawable.PreDraw(rc.GraphicsDevice);
+                        drawable.Draw(rc.GraphicsDevice);
+                        drawable.PostDraw(rc.GraphicsDevice);
+                        rc.DrawCount++;
+                        rc.VertexCount += drawable.VertexCount;
+                    }
+                    i++;
+                }
+            }
         }
     }
 
     public abstract class AbstractShadowRenderer<E> : EffectRenderer<E> where E : Effect
     {
-        internal bool instanced = false;
+        internal bool instanced = true;
 
         public AbstractShadowRenderer(E effect) : base(effect)
         {
@@ -458,8 +546,6 @@ namespace GameLibrary.SceneGraph
 
             //RasterizerState.DepthBias = 0.001f;
             //RasterizerState.SlopeScaleDepthBias = 0.5f;
-
-            //RasterizerState.ScissorTestEnable;
         }
 
     }
@@ -472,7 +558,7 @@ namespace GameLibrary.SceneGraph
             RasterizerState.SlopeScaleDepthBias = 0.5f;
         }
 
-        public override void Render(RenderContext rc, List<Drawable> drawableList)
+        public override void Render(RenderContext rc, RenderBin renderBin)
         {
             rc.GraphicsDevice.BlendState = BlendState;
             rc.GraphicsDevice.DepthStencilState = DepthStencilState;
@@ -484,25 +570,27 @@ namespace GameLibrary.SceneGraph
                 effectMatrices.View = rc.RenderCamera.ViewMatrix;
             }
 
+            List<Drawable> drawableList = renderBin.DrawableList;
             foreach (EffectPass pass in effect.CurrentTechnique.Passes)
             {
                 pass.Apply();
+                int i = 0;
                 foreach (Drawable drawable in drawableList)
                 {
-                    if (!drawable.Enabled || !drawable.Visible)
+                    if (drawable.Enabled && drawable.Visible)
                     {
-                        break;
+                        if ((effectMatrices != null) && (drawable is Transform transform))
+                        {
+                            effectMatrices.World = transform.WorldTransform;
+                            pass.Apply();
+                        }
+                        drawable.PreDraw(rc.GraphicsDevice);
+                        drawable.Draw(rc.GraphicsDevice);
+                        drawable.PostDraw(rc.GraphicsDevice);
+                        rc.DrawCount++;
+                        rc.VertexCount += drawable.VertexCount;
                     }
-                    if ((effectMatrices != null) && (drawable is Transform transform))
-                    {
-                        effectMatrices.World = transform.WorldTransform;
-                        pass.Apply();
-                    }
-                    drawable.PreDraw(rc.GraphicsDevice);
-                    drawable.Draw(rc.GraphicsDevice);
-                    drawable.PostDraw(rc.GraphicsDevice);
-                    rc.DrawCount++;
-                    rc.VertexCount += drawable.VertexCount;
+                    i++;
                 }
             }
         }
@@ -516,7 +604,7 @@ namespace GameLibrary.SceneGraph
             RasterizerState.SlopeScaleDepthBias = 0.5f;
         }
 
-        public override void Render(RenderContext rc, List<Drawable> drawableList)
+        public override void Render(RenderContext rc, RenderBin renderBin)
         {
             rc.GraphicsDevice.BlendState = BlendState;
             rc.GraphicsDevice.DepthStencilState = DepthStencilState;
@@ -529,21 +617,23 @@ namespace GameLibrary.SceneGraph
                 effectMatrices.World = Matrix.Identity;
             }
 
+            List<Drawable> drawableList = renderBin.DrawableList;
             foreach (EffectPass pass in effect.CurrentTechnique.Passes)
             {
                 pass.Apply();
+                int i = 0;
                 foreach (Drawable drawable in drawableList)
                 {
-                    if (!drawable.Enabled || !drawable.Visible)
+                    if (drawable.Enabled && drawable.Visible)
                     {
-                        break;
-                    }
-                    drawable.PreDraw(rc.GraphicsDevice);
-                    drawable.Draw(rc.GraphicsDevice);
-                    drawable.PostDraw(rc.GraphicsDevice);
+                        drawable.PreDraw(rc.GraphicsDevice);
+                        drawable.Draw(rc.GraphicsDevice);
+                        drawable.PostDraw(rc.GraphicsDevice);
 
-                    rc.DrawCount++;
-                    rc.VertexCount += drawable.VertexCount;
+                        rc.DrawCount++;
+                        rc.VertexCount += drawable.VertexCount;
+                    }
+                    i++;
                 }
             }
         }
@@ -553,55 +643,81 @@ namespace GameLibrary.SceneGraph
     // https://gist.github.com/JSandusky/82cf0022ba78c83e1d436947a6e00926
     public class ShadowCascadeRenderer : AbstractShadowRenderer<StockEffects.ShadowCascadeEffect>
     {
+        private readonly VertexBuffer instanceVertexBuffer;
+
         public ShadowCascadeRenderer(StockEffects.ShadowCascadeEffect effect) : base(effect)
         {
             RasterizerState.ScissorTestEnable = true;
+
+            instanceVertexBuffer = new VertexBuffer(effect.GraphicsDevice, ShadowInstanceVertex.VertexDeclaration, 4, BufferUsage.WriteOnly);
+            ShadowInstanceVertex[] instances = new ShadowInstanceVertex[] {
+                    new ShadowInstanceVertex(0), new ShadowInstanceVertex(1), new ShadowInstanceVertex(2), new ShadowInstanceVertex(3),
+            };
+            instanceVertexBuffer.SetData(instances);
         }
 
-        public override void Render(RenderContext rc, List<Drawable> drawableList)
+        public override void Render(RenderContext rc, RenderBin renderBin)
         {
             rc.GraphicsDevice.BlendState = BlendState;
             rc.GraphicsDevice.DepthStencilState = DepthStencilState;
             rc.GraphicsDevice.RasterizerState = RasterizerState;
 
-            LightRenderContext lrc = rc as LightRenderContext;
-            LightCamera lightCamera = lrc.CullCamera as LightCamera;
+            LightRenderContext lightRenderContext = rc as LightRenderContext;
+            LightCamera lightCamera = lightRenderContext.CullCamera as LightCamera;
             rc.GraphicsDevice.ScissorRectangle = lightCamera.ScissorRectangle;
 
-            if (effectMatrices != null)
+            CascadeRenderBin cascadeRenderBin = renderBin as CascadeRenderBin;
+            List<CascadeSplitInfo> cascadeSplitInfoList = cascadeRenderBin.CascadeSplitInfoList;
+
+            List<Drawable> drawableList = renderBin.DrawableList;
+
+            /*if (effectMatrices != null)
             {
                 effectMatrices.Projection = rc.RenderCamera.ProjectionMatrix;
                 effectMatrices.View = rc.RenderCamera.ViewMatrix;
-            }
+            }*/
+            effect.World = Matrix.Identity;
+            effect.ViewProjections = lightRenderContext.viewProjectionMatrices;
 
             foreach (EffectPass pass in effect.CurrentTechnique.Passes)
             {
                 pass.Apply();
+                int i = 0;
                 foreach (Drawable drawable in drawableList)
                 {
-                    if (!drawable.Enabled || !drawable.Visible)
+                    if (drawable.Enabled && drawable.Visible)
                     {
-                        break;
+                        /*if ((effectMatrices != null) && (drawable is Transform transform))
+                        {
+                            effectMatrices.World = transform.WorldTransform;
+                            pass.Apply();
+                        }*/
+                        if (drawable is Transform transform)
+                        {
+                            effect.World = transform.WorldTransform;
+                            pass.Apply();
+                        }
+                        if (instanced)
+                        {
+                            int instanceOffset = cascadeSplitInfoList[i].StartSplit;
+                            int instanceCount = cascadeSplitInfoList[i].EndSplit - cascadeSplitInfoList[i].StartSplit + 1;
+                            //Console.WriteLine(cascadeSplitInfoList[i].StartSplit + "-" + cascadeSplitInfoList[i].EndSplit);
+
+                            drawable.PreDrawInstanced(rc.GraphicsDevice, instanceVertexBuffer, instanceOffset);
+                            drawable.DrawInstanced(rc.GraphicsDevice, instanceCount);
+                            drawable.PostDrawInstanced(rc.GraphicsDevice);
+                        }
+                        else
+                        {
+                            drawable.PreDraw(rc.GraphicsDevice);
+                            drawable.Draw(rc.GraphicsDevice);
+                            drawable.PostDraw(rc.GraphicsDevice);
+                        }
+                        rc.DrawCount++;
+                        // TODO should mutliply by instanceCount
+                        rc.VertexCount += drawable.VertexCount;
                     }
-                    if ((effectMatrices != null) && (drawable is Transform transform))
-                    {
-                        effectMatrices.World = transform.WorldTransform;
-                        pass.Apply();
-                    }
-                    if (false)
-                    {
-                        drawable.PreDrawInstanced(rc.GraphicsDevice);
-                        drawable.DrawInstanced(rc.GraphicsDevice);
-                        drawable.PostDrawInstanced(rc.GraphicsDevice);
-                    }
-                    else
-                    {
-                        drawable.PreDraw(rc.GraphicsDevice);
-                        drawable.Draw(rc.GraphicsDevice);
-                        drawable.PostDraw(rc.GraphicsDevice);
-                    }
-                    rc.DrawCount++;
-                    rc.VertexCount += drawable.VertexCount;
+                    i++;
                 }
             }
 
@@ -612,51 +728,72 @@ namespace GameLibrary.SceneGraph
 
     public class VoxelShadowCascadeRenderer : AbstractShadowRenderer<StockEffects.ShadowCascadeEffect>
     {
+        private readonly VertexBuffer instanceVertexBuffer;
+
         public VoxelShadowCascadeRenderer(StockEffects.ShadowCascadeEffect effect) : base(effect)
         {
             RasterizerState.ScissorTestEnable = true;
+
+            instanceVertexBuffer = new VertexBuffer(effect.GraphicsDevice, ShadowInstanceVertex.VertexDeclaration, 4, BufferUsage.WriteOnly);
+            ShadowInstanceVertex[] instances = new ShadowInstanceVertex[] {
+                    new ShadowInstanceVertex(0), new ShadowInstanceVertex(1), new ShadowInstanceVertex(2), new ShadowInstanceVertex(3),
+            };
+            instanceVertexBuffer.SetData(instances);
         }
 
-        public override void Render(RenderContext rc, List<Drawable> drawableList)
+        public override void Render(RenderContext rc, RenderBin renderBin)
         {
             rc.GraphicsDevice.BlendState = BlendState;
             rc.GraphicsDevice.DepthStencilState = DepthStencilState;
             rc.GraphicsDevice.RasterizerState = RasterizerState;
 
-            LightRenderContext lrc = rc as LightRenderContext;
-            LightCamera lightCamera = lrc.CullCamera as LightCamera;
+            LightRenderContext lightRenderContext = rc as LightRenderContext;
+            LightCamera lightCamera = lightRenderContext.CullCamera as LightCamera;
             rc.GraphicsDevice.ScissorRectangle = lightCamera.ScissorRectangle;
 
-            if (effectMatrices != null)
+            CascadeRenderBin cascadeRenderBin = renderBin as CascadeRenderBin;
+            List<CascadeSplitInfo> cascadeSplitInfoList = cascadeRenderBin.CascadeSplitInfoList;
+
+            List<Drawable> drawableList = renderBin.DrawableList;
+
+            /*if (effectMatrices != null)
             {
                 effectMatrices.Projection = rc.RenderCamera.ProjectionMatrix;
                 effectMatrices.View = rc.RenderCamera.ViewMatrix;
                 effectMatrices.World = Matrix.Identity;
-            }
+            }*/
+            effect.World = Matrix.Identity;
+            effect.ViewProjections = lightRenderContext.viewProjectionMatrices;
 
             foreach (EffectPass pass in effect.CurrentTechnique.Passes)
             {
                 pass.Apply();
+                int i = 0;
                 foreach (Drawable drawable in drawableList)
                 {
-                    if (!drawable.Enabled || !drawable.Visible)
+                    if (drawable.Enabled && drawable.Visible)
                     {
-                        break;
+                        if (instanced)
+                        {
+                            int instanceOffset = cascadeSplitInfoList[i].StartSplit;
+                            int instanceCount = cascadeSplitInfoList[i].EndSplit - cascadeSplitInfoList[i].StartSplit + 1;
+                            //Console.WriteLine(cascadeSplitInfoList[i].StartSplit + "-" + cascadeSplitInfoList[i].EndSplit);
+
+                            drawable.PreDrawInstanced(rc.GraphicsDevice, instanceVertexBuffer, instanceOffset);
+                            drawable.DrawInstanced(rc.GraphicsDevice, instanceCount);
+                            drawable.PostDrawInstanced(rc.GraphicsDevice);
+                        }
+                        else
+                        {
+                            drawable.PreDraw(rc.GraphicsDevice);
+                            drawable.Draw(rc.GraphicsDevice);
+                            drawable.PostDraw(rc.GraphicsDevice);
+                        }
+                        rc.DrawCount++;
+                        // TODO should mutliply by instanceCount
+                        rc.VertexCount += drawable.VertexCount;
                     }
-                    if (instanced)
-                    {
-                        drawable.PreDrawInstanced(rc.GraphicsDevice);
-                        drawable.DrawInstanced(rc.GraphicsDevice);
-                        drawable.PostDrawInstanced(rc.GraphicsDevice);
-                    }
-                    else
-                    {
-                        drawable.PreDraw(rc.GraphicsDevice);
-                        drawable.Draw(rc.GraphicsDevice);
-                        drawable.PostDraw(rc.GraphicsDevice);
-                    }
-                    rc.DrawCount++;
-                    rc.VertexCount += drawable.VertexCount;
+                    i++;
                 }
             }
 

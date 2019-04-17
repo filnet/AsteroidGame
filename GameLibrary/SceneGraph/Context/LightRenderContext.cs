@@ -7,19 +7,65 @@ using GameLibrary.SceneGraph.Common;
 using System.ComponentModel;
 using GameLibrary.Geometry;
 using System.Collections.Generic;
+using GameLibrary.Component.Util;
 
 namespace GameLibrary.SceneGraph
 {
+    public enum ViewSplitsMode { None, All, Single }
+
+    public struct CascadeSplitInfo
+    {
+        public int StartSplit;
+        public int EndSplit;
+    }
+
+    public class CascadeRenderBin : RenderBin
+    {
+        public List<CascadeSplitInfo> CascadeSplitInfoList
+        {
+            get { return cascadeSplitInfoList; }
+        }
+
+        private readonly List<CascadeSplitInfo> cascadeSplitInfoList;
+
+        private readonly int cascadeCount;
+        private readonly int[] splitDrawCount;
+        private readonly int[] splitVertexCount;
+
+        public CascadeRenderBin(long id, int cascadeCount) : base(id)
+        {
+            this.cascadeCount = cascadeCount;
+            cascadeSplitInfoList = new List<CascadeSplitInfo>();
+            splitDrawCount = new int[cascadeCount];
+            splitVertexCount = new int[cascadeCount];
+        }
+
+        public void Add(CascadeSplitInfo info, Drawable drawable)
+        {
+            if (info.StartSplit < 0) throw new InvalidOperationException("StartSplit < 0");
+            if (info.StartSplit > info.EndSplit) throw new InvalidOperationException("StartSplit > EndSplit");
+            if (info.EndSplit >= cascadeCount) throw new InvalidOperationException("EndSplit >= cascadeCount");
+            for (int i = info.StartSplit; i <= info.EndSplit; i++)
+            {
+                splitDrawCount[i] += 1;
+                splitVertexCount[i] += drawable.VertexCount;
+            }
+            CascadeSplitInfoList.Add(info);
+        }
+
+        public override void Clear()
+        {
+            base.Clear();
+            cascadeSplitInfoList.Clear();
+            Array.Clear(splitDrawCount, 0, splitDrawCount.Length);
+            Array.Clear(splitVertexCount, 0, splitVertexCount.Length);
+        }
+    }
+
+
     public sealed class LightRenderContext : RenderContext
     {
         #region Properties
-
-        [Category("Camera")]
-        public bool ShadowsEnabled
-        {
-            get { return shadowsEnabled; }
-            set { shadowsEnabled = value; RequestRedraw(); }
-        }
 
         [Category("Camera")]
         public bool Stable
@@ -36,13 +82,6 @@ namespace GameLibrary.SceneGraph
         }
 
         [Category("Camera")]
-        public bool FitToViewHull
-        {
-            get { return fitToViewHull; }
-            set { fitToViewHull = value; RequestRedraw(); }
-        }
-
-        [Category("Camera")]
         public bool FitToScene
         {
             get { return fitToScene; }
@@ -56,11 +95,26 @@ namespace GameLibrary.SceneGraph
             set { scissorEnabled = value; RequestRedraw(); }
         }
 
+        [Category("Camera")]
+        public bool SplitCull
+        {
+            get { return splitCull; }
+            set { splitCull = value; RequestRedraw(); }
+
+        }
+
         [Category("Debug")]
         public bool ShowShadowMap
         {
             get { return showShadowMap; }
             set { showShadowMap = value; DebugGeometryUpdate(); }
+        }
+
+        [Category("Debug")]
+        public bool ShowSplits
+        {
+            get { return showSplits; }
+            set { showSplits = value; RequestRedraw(); }
         }
 
         [Category("Debug")]
@@ -77,72 +131,248 @@ namespace GameLibrary.SceneGraph
             set { showLightPosition = value; DebugGeometryUpdate(); }
         }
 
+        [Category("Debug View Frustum")]
+        public bool ShowViewFrustumHull
+        {
+            get { return showViewFrustumHull; }
+            set { showViewFrustumHull = value; DebugGeometryUpdate(); }
+        }
+
+        [Category("Debug Cascade")]
+        public ViewSplitsMode ViewSplitsMode
+        {
+            get { return viewSplitsMode; }
+            set { viewSplitsMode = value; DebugGeometryUpdate(); }
+        }
+
+        [Category("Debug Cascade")]
+        public int ShowSplitIndex
+        {
+            get { return showSplitIndex; }
+            set { showSplitIndex = value; DebugGeometryUpdate(); }
+        }
+
+        [Category("Debug Cascade")]
+        public bool ShowSplitSpheres
+        {
+            get { return showSplitSpheres; }
+            set { showSplitSpheres = value; DebugGeometryUpdate(); }
+        }
+
         #endregion
 
-        // shadows
-        private bool shadowsEnabled;
-
+        // shadow map
         private int shadowMapSize;
+
+        // cascade
         private int cascadeCount;
 
+        private bool splitCull;
+
+        // shadow map rendering
+        public Matrix[] viewProjectionMatrices;
+
+        private readonly int[] shadowReceiverCount;
+
+
+        // shadow rendering
+        public Matrix[] viewMatrices;
+
+        public Vector4[] splitDistances;
+        public Vector4[] splitOffsets;
+        public Vector4[] splitScales;
+
+        private Bounding.Frustum[] splitFrustums;
+        private Bounding.Sphere[] splitBoundingSpheres;
+
+        // light
+        private Vector3 lightDirection;
+        private Vector3 lightUpVector;
+        private Matrix lightRotation;
+        private Matrix invLightRotation;
+
+        // flags
         private bool stable = true;
         private bool fitToView = true;
-        private bool fitToViewHull = true;
         private bool fitToScene = false;
 
-        private bool scissorEnabled = true;
-
+        private bool scissorEnabled = false;
 
         // render target
-        public readonly RenderTargetShadowCascade RenderTarget;
+        public readonly RenderTargetShadowCascade ShadowRenderTarget;
 
         // debugging
         private bool showLightPosition;
         private bool showOccluders;
         private bool showShadowMap;
+        private bool showSplits;
+
+        private bool showViewFrustumHull;
+
+        private ViewSplitsMode viewSplitsMode = ViewSplitsMode.None;
+        private int showSplitIndex = 0;
+        private bool showSplitSpheres = false;
 
         private MeshNode frustumGeo;
-        private MeshNode frustumHullGeo;
         private MeshNode lightPositionGeo;
         private BillboardNode billboardNode;
+        private MeshNode viewFrustumHullGeo;
+        private MeshNode[] viewFrustumSplitGeos;
+        private MeshNode[] viewFrustumSphereSplitGeos;
 
-        public LightRenderContext(GraphicsDevice graphicsDevice, Camera camera) : base("LIGHT", graphicsDevice, camera)
+        public LightRenderContext(GraphicsDevice graphicsDevice, LightCamera lightCamera) : base("LIGHT", graphicsDevice, lightCamera)
         {
-            cullCamera = new LightCamera();
+            cullCamera = new LightCamera(lightCamera);
 
-            LightCamera lightRenderCamera = camera as LightCamera;
-            LightCamera lightCullCamera = cullCamera as LightCamera;
-            lightCullCamera.lightPosition = lightRenderCamera.lightDirection;
-
-            shadowsEnabled = true;
             shadowMapSize = 2048;
             cascadeCount = 4;
 
-            /*RenderTarget = new RenderTargetShadowCascade(
-                 GraphicsDevice,
-                 renderTargetSize, renderTargetSize,
-                 false,
-                 SurfaceFormat.Single, DepthFormat.Depth_R32_Typeless,// DepthFormat..Depth24Stencil8,
-                 0,
-                 RenderTargetUsage.DiscardContents,
-                 false,
-                 CascadeCount);*/
+            //splitCull = true;
 
-            RenderTarget = new RenderTargetShadowCascade(GraphicsDevice, shadowMapSize, shadowMapSize, cascadeCount);
+            // shadow map rendering
+            viewProjectionMatrices = new Matrix[cascadeCount];
+
+            shadowReceiverCount = new int[cascadeCount];
+
+            // shadow rendering
+            viewMatrices = new Matrix[cascadeCount];
+            splitDistances = new Vector4[cascadeCount];
+            splitOffsets = new Vector4[cascadeCount];
+            splitScales = new Vector4[cascadeCount];
+
+            splitFrustums = new Bounding.Frustum[cascadeCount];
+            for (int i = 0; i < cascadeCount; i++)
+            {
+                splitFrustums[i] = new Bounding.Frustum();
+            }
+
+            splitBoundingSpheres = new Bounding.Sphere[cascadeCount];
+            for (int i = 0; i < cascadeCount; i++)
+            {
+                splitBoundingSpheres[i] = new Bounding.Sphere();
+            }
+
+            // TODO do it when light direction changed
+            Update();
+
+            ShadowRenderTarget = new RenderTargetShadowCascade(GraphicsDevice, shadowMapSize, shadowMapSize, cascadeCount);
         }
 
         public override void Dispose()
         {
             base.Dispose();
-            RenderTarget.Dispose();
+            ShadowRenderTarget.Dispose();
+        }
+
+        public void AddShadowReceiver(RenderBin renderBin, Drawable drawable)
+        {
+            int start = -1;
+            int end = -1;
+            bool done = false;
+            for (int splitIndex = 0; !done && splitIndex < cascadeCount /*- 1*/; splitIndex++)
+            {
+                ContainmentType containmentType = splitFrustums[splitIndex].Contains(drawable.WorldBoundingVolume, Bounding.ContainmentHint.Precise);
+                switch (containmentType)
+                {
+                    case ContainmentType.Contains:
+                        start = splitIndex;
+                        end = splitIndex;
+                        done = true;
+                        break;
+                    case ContainmentType.Intersects:
+                        if (start == -1)
+                        {
+                            // this is the first slit for this drawable
+                            start = splitIndex;
+                        }
+                        // and also the last (at this stage...)
+                        end = splitIndex;
+                        break;
+                    case ContainmentType.Disjoint:
+                        // can't say, just continue
+                        if (end != -1)
+                        {
+                            done = true;
+                        }
+                        break;
+                }
+            }
+            // FIXME should not be necessary to test
+            // but there are a few false positives from view frustum culling...
+            if (start != -1 && end != -1)
+            {
+                for (int i = start; i <= end; i++)
+                {
+                    shadowReceiverCount[i] += 1;
+                }
+            }
+            //else
+            //{
+            //Console.WriteLine("XXXXX");
+            //}
+        }
+
+        protected override RenderBin CreateRenderBin(long id)
+        {
+            return new CascadeRenderBin(id, cascadeCount);
+        }
+
+        protected override void AddToRenderBin(RenderBin renderBin, Drawable drawable)
+        {
+            base.AddToRenderBin(renderBin, drawable);
+
+            int start = -1;
+            int end = -1;
+            if (splitCull)
+            {
+                // TODO does not work...
+                // Need to cull with the light cull region
+                // TODO handle the (abnormal) case when it is not contained at all (i.e. the -1 case)...
+            }
+            else
+            {
+                start = 0;
+                end = cascadeCount - 1;
+            }
+            CascadeRenderBin cascadeRenderBin = renderBin as CascadeRenderBin;
+            CascadeSplitInfo cascadeSplitInfo = new CascadeSplitInfo();
+            cascadeSplitInfo.StartSplit = start;
+            cascadeSplitInfo.EndSplit = end;
+            cascadeRenderBin.Add(cascadeSplitInfo, drawable);
         }
 
         public override void SetupGraphicsDevice()
         {
             // Set the render target
-            GraphicsDevice.SetRenderTarget(RenderTarget);
+            GraphicsDevice.SetRenderTarget(ShadowRenderTarget);
 
             GraphicsDevice.Clear(ClearOptions.Target, Color.White, 0, 0);
+        }
+
+        public override void Clear()
+        {
+            base.Clear();
+            Array.Clear(shadowReceiverCount, 0, shadowReceiverCount.Length);
+        }
+
+        private void Update()
+        {
+            LightCamera lightRenderCamera = RenderCamera as LightCamera;
+            LightCamera lightCullCamera = CullCamera as LightCamera;
+
+            lightDirection = lightRenderCamera.lightDirection;
+            lightUpVector = Vector3.Up;
+            // avoid case when camera up and light dir are //
+            /*if (Math.Abs(Vector3.Dot(lightUpVector, lightDirection)) > 0.9f)
+            {
+                lightUpVector = Vector3.Forward;
+            }*/
+
+            // light rotation
+            Vector3 zero = Vector3.Zero;
+            Matrix.CreateLookAt(ref zero, ref lightDirection, ref lightUpVector, out lightRotation);
+            // inverse light rotation
+            Matrix.Invert(ref lightRotation, out invLightRotation);
         }
 
         // see https://www.gamedev.net/forums/topic/591684-xna-40---shimmering-shadow-maps/
@@ -198,172 +428,109 @@ namespace GameLibrary.SceneGraph
         // - RasterizerState.ScissorTestEnable = ?;
         // - frustrum/bounds/etc... rendering : use RasterizerState.DepthClipEnable = false; in renderer
         //   so we see them even if should be Z clipped (ok for far, but what about near...)
-        public void FitToViewStable(SceneRenderContext renderContext, float nearClipOffset)
+        public void FitToViewStable(SceneRenderContext renderContext)
+        {
+            FitToViewStable3(renderContext);
+        }
+
+        public void FitToViewStable1(SceneRenderContext renderContext)
         {
             LightCamera lightRenderCamera = RenderCamera as LightCamera;
             LightCamera lightCullCamera = CullCamera as LightCamera;
 
-            Vector3 lightDirection = lightRenderCamera.lightDirection;
-            Vector3 lightUpVector = Vector3.Up;
-            // avoid case when camera up and light dir are //
-            /*if (Math.Abs(Vector3.Dot(lightUpVector, lightDirection)) > 0.9f)
-            {
-                lightUpVector = Vector3.Forward;
-            }*/
+            Bounding.Frustum viewFrustum = renderContext.CullCamera.Frustum;
+            Bounding.Sphere viewFrustumBoundingSphere = renderContext.CullCamera.BoundingSphere;
 
-            Bounding.Sphere viewBoundingSphere = renderContext.CullCamera.BoundingSphere;
-
-            Vector3 center = viewBoundingSphere.Center;
-            float bounds = 2 * viewBoundingSphere.Radius;
+            Vector3 center = viewFrustumBoundingSphere.Center;
+            float bounds = 2 * viewFrustumBoundingSphere.Radius;
             if (Stable)
             {
-                // avoid shimmering
-                // 1 - keep size constant
-                // 2 - discretize position
-
-                // light rotation
-                Matrix lightRotation;
-                Vector3 zero = Vector3.Zero;
-                Matrix.CreateLookAt(ref zero, ref lightDirection, ref lightUpVector, out lightRotation);
-                // inverse light rotation
-                Matrix invLightRotation;
-                Matrix.Invert(ref lightRotation, out invLightRotation);
-
-                // convert center position into light space
-                Vector3.Transform(ref center, ref lightRotation, out center);
-
-                // increase the size of the ortho bounds so both light and camera frustums can slide!
-                bounds *= (float)shadowMapSize / (float)(shadowMapSize - 1);
-
-                // discretize center position
-                // TODO apply directly to transformation matrix (removes the need to invert light rotation and convert light position back in WS)
-                Vector2 worldUnitsPerPixel = new Vector2(bounds / shadowMapSize);
-                center.X -= (float)Math.IEEERemainder(center.X, worldUnitsPerPixel.X);
-                center.Y -= (float)Math.IEEERemainder(center.Y, worldUnitsPerPixel.Y);
-                // FIXME is it necessary for Z too ?
-                //center.Z -= (float)Math.IEEERemainder(center.Z, worldUnitsPerPixel.Z);
-
-                // convert center position back into world space
-                Vector3.Transform(ref center, ref invLightRotation, out center);
+                StabilizeSphere(ref center, ref bounds);
             }
 
             // render view matrix
             lightRenderCamera.lightPosition = center - (bounds / 2.0f) * lightDirection;
             Matrix.CreateLookAt(ref lightRenderCamera.lightPosition, ref center, ref lightUpVector, out lightRenderCamera.viewMatrix);
 
+            //Console.WriteLine(center);
+            //Console.WriteLine(bounds);
+
             // cull view matrix
             lightCullCamera.lightPosition = lightRenderCamera.lightPosition;
             lightCullCamera.viewMatrix = lightRenderCamera.viewMatrix;
-            // FIXME why do we need to do it again...
-            lightCullCamera.lightDirection = lightRenderCamera.lightDirection;
 
-            float nearClip;
-            float farClip;
-            Vector3 cullMin;
-            Vector3 cullMax;
-
-            nearClip = 0;
-            farClip = bounds;
-
-            cullMin.X = -bounds / 2.0f;
-            cullMin.Y = -bounds / 2.0f;
-            cullMin.Z = -bounds;
-            cullMax.X = bounds / 2.0f;
-            cullMax.Y = bounds / 2.0f;
-            cullMax.Z = 0;
-
+            Vector3 frustumMinLS;
+            Vector3 frustumMaxLS;
             if (FitToView)
             {
                 // TODO:
-                // - [DONE] use frustum convex hull to get better zfar (i.e. max z of hull)
-                // - use open znear bounding region (copy paste and adapt Frustum class)
-                // - use frustum convex hull to construct a tight culling bounding region (copy paste and adapt again Frustum class...)
+                // - [DONE] use open znear bounding region (copy paste and adapt Frustum class)
+                // - [DONE] use frustum convex hull to construct a tight culling bounding region (copy paste and adapt again Frustum class...)
                 // - take into account scene : case 1 is when scene is smaller/contained in frustrum
                 // - take into account scene : case 2 is when there is no scene => don't draw shadows at all...
+                frustumMinLS.X = float.MaxValue;
+                frustumMinLS.Y = float.MaxValue;
+                frustumMinLS.Z = float.MaxValue;
+                frustumMaxLS.X = float.MinValue;
+                frustumMaxLS.Y = float.MinValue;
+                frustumMaxLS.Z = float.MinValue;
 
-                float minZ = float.MaxValue;
-                float maxZ = float.MinValue;
-
-                // get world space frustum corners
-                Vector3[] frustumCornersWS = new Vector3[SceneGraph.Bounding.Frustum.CornerCount];
-                renderContext.CullCamera.BoundingFrustum.GetCorners(frustumCornersWS);
-
-                // project world space frustum corners to light space
+                // get light space frustum corners
                 Vector3[] frustumCornersLS = new Vector3[SceneGraph.Bounding.Frustum.CornerCount];
-                for (int i = 0; i < frustumCornersWS.Length; i++)
+                viewFrustum.GetTransformedCorners(frustumCornersLS, ref lightRenderCamera.viewMatrix);
+
+                // compute light space frustum bounding box...
+                for (int i = 0; i < frustumCornersLS.Length; i++)
                 {
-                    Vector3.Transform(ref frustumCornersWS[i], ref lightRenderCamera.viewMatrix, out frustumCornersLS[i]);
-                    float z = frustumCornersLS[i].Z;
-                    minZ = Math.Min(minZ, z);
-                    maxZ = Math.Max(maxZ, z);
+                    Vector3 v = frustumCornersLS[i];
+                    frustumMinLS.X = Math.Min(frustumMinLS.X, v.X);
+                    frustumMinLS.Y = Math.Min(frustumMinLS.Y, v.Y);
+                    frustumMinLS.Z = Math.Min(frustumMinLS.Z, v.Z);
+                    frustumMaxLS.X = Math.Max(frustumMaxLS.X, v.X);
+                    frustumMaxLS.Y = Math.Max(frustumMaxLS.Y, v.Y);
+                    frustumMaxLS.Z = Math.Max(frustumMaxLS.Z, v.Z);
                 }
-
-                if (FitToViewHull)
-                {
-                    cullMin.X = float.MaxValue;
-                    cullMin.Y = float.MaxValue;
-                    cullMin.Z = float.MaxValue;
-                    cullMax.X = float.MinValue;
-                    cullMax.Y = float.MinValue;
-                    cullMax.Z = float.MinValue;
-
-                    Bounding.Frustum frustum = renderContext.CullCamera.BoundingFrustum;
-                    int[] hull = frustum.HullIndicesFromDirection(ref lightDirection);
-                    for (int i = 0; i < hull.Length; i++)
-                    {
-                        int j = hull[i];
-                        Vector3 v = frustumCornersLS[j];
-                        cullMin.X = Math.Min(cullMin.X, v.X);
-                        cullMin.Y = Math.Min(cullMin.Y, v.Y);
-                        cullMin.Z = Math.Min(cullMin.Z, v.Z);
-                        cullMax.X = Math.Max(cullMax.X, v.X);
-                        cullMax.Y = Math.Max(cullMax.Y, v.Y);
-                        cullMax.Z = Math.Max(cullMax.Z, v.Z);
-                    }
-                }
-
-                // fit Z to scene ?
-                // TODO
-                if (FitToScene)
-                {
-                    // transform scene bounding box to light space
-                    // FIXME we are only interested in the Z component
-                    //Bounding.Box sceneBoundingBoxLS = new Bounding.Box();
-                    //sceneBoundingBox.Transform(viewMatrix, sceneBoundingBoxLS);
-
-                    //minZ = Math.Max(minZ, sceneBoundingBoxLS.Center.Z - sceneBoundingBoxLS.HalfSize.Z);
-                    //maxZ = Math.Min(maxZ, sceneBoundingBoxLS.Center.Z + sceneBoundingBoxLS.HalfSize.Z);
-                }
-
-                // ???
-                nearClip = -maxZ;
-                farClip = -minZ;
+            }
+            else
+            {
+                frustumMinLS.X = -bounds / 2.0f;
+                frustumMinLS.Y = -bounds / 2.0f;
+                frustumMinLS.Z = -bounds;
+                frustumMaxLS.X = bounds / 2.0f;
+                frustumMaxLS.Y = bounds / 2.0f;
+                frustumMaxLS.Z = 0;
             }
 
             //  render projection matrix
-            Matrix.CreateOrthographic(bounds, bounds, nearClip, farClip, out lightRenderCamera.projectionMatrix);
+            Matrix.CreateOrthographic(bounds, bounds, -frustumMaxLS.Z, -frustumMinLS.Z, out lightRenderCamera.projectionMatrix);
 
             // compute derived values
             Matrix.Multiply(ref lightRenderCamera.viewMatrix, ref lightRenderCamera.projectionMatrix, out lightRenderCamera.viewProjectionMatrix);
-            Matrix.Invert(ref lightRenderCamera.viewProjectionMatrix, out lightRenderCamera.invViewProjectionMatrix);
+            Matrix.Invert(ref lightRenderCamera.viewProjectionMatrix, out lightRenderCamera.inverseViewProjectionMatrix);
             lightRenderCamera.boundingFrustum.Matrix = lightRenderCamera.viewProjectionMatrix;
             lightRenderCamera.visitOrder = VectorUtil.visitOrder(lightRenderCamera.ViewDirection);
 
             // cull projection matrix
             Matrix.CreateOrthographicOffCenter(
-                cullMin.X, cullMax.X, cullMin.Y, cullMax.Y, -cullMax.Z - nearClipOffset, -cullMin.Z, out lightCullCamera.projectionMatrix);
+                frustumMinLS.X, frustumMaxLS.X, frustumMinLS.Y, frustumMaxLS.Y, -frustumMaxLS.Z, -frustumMinLS.Z, out lightCullCamera.projectionMatrix);
 
             // compute derived values
             Matrix.Multiply(ref lightCullCamera.viewMatrix, ref lightCullCamera.projectionMatrix, out lightCullCamera.viewProjectionMatrix);
-            Matrix.Invert(ref lightCullCamera.viewProjectionMatrix, out lightCullCamera.invViewProjectionMatrix);
+            Matrix.Invert(ref lightCullCamera.viewProjectionMatrix, out lightCullCamera.inverseViewProjectionMatrix);
             lightCullCamera.boundingFrustum.Matrix = lightCullCamera.viewProjectionMatrix;
             lightCullCamera.visitOrder = VectorUtil.visitOrder(lightCullCamera.ViewDirection);
+
+            // cull region
+            if (true /*FitToView*/)
+            {
+                viewFrustum.RegionFromDirection(ref lightDirection, lightCullCamera.cullRegion);
+            }
 
             if (ScissorEnabled)
             {
                 Viewport viewport = new Viewport(0, 0, shadowMapSize, shadowMapSize);
-                Vector3 min = viewport.Project(cullMin, lightRenderCamera.projectionMatrix, Matrix.Identity, Matrix.Identity);
-                Vector3 max = viewport.Project(cullMax, lightRenderCamera.projectionMatrix, Matrix.Identity, Matrix.Identity);
+                Vector3 min = viewport.Project(frustumMinLS, lightRenderCamera.projectionMatrix, Matrix.Identity, Matrix.Identity);
+                Vector3 max = viewport.Project(frustumMaxLS, lightRenderCamera.projectionMatrix, Matrix.Identity, Matrix.Identity);
                 Vector2 o;
                 o.X = min.X;
                 o.Y = max.Y;
@@ -386,6 +553,425 @@ namespace GameLibrary.SceneGraph
             }
         }
 
+        public void FitToViewStable2(SceneRenderContext renderContext)
+        {
+            Camera viewCamera = renderContext.CullCamera;
+
+            Vector3[] frustumCorners = new Vector3[SceneGraph.Bounding.Frustum.CornerCount];
+            viewCamera.Frustum.GetCorners(frustumCorners);
+
+            Vector3[] frustumCornersLS = new Vector3[SceneGraph.Bounding.Frustum.CornerCount];
+            Vector3[] frustumDirectionsLS = new Vector3[4];
+
+            int splitCount = splitDistances.Length;
+            float lastSplitDistance = viewCamera.ZNear;
+            for (int i = 0; i < splitCount; ++i)
+            {
+                float splitDistance = ComputeSplitDistance(i + 1, splitCount, viewCamera.ZNear, viewCamera.ZFar, 0.22f);
+                Console.Write(lastSplitDistance + " - " + splitDistance + ": ");
+
+                // best fitting bounding sphere for slice
+                double dz;
+                double radius;
+                VolumeUtil.ComputeFrustumBestFittingSphere(
+                    viewCamera.FovX, viewCamera.AspectRatio, lastSplitDistance, splitDistance,
+                    out dz, out radius);
+
+                float bounds = 2.0f * (float)radius;
+                Console.Write(dz + ", " + bounds + " ");
+
+                // compute actual bounding sphere center
+                Vector3 center;
+                viewCamera.Frustum.NearFaceCenter(lastSplitDistance - viewCamera.ZNear + (float)dz, out center);
+
+                if (Stable)
+                {
+                    StabilizeSphere(ref center, ref bounds);
+                }
+
+                // light view matrix
+                Matrix viewMatrix;
+                Vector3 lightPosition = center - (bounds / 2.0f) * lightDirection;
+                Matrix.CreateLookAt(ref lightPosition, ref center, ref lightUpVector, out viewMatrix);
+
+                Vector3 frustumMinLS;
+                Vector3 frustumMaxLS;
+                if (FitToView)
+                {
+                    Vector3.Transform(ref frustumCorners[0], ref viewMatrix, out frustumCornersLS[0]);
+                    Vector3.Transform(ref frustumCorners[1], ref viewMatrix, out frustumCornersLS[1]);
+                    Vector3.Transform(ref frustumCorners[2], ref viewMatrix, out frustumCornersLS[2]);
+                    Vector3.Transform(ref frustumCorners[3], ref viewMatrix, out frustumCornersLS[3]);
+
+                    Vector3.Transform(ref frustumCorners[4], ref viewMatrix, out frustumCornersLS[4]);
+                    Vector3.Transform(ref frustumCorners[5], ref viewMatrix, out frustumCornersLS[5]);
+                    Vector3.Transform(ref frustumCorners[6], ref viewMatrix, out frustumCornersLS[6]);
+                    Vector3.Transform(ref frustumCorners[7], ref viewMatrix, out frustumCornersLS[7]);
+
+                    frustumDirectionsLS[0] = Vector3.Normalize(frustumCornersLS[4] - frustumCornersLS[0]);
+                    frustumDirectionsLS[1] = Vector3.Normalize(frustumCornersLS[5] - frustumCornersLS[1]);
+                    frustumDirectionsLS[2] = Vector3.Normalize(frustumCornersLS[6] - frustumCornersLS[2]);
+                    frustumDirectionsLS[3] = Vector3.Normalize(frustumCornersLS[7] - frustumCornersLS[3]);
+
+                    frustumCornersLS[0] = frustumCornersLS[0] + frustumDirectionsLS[0] * (lastSplitDistance - viewCamera.ZNear);
+                    frustumCornersLS[1] = frustumCornersLS[1] + frustumDirectionsLS[1] * (lastSplitDistance - viewCamera.ZNear);
+                    frustumCornersLS[2] = frustumCornersLS[2] + frustumDirectionsLS[2] * (lastSplitDistance - viewCamera.ZNear);
+                    frustumCornersLS[3] = frustumCornersLS[3] + frustumDirectionsLS[3] * (lastSplitDistance - viewCamera.ZNear);
+
+                    frustumCornersLS[4] = frustumCornersLS[0] + frustumDirectionsLS[0] * (splitDistance - viewCamera.ZNear);
+                    frustumCornersLS[5] = frustumCornersLS[1] + frustumDirectionsLS[1] * (splitDistance - viewCamera.ZNear);
+                    frustumCornersLS[6] = frustumCornersLS[2] + frustumDirectionsLS[2] * (splitDistance - viewCamera.ZNear);
+                    frustumCornersLS[7] = frustumCornersLS[3] + frustumDirectionsLS[3] * (splitDistance - viewCamera.ZNear);
+
+                    // TODO:
+                    // - [DONE] use open znear bounding region (copy paste and adapt Frustum class)
+                    // - [DONE] use frustum convex hull to construct a tight culling bounding region (copy paste and adapt again Frustum class...)
+                    // - take into account scene : case 1 is when scene is smaller/contained in frustrum
+                    // - take into account scene : case 2 is when there is no scene => don't draw shadows at all...
+                    frustumMinLS.X = float.MaxValue;
+                    frustumMinLS.Y = float.MaxValue;
+                    frustumMinLS.Z = float.MaxValue;
+                    frustumMaxLS.X = float.MinValue;
+                    frustumMaxLS.Y = float.MinValue;
+                    frustumMaxLS.Z = float.MinValue;
+
+                    // get light space frustum corners
+
+                    // compute light space frustum bounding box...
+                    for (int j = 0; j < frustumCornersLS.Length; j++)
+                    {
+                        Vector3 v = frustumCornersLS[j];
+                        frustumMinLS.X = Math.Min(frustumMinLS.X, v.X);
+                        frustumMinLS.Y = Math.Min(frustumMinLS.Y, v.Y);
+                        frustumMinLS.Z = Math.Min(frustumMinLS.Z, v.Z);
+                        frustumMaxLS.X = Math.Max(frustumMaxLS.X, v.X);
+                        frustumMaxLS.Y = Math.Max(frustumMaxLS.Y, v.Y);
+                        frustumMaxLS.Z = Math.Max(frustumMaxLS.Z, v.Z);
+                    }
+                }
+                else
+                {
+                    frustumMinLS.X = -bounds / 2.0f;
+                    frustumMinLS.Y = -bounds / 2.0f;
+                    frustumMinLS.Z = -bounds;
+                    frustumMaxLS.X = bounds / 2.0f;
+                    frustumMaxLS.Y = bounds / 2.0f;
+                    frustumMaxLS.Z = 0;
+                }
+
+                //  light projection matrix
+                Matrix projectionMatrix;
+                Matrix.CreateOrthographic(bounds, bounds, -frustumMaxLS.Z, -frustumMinLS.Z, out projectionMatrix);
+
+                //  light view projection matrix
+                Matrix viewProjectionMatrix;
+                Matrix.Multiply(ref viewMatrix, ref projectionMatrix, out viewProjectionMatrix);
+
+                // for rendering the shadow map
+                viewProjectionMatrices[i] = viewProjectionMatrix;
+
+                // for rendering the shadows
+                Matrix textureScaleMatrix = Matrix.CreateScale(0.5f, -0.5f, 1.0f);
+                Matrix textureTranslationMatrix = Matrix.CreateTranslation(0.5f, 0.5f, 0.0f);
+                Matrix shadowProjection = projectionMatrix * textureScaleMatrix * textureTranslationMatrix;
+                Vector4 scale = new Vector4(shadowProjection.M11, shadowProjection.M22, shadowProjection.M33, 1.0f);
+                Vector4 offset = new Vector4(shadowProjection.M41, shadowProjection.M42, shadowProjection.M43, 0.0f);
+
+                // TODO express distances in clip space (to avoid a multiplication by world view in vertex shader)
+                viewMatrices[i] = viewMatrix;
+                splitDistances[i] = new Vector4(splitDistance);
+                splitScales[i] = scale;
+                splitOffsets[i] = offset;
+
+                if (i == 0)
+                {
+                    // render camera
+                    LightCamera lightRenderCamera = RenderCamera as LightCamera;
+                    lightRenderCamera.lightPosition = lightPosition;
+                    lightRenderCamera.viewMatrix = viewMatrix;
+                    lightRenderCamera.projectionMatrix = projectionMatrix;
+                    lightRenderCamera.viewProjectionMatrix = viewProjectionMatrix;
+                    // compute derived values
+                    Matrix.Invert(ref lightRenderCamera.viewProjectionMatrix, out lightRenderCamera.inverseViewProjectionMatrix);
+                    lightRenderCamera.boundingFrustum.Matrix = lightRenderCamera.viewProjectionMatrix;
+                    lightRenderCamera.visitOrder = VectorUtil.visitOrder(lightRenderCamera.ViewDirection);
+
+                    // cull camera
+                    LightCamera lightCullCamera = CullCamera as LightCamera;
+                    lightCullCamera.lightPosition = lightPosition;
+                    lightCullCamera.viewMatrix = viewMatrix;
+                    Matrix.CreateOrthographicOffCenter(frustumMinLS.X, frustumMaxLS.X, frustumMinLS.Y, frustumMaxLS.Y, -frustumMaxLS.Z, -frustumMinLS.Z, out lightCullCamera.projectionMatrix);
+                    Matrix.Multiply(ref lightCullCamera.viewMatrix, ref lightCullCamera.projectionMatrix, out lightCullCamera.viewProjectionMatrix);
+                    // compute derived values
+                    Matrix.Invert(ref lightCullCamera.viewProjectionMatrix, out lightCullCamera.inverseViewProjectionMatrix);
+                    lightCullCamera.boundingFrustum.Matrix = lightCullCamera.viewProjectionMatrix;
+                    lightCullCamera.visitOrder = VectorUtil.visitOrder(lightCullCamera.ViewDirection);
+
+                    if (ScissorEnabled)
+                    {
+                        Viewport viewport = new Viewport(0, 0, shadowMapSize, shadowMapSize);
+                        Vector3 min = viewport.Project(frustumMinLS, lightRenderCamera.projectionMatrix, Matrix.Identity, Matrix.Identity);
+                        Vector3 max = viewport.Project(frustumMaxLS, lightRenderCamera.projectionMatrix, Matrix.Identity, Matrix.Identity);
+                        Vector2 o;
+                        o.X = min.X;
+                        o.Y = max.Y;
+                        Vector2 w;
+                        w.X = max.X - min.X;
+                        w.Y = min.Y - max.Y;
+                        //Console.WriteLine(o.X + " " + o.Y + "    " + w.X + " " + w.Y);
+
+                        lightCullCamera.ScissorRectangle.X = (int)o.X;
+                        lightCullCamera.ScissorRectangle.Y = (int)o.Y;
+                        lightCullCamera.ScissorRectangle.Width = (int)w.X;
+                        lightCullCamera.ScissorRectangle.Height = (int)w.Y;
+                    }
+                    else
+                    {
+                        lightCullCamera.ScissorRectangle.X = 0;
+                        lightCullCamera.ScissorRectangle.Y = 0;
+                        lightCullCamera.ScissorRectangle.Width = shadowMapSize;
+                        lightCullCamera.ScissorRectangle.Height = shadowMapSize;
+                    }
+                }
+
+                lastSplitDistance = splitDistance;
+                //Console.WriteLine();
+            }
+
+            // cull region
+            if (true /*FitToView*/)
+            {
+                LightCamera lightCullCamera = CullCamera as LightCamera;
+                viewCamera.Frustum.RegionFromDirection(ref lightDirection, lightCullCamera.cullRegion);
+            }
+
+        }
+
+
+        public void FitToViewStable3(SceneRenderContext renderContext)
+        {
+            Camera viewCamera = renderContext.CullCamera;
+
+            Vector3[] frustumCornersLS = new Vector3[SceneGraph.Bounding.Frustum.CornerCount];
+
+            //Matrix m = viewCamera.ProjectionMatrix;
+            //Bounding.Frustum frustum = new Bounding.Frustum();
+
+            int splitCount = splitDistances.Length;
+            float lastSplitDistance = viewCamera.ZNear;
+            for (int i = 0; i < splitCount; ++i)
+            {
+                float splitDistance = ComputeSplitDistance(i + 1, splitCount, viewCamera.ZNear, viewCamera.ZFar, 0.22f);
+                //Console.Write(lastSplitDistance + " - " + splitDistance + ": ");
+
+                // split frustum
+                float aspectInv = 1.0f / viewCamera.AspectRatio;
+                float e = 1.0f / (float)Math.Tan(viewCamera.FovX / 2.0f);
+                float fovY = 2.0f * (float)Math.Atan(aspectInv / e);
+                Matrix m = Matrix.CreatePerspectiveFieldOfView(fovY, viewCamera.AspectRatio, lastSplitDistance, splitDistance);
+                //m.M33 = 1.0f / (lastSplitDistance - splitDistance);
+                //m.M43 = lastSplitDistance / (lastSplitDistance - splitDistance);
+
+                Bounding.Frustum frustum = splitFrustums[i];
+                frustum.Matrix = viewCamera.ViewMatrix * m;
+
+                // best fitting bounding sphere for slice
+                double dz;
+                double radius;
+                VolumeUtil.ComputeFrustumBestFittingSphere(
+                    viewCamera.FovX, viewCamera.AspectRatio, lastSplitDistance, splitDistance,
+                    out dz, out radius);
+
+                float bounds = 2.0f * (float)radius;
+                //Console.Write(dz + ", " + bounds + " ");
+
+                // compute actual bounding sphere center
+                Vector3 center;
+                frustum.NearFaceCenter((float)dz - lastSplitDistance, out center);
+
+                if (Stable)
+                {
+                    StabilizeSphere(ref center, ref bounds);
+                }
+                Bounding.Sphere sphere = splitBoundingSpheres[i];
+                sphere.Center = center;
+                sphere.Radius = (float)radius;
+
+                // light view matrix
+                Matrix viewMatrix;
+                Vector3 lightPosition = center - (bounds / 2.0f) * lightDirection;
+                Matrix.CreateLookAt(ref lightPosition, ref center, ref lightUpVector, out viewMatrix);
+
+                Vector3 frustumMinLS;
+                Vector3 frustumMaxLS;
+                if (FitToView)
+                {
+                    frustum.GetTransformedCorners(frustumCornersLS, ref viewMatrix);
+
+                    // TODO:
+                    // - [DONE] use open znear bounding region (copy paste and adapt Frustum class)
+                    // - [DONE] use frustum convex hull to construct a tight culling bounding region (copy paste and adapt again Frustum class...)
+                    // - take into account scene : case 1 is when scene is smaller/contained in frustrum
+                    // - take into account scene : case 2 is when there is no scene => don't draw shadows at all...
+                    frustumMinLS.X = float.MaxValue;
+                    frustumMinLS.Y = float.MaxValue;
+                    frustumMinLS.Z = float.MaxValue;
+                    frustumMaxLS.X = float.MinValue;
+                    frustumMaxLS.Y = float.MinValue;
+                    frustumMaxLS.Z = float.MinValue;
+
+                    // get light space frustum corners
+
+                    // compute light space frustum bounding box...
+                    for (int j = 0; j < frustumCornersLS.Length; j++)
+                    {
+                        Vector3 v = frustumCornersLS[j];
+                        frustumMinLS.X = Math.Min(frustumMinLS.X, v.X);
+                        frustumMinLS.Y = Math.Min(frustumMinLS.Y, v.Y);
+                        frustumMinLS.Z = Math.Min(frustumMinLS.Z, v.Z);
+                        frustumMaxLS.X = Math.Max(frustumMaxLS.X, v.X);
+                        frustumMaxLS.Y = Math.Max(frustumMaxLS.Y, v.Y);
+                        frustumMaxLS.Z = Math.Max(frustumMaxLS.Z, v.Z);
+                    }
+                }
+                else
+                {
+                    frustumMinLS.X = -bounds / 2.0f;
+                    frustumMinLS.Y = -bounds / 2.0f;
+                    frustumMinLS.Z = -bounds;
+                    frustumMaxLS.X = bounds / 2.0f;
+                    frustumMaxLS.Y = bounds / 2.0f;
+                    frustumMaxLS.Z = 0;
+                }
+
+                //  light projection matrix
+                Matrix projectionMatrix;
+                Matrix.CreateOrthographic(bounds, bounds, -frustumMaxLS.Z, -frustumMinLS.Z, out projectionMatrix);
+
+                //  light view+projection matrix
+                Matrix viewProjectionMatrix;
+                Matrix.Multiply(ref viewMatrix, ref projectionMatrix, out viewProjectionMatrix);
+
+                // for rendering the shadow map
+                viewProjectionMatrices[i] = viewProjectionMatrix;
+
+                // for rendering the shadows
+                Matrix textureScaleMatrix = Matrix.CreateScale(0.5f, -0.5f, 1.0f);
+                Matrix textureTranslationMatrix = Matrix.CreateTranslation(0.5f, 0.5f, 0.0f);
+                Matrix shadowProjection = projectionMatrix * textureScaleMatrix * textureTranslationMatrix;
+                Vector4 scale = new Vector4(shadowProjection.M11, shadowProjection.M22, shadowProjection.M33, 1.0f);
+                Vector4 offset = new Vector4(shadowProjection.M41, shadowProjection.M42, shadowProjection.M43, 0.0f);
+
+                viewMatrices[i] = viewMatrix;
+                // TODO express distances in clip space (to avoid a multiplication by world view in vertex shader)
+                splitDistances[i] = new Vector4(splitDistance);
+                splitScales[i] = scale;
+                splitOffsets[i] = offset;
+
+                if (i == ShowSplitIndex)
+                {
+                    // render camera
+                    LightCamera lightRenderCamera = RenderCamera as LightCamera;
+                    lightRenderCamera.lightPosition = lightPosition;
+                    lightRenderCamera.viewMatrix = viewMatrix;
+                    lightRenderCamera.projectionMatrix = projectionMatrix;
+                    lightRenderCamera.viewProjectionMatrix = viewProjectionMatrix;
+                    // compute derived values
+                    Matrix.Invert(ref lightRenderCamera.viewProjectionMatrix, out lightRenderCamera.inverseViewProjectionMatrix);
+                    lightRenderCamera.boundingFrustum.Matrix = lightRenderCamera.viewProjectionMatrix;
+                    lightRenderCamera.visitOrder = VectorUtil.visitOrder(lightRenderCamera.ViewDirection);
+
+                    // cull camera
+                    LightCamera lightCullCamera = CullCamera as LightCamera;
+                    lightCullCamera.lightPosition = lightPosition;
+                    lightCullCamera.viewMatrix = viewMatrix;
+                    Matrix.CreateOrthographicOffCenter(frustumMinLS.X, frustumMaxLS.X, frustumMinLS.Y, frustumMaxLS.Y, -frustumMaxLS.Z, -frustumMinLS.Z, out lightCullCamera.projectionMatrix);
+                    Matrix.Multiply(ref lightCullCamera.viewMatrix, ref lightCullCamera.projectionMatrix, out lightCullCamera.viewProjectionMatrix);
+                    // compute derived values
+                    Matrix.Invert(ref lightCullCamera.viewProjectionMatrix, out lightCullCamera.inverseViewProjectionMatrix);
+                    lightCullCamera.boundingFrustum.Matrix = lightCullCamera.viewProjectionMatrix;
+                    lightCullCamera.visitOrder = VectorUtil.visitOrder(lightCullCamera.ViewDirection);
+
+                    if (ScissorEnabled)
+                    {
+                        Viewport viewport = new Viewport(0, 0, shadowMapSize, shadowMapSize);
+                        Vector3 min = viewport.Project(frustumMinLS, lightRenderCamera.projectionMatrix, Matrix.Identity, Matrix.Identity);
+                        Vector3 max = viewport.Project(frustumMaxLS, lightRenderCamera.projectionMatrix, Matrix.Identity, Matrix.Identity);
+                        Vector2 o;
+                        o.X = min.X;
+                        o.Y = max.Y;
+                        Vector2 w;
+                        w.X = max.X - min.X;
+                        w.Y = min.Y - max.Y;
+                        //Console.WriteLine(o.X + " " + o.Y + "    " + w.X + " " + w.Y);
+
+                        lightCullCamera.ScissorRectangle.X = (int)o.X;
+                        lightCullCamera.ScissorRectangle.Y = (int)o.Y;
+                        lightCullCamera.ScissorRectangle.Width = (int)w.X;
+                        lightCullCamera.ScissorRectangle.Height = (int)w.Y;
+                    }
+                    else
+                    {
+                        lightCullCamera.ScissorRectangle.X = 0;
+                        lightCullCamera.ScissorRectangle.Y = 0;
+                        lightCullCamera.ScissorRectangle.Width = shadowMapSize;
+                        lightCullCamera.ScissorRectangle.Height = shadowMapSize;
+                    }
+                }
+
+                lastSplitDistance = splitDistance;
+                //Console.WriteLine();
+            }
+
+            // cull region
+            if (true /*FitToView*/)
+            {
+                LightCamera lightCullCamera = CullCamera as LightCamera;
+                viewCamera.Frustum.RegionFromDirection(ref lightDirection, lightCullCamera.cullRegion);
+            }
+
+        }
+
+
+        private static float ComputeSplitDistance(int splitIndex, int splitCount, float znear, float zfar, float lerpWeight)
+        {
+            double n = znear;
+            double f = zfar;
+            double w = lerpWeight; // 0.22f;
+
+            double p = (double)splitIndex / (double)splitCount;
+            double dLog = n * Math.Pow(f / n, p);
+            double dLin = MathUtil.Lerp(n, f, p);
+            double d = MathUtil.Lerp(dLog, dLin, w);
+
+            return (float)d;
+        }
+
+        private void StabilizeSphere(ref Vector3 center, ref float bounds)
+        {
+            // avoid shimmering
+            // 1 - keep size constant
+            // 2 - discretize position
+
+            // convert center position into light space
+            Vector3 centerLS;
+            Vector3.Transform(ref center, ref lightRotation, out centerLS);
+
+            // increase the size of the ortho bounds so both light and camera frustums can slide!
+            bounds *= (float)shadowMapSize / (float)(shadowMapSize - 1);
+
+            // discretize center position
+            // TODO apply directly to transformation matrix (removes the need to invert light rotation and convert light position back in WS)
+            Vector2 worldUnitsPerPixel = new Vector2(bounds / shadowMapSize);
+            centerLS.X -= (float)Math.IEEERemainder(centerLS.X, worldUnitsPerPixel.X);
+            centerLS.Y -= (float)Math.IEEERemainder(centerLS.Y, worldUnitsPerPixel.Y);
+            // FIXME is it necessary for Z too ?
+            //center.Z -= (float)Math.IEEERemainder(centerLS.Z, worldUnitsPerPixel.Z);
+
+            // convert center position back into world space
+            Vector3.Transform(ref centerLS, ref invLightRotation, out center);
+        }
+
         public override void DebugGeometryAddTo(RenderContext renderContext)
         {
             base.DebugGeometryAddTo(renderContext);
@@ -397,28 +983,54 @@ namespace GameLibrary.SceneGraph
                 frustumGeo?.Dispose();
                 frustumGeo = null;
 
-                frustumGeo = GeometryUtil.CreateFrustum(GeneratedName("RENDER_FRUSTUM"), RenderCamera.BoundingFrustum);
+                frustumGeo = GeometryUtil.CreateFrustum(GenerateName("RENDER_FRUSTUM"), RenderCamera.Frustum);
                 frustumGeo.Initialize(GraphicsDevice);
             }
-            if (ShowFrustumHull)
+            if (ShowViewFrustumHull)
             {
                 // frustum hull
                 // FIXME geometry node is rebuilt on each update!
-                frustumHullGeo?.Dispose();
-                frustumHullGeo = null;
+                viewFrustumHullGeo?.Dispose();
+                viewFrustumHullGeo = null;
 
                 LightCamera lightCamera = cullCamera as LightCamera;
-                Bounding.Frustum frustum = renderContext.CullCamera.BoundingFrustum;
+                Bounding.Frustum frustum = renderContext.CullCamera.Frustum;
                 Vector3[] hull = frustum.HullCornersFromDirection(ref lightCamera.lightDirection);
                 if (hull.Length > 0)
                 {
                     // FIXME when rendering from light viewpoint the hull flickers badly and disappears because back face is z clipped...
-                    frustumHullGeo = new MeshNode(GeneratedName("VIEW_FRUSTUM_HULL"), new LineMeshFactory(hull, true));
-                    frustumHullGeo.Initialize(GraphicsDevice);
+                    viewFrustumHullGeo = new MeshNode(GenerateName("VIEW_FRUSTUM_HULL"), new LineMeshFactory(hull, true));
+                    viewFrustumHullGeo.Initialize(GraphicsDevice);
                 }
                 else
                 {
                     Console.WriteLine("!!! NO HULL !!!");
+                }
+            }
+            if (ViewSplitsMode != ViewSplitsMode.None)
+            {
+                // FIXME geometry node is rebuilt on each update!
+                // FIXME does not belong here...
+
+                if (viewFrustumSplitGeos is null)
+                {
+                    viewFrustumSplitGeos = new MeshNode[cascadeCount];
+                }
+                for (int i = 0; i < cascadeCount; i++)
+                {
+                    MeshNode frustumGeo = viewFrustumSplitGeos[i];
+
+                    frustumGeo?.Dispose();
+                    frustumGeo = null;
+
+                    if ((ViewSplitsMode == ViewSplitsMode.Single) && (i != ShowSplitIndex))
+                    {
+                        continue;
+                    }
+                    frustumGeo = GeometryUtil.CreateFrustum(GenerateName("RENDER_FRUSTUM_SPLIT#" + i), splitFrustums[i]);
+                    frustumGeo.Initialize(GraphicsDevice);
+
+                    viewFrustumSplitGeos[i] = frustumGeo;
                 }
             }
             if (ShowFrustum && frustumGeo != null)
@@ -427,10 +1039,43 @@ namespace GameLibrary.SceneGraph
                 // FIXME does not belong here...
                 renderContext.AddToBin(Scene.FRUSTUM, frustumGeo);
             }
-            if (ShowFrustumHull && frustumHullGeo != null)
+            if (ShowViewFrustumHull && viewFrustumHullGeo != null)
             {
                 // frustum hull (of main...) 
-                renderContext.AddToBin(Scene.BOUNDING_HULL, frustumHullGeo);
+                renderContext.AddToBin(Scene.BOUNDING_HULL, viewFrustumHullGeo);
+            }
+            if ((ViewSplitsMode != ViewSplitsMode.None) && (viewFrustumSplitGeos != null))
+            {
+                for (int i = 0; i < cascadeCount; i++)
+                {
+                    if ((ViewSplitsMode == ViewSplitsMode.Single) && (i != ShowSplitIndex))
+                    {
+                        continue;
+                    }
+                    MeshNode frustumGeo = viewFrustumSplitGeos[i];
+                    if (frustumGeo != null)
+                    {
+                        renderContext.AddToBin(Scene.FRUSTUM, frustumGeo);
+                    }
+                }
+                if (ShowSplitSpheres && viewFrustumSphereSplitGeos != null)
+                {
+                    for (int i = 0; i < cascadeCount; i++)
+                    {
+                        MeshNode frustumSphereGeo = viewFrustumSphereSplitGeos[i];
+                        if ((ViewSplitsMode == ViewSplitsMode.Single) && (i != ShowSplitIndex))
+                        {
+                            continue;
+                        }
+                        if (frustumSphereGeo != null)
+                        {
+                            Bounding.Sphere sphere = splitBoundingSpheres[i];
+                            frustumSphereGeo.BoundingVolume = sphere;
+                            frustumSphereGeo.WorldBoundingVolume = sphere;
+                            renderContext.AddToBin(Scene.BOUNDING_SPHERE, frustumSphereGeo);
+                        }
+                    }
+                }
             }
             if (ShowLightPosition && lightPositionGeo != null)
             {
@@ -447,23 +1092,23 @@ namespace GameLibrary.SceneGraph
             }
             if (ShowBoundingVolumes)
             {
-                List<Drawable> drawableList = renderBins[Scene.BOUNDING_BOX];
+                List<Drawable> drawableList = renderBins[Scene.BOUNDING_BOX].DrawableList;
                 renderContext.AddToBin(Scene.BOUNDING_BOX, drawableList);
-                drawableList = renderBins[Scene.BOUNDING_SPHERE];
+                drawableList = renderBins[Scene.BOUNDING_SPHERE].DrawableList;
                 renderContext.AddToBin(Scene.BOUNDING_SPHERE, drawableList);
             }
             if (ShowCulledBoundingVolumes)
             {
-                List<Drawable> drawableList = renderBins[Scene.CULLED_BOUNDING_BOX];
+                List<Drawable> drawableList = renderBins[Scene.CULLED_BOUNDING_BOX].DrawableList;
                 renderContext.AddToBin(Scene.CULLED_BOUNDING_BOX, drawableList);
-                drawableList = renderBins[Scene.CULLED_BOUNDING_SPHERE];
+                drawableList = renderBins[Scene.CULLED_BOUNDING_SPHERE].DrawableList;
                 renderContext.AddToBin(Scene.CULLED_BOUNDING_SPHERE, drawableList);
             }
             if (ShowOccluders)
             {
                 // TODO this a better approach than the one used for ShowBoundingVolumes (done in the CULL callback)
                 // use this approach there too...
-                foreach (KeyValuePair<int, List<Drawable>> renderBinKVP in renderBins)
+                foreach (KeyValuePair<int, RenderBin> renderBinKVP in renderBins)
                 {
                     int renderBinId = renderBinKVP.Key;
                     // HACK...
@@ -471,7 +1116,8 @@ namespace GameLibrary.SceneGraph
                     {
                         break;
                     }
-                    List<Drawable> drawableList = renderBinKVP.Value;
+                    RenderBin renderBin = renderBinKVP.Value;
+                    List<Drawable> drawableList = renderBin.DrawableList;
                     renderContext.AddToBin(Scene.OCCLUDER_BOUNDING_BOX, drawableList);
                 }
             }
@@ -485,7 +1131,7 @@ namespace GameLibrary.SceneGraph
             {
                 if (lightPositionGeo == null)
                 {
-                    lightPositionGeo = GeometryUtil.CreateGeodesic(GeneratedName("POSITION"), 4);
+                    lightPositionGeo = GeometryUtil.CreateGeodesic(GenerateName("POSITION"), 4);
                     lightPositionGeo.Initialize(GraphicsDevice);
                 }
             }
@@ -493,11 +1139,28 @@ namespace GameLibrary.SceneGraph
             {
                 if (billboardNode == null)
                 {
-                    billboardNode = new BillboardNode(GeneratedName("SHADOW_MAP"));
+                    billboardNode = new BillboardNode(GenerateName("SHADOW_MAP"));
                     billboardNode.Initialize(GraphicsDevice);
-                    billboardNode.Texture = RenderTarget;
+                    billboardNode.Mode = 5; // 2x2 (for 4 cascades...)
+                    billboardNode.Texture = ShadowRenderTarget;
                 }
             }
+            if (ViewSplitsMode != ViewSplitsMode.None)
+            {
+                if (viewFrustumSphereSplitGeos is null)
+                {
+                    viewFrustumSphereSplitGeos = new MeshNode[cascadeCount];
+                }
+                for (int i = 0; i < cascadeCount; i++)
+                {
+                    MeshNode frustumSphereGeo = GeometryUtil.CreateGeodesicWF(GenerateName("VIEW_FRUSTUM_SPHERE_SPLIT#" + i), 1);
+                    frustumSphereGeo.Initialize(GraphicsDevice);
+                    //frustumSphereGeo.BoundingVolume = CullCamera.BoundingSphere;
+                    //frustumSphereGeo.WorldBoundingVolume = CullCamera.BoundingSphere;
+                    viewFrustumSphereSplitGeos[i] = frustumSphereGeo;
+                }
+            }
+
         }
 
         protected override internal void DebugGeometryDispose()
@@ -507,8 +1170,8 @@ namespace GameLibrary.SceneGraph
             frustumGeo?.Dispose();
             frustumGeo = null;
 
-            frustumHullGeo?.Dispose();
-            frustumHullGeo = null;
+            viewFrustumHullGeo?.Dispose();
+            viewFrustumHullGeo = null;
 
             lightPositionGeo?.Dispose();
             lightPositionGeo = null;

@@ -10,7 +10,7 @@
 // Macros for targetting shader model 4.0 (DX11)
 
 #define TECHNIQUE(name, vsname, psname ) \
-	technique name { pass { VertexShader = compile vs_4_0 vsname (); PixelShader = compile ps_4_0 psname(); } }
+	technique name { pass { VertexShader = compile vs_5_0 vsname (); PixelShader = compile ps_5_0 psname(); } }
 
 #define BEGIN_CONSTANTS     cbuffer Parameters : register(b0) {
 #define MATRIX_CONSTANTS

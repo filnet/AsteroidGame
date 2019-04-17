@@ -22,8 +22,11 @@ namespace GameLibrary.Voxel
     public sealed class VoxelChunk
     {
         public VoxelChunkState State;
-        public SceneGraph.Bounding.Box BoundingBox;
         public VoxelMap VoxelMap;
+
+        public SceneGraph.Bounding.Box BoundingBox;
+
+        public Drawable NodeDrawable;
         public Drawable Drawable;
         public Drawable TransparentDrawable;
 
@@ -130,6 +133,7 @@ namespace GameLibrary.Voxel
             }
         }
         */
+
         // TODO this should be done asynchronously
         private VoxelChunk createObject(Octree<VoxelChunk> octree, OctreeNode<VoxelChunk> node)
         {
@@ -152,25 +156,6 @@ namespace GameLibrary.Voxel
                     voxelChunk = new VoxelChunk();
                     // no need to load parent nodes
                     voxelChunk.State = VoxelChunkState.Ready;
-
-                    Vector3 center;
-                    Vector3 halfSize;
-                    GetNodeBoundingBox(node, out center, out halfSize);
-                    // TODO compute a tighter bounding box based on chunk content
-                    voxelChunk.BoundingBox = new SceneGraph.Bounding.Box(center, halfSize);
-
-                    if (true /*ctxt.AddBoundingGeometry*/)
-                    {
-                        // No geometry, add fake geometry for displaying bounding boxes
-                        // do only displaying bounding boxes...
-                        // the place holder geometry should be as simple as possible:
-                        // - only bounding volume
-                        // - no mesh
-                        // - no physics
-                        // - no child, etc...
-                        voxelChunk.Drawable = new FakeDrawable(Scene.VECTOR, voxelChunk.BoundingBox);
-                    }
-
                 }
             }
             else
@@ -197,14 +182,39 @@ namespace GameLibrary.Voxel
                     voxelChunk = new VoxelChunk();
                     voxelChunk.VoxelMap = map;
 
-                    Vector3 center;
+                    /*Vector3 center;
                     Vector3 halfSize;
                     GetNodeBoundingBox(node, out center, out halfSize);
-                    voxelChunk.BoundingBox = new SceneGraph.Bounding.Box(center, halfSize);
+                    voxelChunk.BoundingBox = new SceneGraph.Bounding.Box(center, halfSize);*/
                 }
                 else
                 {
+                    // no geometry to create
                     //voxelChunk.State = VoxelChunkState.Ready;
+                }
+            }
+
+            if (voxelChunk != null)
+            {
+                // voxel chunk bounding box (indenpendant of content)
+                // FIXME should be merge of opaque+transparent...
+                Vector3 center;
+                Vector3 halfSize;
+                GetNodeBoundingBox(node, out center, out halfSize);
+                voxelChunk.BoundingBox = new SceneGraph.Bounding.Box(center, halfSize);
+
+                // FIXME performance
+                // HACK and bad for performance
+                if (true /*ctxt.AddBoundingGeometry*/)
+                {
+                    // No geometry, add fake geometry for displaying bounding boxes
+                    // do only displaying bounding boxes...
+                    // the place holder geometry should be as simple as possible:
+                    // - only bounding volume
+                    // - no mesh
+                    // - no physics
+                    // - no child, etc...
+                    voxelChunk.NodeDrawable = new FakeDrawable(Scene.VECTOR, voxelChunk.BoundingBox);
                 }
             }
             return voxelChunk;
@@ -302,6 +312,7 @@ namespace GameLibrary.Voxel
 
         private void load(OctreeNode<VoxelChunk> node)
         {
+            // FIXME works because there is a single loader thread
             if (node.obj.State == VoxelChunkState.Queued)
             {
                 node.obj.State = VoxelChunkState.Loading;
@@ -311,113 +322,46 @@ namespace GameLibrary.Voxel
             }
         }
 
-        public void createMeshes(OctreeNode<VoxelChunk> node)
+        private void createMeshes(OctreeNode<VoxelChunk> node)
         {
             // TODO performance: the depth test is expensive...
-            if (node.obj.VoxelMap != null && Octree<VoxelChunk>.GetNodeTreeDepth(node) == Depth)
+            if (node.obj.VoxelMap != null /*&& Octree<VoxelChunk>.GetNodeTreeDepth(node) == Depth*/)
             {
-                VoxelMap voxelMap = node.obj.VoxelMap;
-
                 Mesh mesh = meshFactory.CreateMesh(node);
                 if (mesh != null)
                 {
-                    // FIXME should get bounding box from mesh...
-                    //SceneGraph.Bounding.BoundingBox boundingBox = node.obj.BoundingBox;
                     node.obj.Drawable = new MeshDrawable(Scene.VOXEL, mesh);
                 }
                 // FIXME meshFactory API is bad...
                 Mesh transparentMesh = meshFactory.CreateTransparentMesh();
                 if (transparentMesh != null)
                 {
-                    // FIXME should get bounding box from transparentMesh...
-                    //SceneGraph.Bounding.BoundingBox boundingBox = node.obj.BoundingBox;
                     node.obj.TransparentDrawable = new MeshDrawable(Scene.VOXEL_WATER, transparentMesh);
                 }
             }
         }
 
-        class MeshDrawable : Drawable
+        class MeshDrawable : AbstractDrawable
         {
+            public override Volume BoundingVolume
+            {
+                get;
+            }
+
+            public override Volume WorldBoundingVolume
+            {
+                get
+                {
+                    return BoundingVolume;
+                }
+            }
+
+            public override int VertexCount
+            {
+                get { return mesh.VertexCount; }
+            }
+
             private readonly Mesh mesh;
-
-            public bool Enabled { get; set; }
-
-            // Fake is always invisible (but not its bounds...)
-            public bool Visible { get; set; }
-
-            public int RenderGroupId { get; set; }
-
-            public bool BoundingVolumeVisible { get; set; }
-
-            /// <summary>
-            /// Gets or sets the geometry bounding volume, which contains the entire geometry in model (local) space.
-            /// </summary>
-            public Volume BoundingVolume { get; }
-
-            /// <summary>
-            /// Gets or sets the geometry bounding volume, which contains the entire geometry in model (local) space.
-            /// </summary>
-            public Volume WorldBoundingVolume { get { return BoundingVolume; } }
-
-            public int VertexCount { get { return mesh.VertexCount; } }
-
-            VertexBuffer instanceVertexBuffer = null;
-
-            public void PreDraw(GraphicsDevice gd)
-            {
-                gd.SetVertexBuffer(mesh.VertexBuffer);
-                if (mesh.IndexBuffer != null)
-                {
-                    gd.Indices = mesh.IndexBuffer;
-                }
-            }
-
-            public void Draw(GraphicsDevice gd)
-            {
-                if (mesh.IndexBuffer != null)
-                {
-                    gd.DrawIndexedPrimitives(mesh.PrimitiveType, 0, 0, mesh.PrimitiveCount);
-                }
-                else if (mesh.PrimitiveCount > 0)
-                {
-                    gd.DrawPrimitives(mesh.PrimitiveType, 0, mesh.PrimitiveCount);
-                }
-            }
-
-            public void PostDraw(GraphicsDevice gd)
-            {
-            }
-
-            public void PreDrawInstanced(GraphicsDevice gd)
-            {
-                /*if (instanceVertexBuffer == null)
-                {
-                    instanceVertexBuffer = new DynamicVertexBuffer(gd, ShadowInstanceVertex.VertexDeclaration, 4, BufferUsage.WriteOnly);
-                    ShadowInstanceVertex[] instances = new ShadowInstanceVertex[] {
-                            new ShadowInstanceVertex(0), new ShadowInstanceVertex(1), new ShadowInstanceVertex(2), new ShadowInstanceVertex(3),
-                    };
-                    instanceVertexBuffer.SetData(instances);
-                }
-                VertexBufferBinding[] vertexBufferBindings = {
-                    new VertexBufferBinding(mesh.VertexBuffer, 0, 0),
-                    new VertexBufferBinding(instanceVertexBuffer, 0, 1)
-                };
-                gd.SetVertexBuffers(vertexBufferBindings);*/
-                gd.SetVertexBuffer(mesh.VertexBuffer);
-                if (mesh.IndexBuffer != null)
-                {
-                    gd.Indices = mesh.IndexBuffer;
-                }
-            }
-
-            public void DrawInstanced(GraphicsDevice gd)
-            {
-                gd.DrawInstancedPrimitives(mesh.PrimitiveType, 0, 0, mesh.PrimitiveCount, 4);
-            }
-
-            public void PostDrawInstanced(GraphicsDevice gd)
-            {
-            }
 
             public MeshDrawable(int renderGroupId, Mesh mesh)
             {
@@ -428,38 +372,71 @@ namespace GameLibrary.Voxel
                 BoundingVolume = mesh.BoundingVolume;
                 BoundingVolumeVisible = true;
             }
+
+            public override void PreDraw(GraphicsDevice gd)
+            {
+                gd.SetVertexBuffer(mesh.VertexBuffer);
+                if (mesh.IndexBuffer != null)
+                {
+                    gd.Indices = mesh.IndexBuffer;
+                }
+            }
+
+            public override void Draw(GraphicsDevice gd)
+            {
+                if (mesh.IndexBuffer != null)
+                {
+                    gd.DrawIndexedPrimitives(mesh.PrimitiveType, 0, 0, mesh.PrimitiveCount);
+                }
+                else
+                {
+                    gd.DrawPrimitives(mesh.PrimitiveType, 0, mesh.PrimitiveCount);
+                }
+            }
+
+            public override void PostDraw(GraphicsDevice gd)
+            {
+            }
+
+            public override void PreDrawInstanced(GraphicsDevice gd, VertexBuffer instanceVertexBuffer, int instanceOffset)
+            {
+                VertexBufferBinding[] vertexBufferBindings = {
+                    new VertexBufferBinding(mesh.VertexBuffer, 0, 0),
+                    new VertexBufferBinding(instanceVertexBuffer, instanceOffset, 1)
+                };
+                gd.SetVertexBuffers(vertexBufferBindings);
+                if (mesh.IndexBuffer != null)
+                {
+                    gd.Indices = mesh.IndexBuffer;
+                }
+            }
+
+            public override void DrawInstanced(GraphicsDevice gd, int instanceCount)
+            {
+                gd.DrawInstancedPrimitives(mesh.PrimitiveType, 0, 0, mesh.PrimitiveCount, instanceCount);
+            }
+
+            public override void PostDrawInstanced(GraphicsDevice gd)
+            {
+            }
+
         }
 
-        class FakeDrawable : Drawable
+        // Fake is always invisible (but not its bounds...)
+        class FakeDrawable : AbstractDrawable
         {
-            public bool Enabled { get; set; }
+            public override Volume BoundingVolume
+            {
+                get;
+            }
 
-            // Fake is always invisible (but not its bounds...)
-            public bool Visible { get; set; }
-
-            public int RenderGroupId { get; set; }
-
-            public bool BoundingVolumeVisible { get; set; }
-
-            /// <summary>
-            /// Gets or sets the geometry bounding volume, which contains the entire geometry in model (local) space.
-            /// </summary>
-            public Volume BoundingVolume { get; }
-
-            /// <summary>
-            /// Gets or sets the geometry bounding volume, which contains the entire geometry in model (local) space.
-            /// </summary>
-            public Volume WorldBoundingVolume { get { return BoundingVolume; } }
-
-            public int VertexCount { get { throw new NotSupportedException(); } }
-
-            public void PreDraw(GraphicsDevice gd) { throw new NotSupportedException(); }
-            public void Draw(GraphicsDevice gd) { throw new NotSupportedException(); }
-            public void PostDraw(GraphicsDevice gd) { throw new NotSupportedException(); }
-
-            public void PreDrawInstanced(GraphicsDevice gd) { throw new NotSupportedException(); }
-            public void DrawInstanced(GraphicsDevice gd) { throw new NotSupportedException(); }
-            public void PostDrawInstanced(GraphicsDevice gd) { throw new NotSupportedException(); }
+            public override Volume WorldBoundingVolume
+            {
+                get
+                {
+                    return BoundingVolume;
+                }
+            }
 
             public FakeDrawable(int renderGroupId, Volume boundingVolume)
             {

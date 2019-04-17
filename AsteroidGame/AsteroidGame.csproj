@@ -41,6 +41,9 @@
   <PropertyGroup>
     <ApplicationManifest>app.manifest</ApplicationManifest>
   </PropertyGroup>
+  <PropertyGroup>
+    <StartupObject>AsteroidGame.Program</StartupObject>
+  </PropertyGroup>
   <ItemGroup>
     <Compile Include="AsteroidGame.cs" />
     <Compile Include="Control\AsteroidController.cs" />

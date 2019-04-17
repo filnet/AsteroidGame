@@ -7,9 +7,17 @@ namespace GameLibrary.Component.Camera
 {
     public abstract class AbstractCamera : Camera
     {
-        public Quaternion Orientation { get => throw new NotImplementedException(); set => throw new NotImplementedException(); }
+        public virtual float FovX { get => throw new NotImplementedException(); set => throw new NotImplementedException(); }
+
+        public virtual float AspectRatio { get => throw new NotImplementedException(); set => throw new NotImplementedException(); }
+
+        public virtual float ZNear { get => throw new NotImplementedException(); set => throw new NotImplementedException(); }
+
+        public virtual float ZFar { get => throw new NotImplementedException(); set => throw new NotImplementedException(); }
 
         public virtual Vector3 Position { get => throw new NotImplementedException(); set => throw new NotImplementedException(); }
+
+        public Quaternion Orientation { get => throw new NotImplementedException(); set => throw new NotImplementedException(); }
 
         public virtual Vector3 ViewDirection => throw new NotImplementedException();
 
@@ -29,15 +37,11 @@ namespace GameLibrary.Component.Camera
 
         public virtual int VisitOrder => throw new NotImplementedException();
 
-        public virtual SceneGraph.Bounding.Frustum BoundingFrustum => throw new NotImplementedException();
+        public virtual SceneGraph.Bounding.Frustum Frustum => throw new NotImplementedException();
 
         public virtual SceneGraph.Bounding.Box BoundingBox => throw new NotImplementedException();
 
         public virtual SceneGraph.Bounding.Sphere BoundingSphere => throw new NotImplementedException();
-
-        public virtual float AspectRatio { get => throw new NotImplementedException(); set => throw new NotImplementedException(); }
-
-        public virtual float ZFar { get => throw new NotImplementedException(); set => throw new NotImplementedException(); }
 
         public AbstractCamera()
         {

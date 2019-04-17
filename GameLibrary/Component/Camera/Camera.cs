@@ -95,7 +95,19 @@ namespace GameLibrary.Component.Camera
 
         #region Properties
 
+        float FovX
+        {
+            get;
+            set;
+        }
+
         float AspectRatio
+        {
+            get;
+            set;
+        }
+
+        float ZNear
         {
             get;
             set;
@@ -195,7 +207,7 @@ namespace GameLibrary.Component.Camera
             get;
         }
 
-        SceneGraph.Bounding.Frustum BoundingFrustum
+        SceneGraph.Bounding.Frustum Frustum
         {
             get;
         }

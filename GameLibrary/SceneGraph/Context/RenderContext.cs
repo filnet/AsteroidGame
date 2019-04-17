@@ -13,14 +13,32 @@ using GameLibrary.Geometry;
 namespace GameLibrary.SceneGraph
 {
 
+    public class RenderBin
+    {
+        public readonly long Id;
+        public readonly List<Drawable> DrawableList;
+
+        public RenderBin(long id)
+        {
+            this.Id = id;
+            DrawableList = new List<Drawable>();
+        }
+
+        public virtual void Clear()
+        {
+            DrawableList.Clear();
+        }
+    }
+
     public abstract class RenderContext
     {
         #region Properties
 
         [Category("Camera")]
-        public Camera Camera
+        public bool Enabled
         {
-            get { return camera; }
+            get { return enabled; }
+            set { enabled = value; RequestRedraw(); }
         }
 
         [Category("Camera")]
@@ -39,14 +57,14 @@ namespace GameLibrary.SceneGraph
         [Category("Culling")]
         public bool FrustumCullingEnabled
         {
-            get { return (frustumCullingEnabled && (frustumCullingOwner == 0)); }
+            get { return frustumCullingEnabled; }
             set { frustumCullingEnabled = value; RequestRedraw(); }
         }
 
         [Category("Culling")]
         public bool DistanceCullingEnabled
         {
-            get { return (distanceCullingEnabled && (distanceCullingOwner == 0)); }
+            get { return distanceCullingEnabled; }
             set { distanceCullingEnabled = value; RequestRedraw(); }
         }
 
@@ -60,7 +78,7 @@ namespace GameLibrary.SceneGraph
         [Category("Culling")]
         public bool ScreenSizeCullingEnabled
         {
-            get { return (screenSizeCullingEnabled && (screenSizeCullingOwner == 0)); }
+            get { return (screenSizeCullingEnabled /*&& (screenSizeCullingOwner == 0)*/); }
             set { screenSizeCullingEnabled = value; RequestRedraw(); }
         }
 
@@ -132,27 +150,35 @@ namespace GameLibrary.SceneGraph
 
         #endregion
 
+        #region Fields
+
         private readonly string name;
 
-        private bool frustumCullingEnabled;
+        // shadows
+        private bool enabled;
+
+        internal ulong cullingOwner;
+
+        internal bool frustumCullingEnabled;
         internal ulong frustumCullingOwner;
 
-        private bool distanceCullingEnabled;
+        internal bool distanceCullingEnabled;
         internal ulong distanceCullingOwner;
         public float cullDistance;
         public float cullDistanceSquared;
 
-        private bool screenSizeCullingEnabled;
-        internal ulong screenSizeCullingOwner;
+        internal bool screenSizeCullingEnabled;
+        //internal ulong screenSizeCullingOwner;
 
         // flags
         private bool showBoundingVolumes;
         private bool showCulledBoundingVolumes;
 
         private bool showFrustum;
-        private bool showFrustumHull;
         private bool showFrustumBoundingSphere;
         private bool showFrustumBoundingBox;
+
+        private bool showFrustumHull;
 
         private bool showSceneBoundingBox;
 
@@ -169,8 +195,10 @@ namespace GameLibrary.SceneGraph
 
         public readonly GraphicsDevice GraphicsDevice;
 
-        // cameras
+        // user controllable camera
         protected readonly Camera camera;
+
+        // cameras
         protected Camera renderCamera;
         protected Camera cullCamera;
 
@@ -180,21 +208,24 @@ namespace GameLibrary.SceneGraph
         private readonly Bounding.Box sceneBoundingBox = new Bounding.Box();
 
         // render bins
-        public readonly SortedDictionary<int, List<Drawable>> renderBins;
-        private int DrawableCount;
+        public readonly SortedDictionary<int, RenderBin> renderBins;
 
         // render stats
         public int DrawCount;
         public int VertexCount;
+
+        #endregion
 
         public RenderContext(string name, GraphicsDevice graphicsDevice, Camera camera)
         {
             this.name = name;
             GraphicsDevice = graphicsDevice;
 
+            enabled = true;
+
             this.camera = camera;
-            this.renderCamera = camera;
-            this.cullCamera = camera;
+            renderCamera = camera;
+            cullCamera = camera;
 
             frustumCullingEnabled = true;
             distanceCullingEnabled = false;
@@ -202,14 +233,16 @@ namespace GameLibrary.SceneGraph
 
             frustumCullingOwner = 0;
             distanceCullingOwner = 0;
-            screenSizeCullingOwner = 0;
+            //screenSizeCullingOwner = 0;
 
             // distance culling
             cullDistance = 512;
             cullDistanceSquared = cullDistance * cullDistance;
 
             // state
-            renderBins = new SortedDictionary<int, List<Drawable>>();
+            renderBins = new SortedDictionary<int, RenderBin>();
+
+            RequestRedraw();
         }
 
         public string Name
@@ -231,7 +264,7 @@ namespace GameLibrary.SceneGraph
 
         public virtual bool RedrawRequested()
         {
-            return (drawRequested || renderBins.Count == 0);
+            return drawRequested;
         }
 
         public virtual void RequestRedraw()
@@ -320,21 +353,13 @@ namespace GameLibrary.SceneGraph
             {
                 return;
             }
-            List<Drawable> list;
-            if (!renderBins.TryGetValue(binId, out list))
+            RenderBin renderBin;
+            if (!renderBins.TryGetValue(binId, out renderBin))
             {
-                list = new List<Drawable>();
-                renderBins[binId] = list;
-                list.Add(drawable);
-                DrawableCount += list.Count;
-                return;
+                renderBin = CreateRenderBin(binId);
+                renderBins[binId] = renderBin;
             }
-            if (Debug && list.Contains(drawable))
-            {
-                throw new Exception("Drawable already in group " + binId);
-            }
-            list.Add(drawable);
-            DrawableCount += list.Count;
+            AddToRenderBin(renderBin, drawable);
         }
 
         // FIXME Slow...!!!
@@ -344,33 +369,40 @@ namespace GameLibrary.SceneGraph
             {
                 return;
             }
-            List<Drawable> list;
-            if (!renderBins.TryGetValue(binId, out list))
+            RenderBin renderBin;
+            if (!renderBins.TryGetValue(binId, out renderBin))
             {
-                list = new List<Drawable>(drawableList);
-                renderBins[binId] = list;
-                DrawableCount += list.Count;
-                return;
+                renderBin = CreateRenderBin(binId);
+                renderBins[binId] = renderBin;
             }
+            // FIXME SLOW !!!
             foreach (Drawable drawable in drawableList)
             {
-                // FIXME SLOW !!!
-                if (!list.Contains(drawable))
-                {
-                    list.Add(drawable);
-                    DrawableCount++;
-                }
+                AddToRenderBin(renderBin, drawable);
             }
+        }
+
+        protected virtual RenderBin CreateRenderBin(long id)
+        {
+            return new RenderBin(id);
+        }
+
+        protected virtual void AddToRenderBin(RenderBin renderBin, Drawable drawable)
+        {
+            if (Debug && renderBin.DrawableList.Contains(drawable))
+            {
+                throw new Exception("Drawable already in render bin " + renderBin.Id);
+            }
+            renderBin.DrawableList.Add(drawable);
         }
 
         public void ClearBins()
         {
-            foreach (KeyValuePair<int, List<Drawable>> drawableListKVP in renderBins)
+            foreach (KeyValuePair<int, RenderBin> drawableListKVP in renderBins)
             {
-                List<Drawable> drawableList = drawableListKVP.Value;
-                drawableList.Clear();
+                RenderBin renderBin = drawableListKVP.Value;
+                renderBin.Clear();
             }
-            DrawableCount = 0;
         }
 
         public void AddBoundingVolume(Drawable drawable, bool culled)
@@ -415,7 +447,7 @@ namespace GameLibrary.SceneGraph
                 frustumGeo?.Dispose();
                 frustumGeo = null;
 
-                frustumGeo = GeometryUtil.CreateFrustum(GeneratedName("CULL_FRUSTUM"), CullCamera.BoundingFrustum);
+                frustumGeo = GeometryUtil.CreateFrustum(GenerateName("CULL_FRUSTUM"), CullCamera.Frustum);
                 frustumGeo.Initialize(GraphicsDevice);
             }
             if (ShowFrustumHull)
@@ -426,12 +458,16 @@ namespace GameLibrary.SceneGraph
                 frustumHullGeo = null;
 
                 Vector3 cameraPosition = renderCamera.Position;
-                Bounding.Frustum frustum = cullCamera.BoundingFrustum;
+                Bounding.Frustum frustum = cullCamera.Frustum;
                 Vector3[] hull = frustum.HullCorners(ref cameraPosition);
                 if (hull.Length > 0)
                 {
-                    frustumHullGeo = new MeshNode(GeneratedName("CULL_FRUSTUM_HULL"), new LineMeshFactory(hull, true));
+                    frustumHullGeo = new MeshNode(GenerateName("CULL_FRUSTUM_HULL"), new LineMeshFactory(hull, true));
                     frustumHullGeo.Initialize(GraphicsDevice);
+                }
+                else
+                {
+                    Console.WriteLine("!!! NO HULL !!!");
                 }
             }
             if (ShowFrustum && frustumGeo != null)
@@ -468,7 +504,7 @@ namespace GameLibrary.SceneGraph
                 // cull frustum bounding sphere
                 if (frustumBoundingSphereGeo == null)
                 {
-                    frustumBoundingSphereGeo = GeometryUtil.CreateGeodesicWF(GeneratedName("CULL_FRUSTUM_BOUNDING_SPHERE"), 1);
+                    frustumBoundingSphereGeo = GeometryUtil.CreateGeodesicWF(GenerateName("CULL_FRUSTUM_BOUNDING_SPHERE"), 1);
                     frustumBoundingSphereGeo.Initialize(GraphicsDevice);
                     frustumBoundingSphereGeo.BoundingVolume = CullCamera.BoundingSphere;
                     frustumBoundingSphereGeo.WorldBoundingVolume = CullCamera.BoundingSphere;
@@ -479,7 +515,7 @@ namespace GameLibrary.SceneGraph
                 // cull frustum bounding box
                 if (frustumBoundingBoxGeo == null)
                 {
-                    frustumBoundingBoxGeo = GeometryUtil.CreateCubeWF(GeneratedName("CULL_FRUSTUM_BOUNDING_BOX"), 1);
+                    frustumBoundingBoxGeo = GeometryUtil.CreateCubeWF(GenerateName("CULL_FRUSTUM_BOUNDING_BOX"), 1);
                     frustumBoundingBoxGeo.Initialize(GraphicsDevice);
                     frustumBoundingBoxGeo.BoundingVolume = CullCamera.BoundingBox;
                     frustumBoundingBoxGeo.WorldBoundingVolume = CullCamera.BoundingBox;
@@ -490,7 +526,7 @@ namespace GameLibrary.SceneGraph
                 // scene bounding box
                 if (sceneBoundingBoxGeo == null)
                 {
-                    sceneBoundingBoxGeo = GeometryUtil.CreateCubeWF(GeneratedName("SCENE_BOUNDING_BOX"), 1);
+                    sceneBoundingBoxGeo = GeometryUtil.CreateCubeWF(GenerateName("SCENE_BOUNDING_BOX"), 1);
                     sceneBoundingBoxGeo.Initialize(GraphicsDevice);
                     sceneBoundingBoxGeo.BoundingVolume = sceneBoundingBox;
                     sceneBoundingBoxGeo.WorldBoundingVolume = sceneBoundingBox;
@@ -517,8 +553,7 @@ namespace GameLibrary.SceneGraph
             sceneBoundingBoxGeo = null;
         }
 
-
-        protected string GeneratedName(string name)
+        protected string GenerateName(string name)
         {
             return this.name + "_" + name;
         }

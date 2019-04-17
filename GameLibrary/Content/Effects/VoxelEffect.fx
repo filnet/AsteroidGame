@@ -46,10 +46,19 @@ BEGIN_CONSTANTS
     float4x4 World                  _vs(c19)          _cb(c16);
     float3x3 WorldInverseTranspose  _vs(c23)          _cb(c19);
 
-	float4x4 LightWorldViewProj     _vs(c25) _ps(c16) _cb(c20);
+	int CascadeCount = 4;
+    float4x4 LightView;
+    float4x4 LightViews[4];
+    float4 SplitDistances[8];
+    float4 SplitOffsets[8];
+    float4 SplitScales[8];
+
+	bool VisualizeSplits;
+
 
 MATRIX_CONSTANTS
 
+    float4x4 WorldView          _vs(c15)          _cb(c0);
     float4x4 WorldViewProj          _vs(c15)          _cb(c0);
 
 END_CONSTANTS
@@ -89,11 +98,24 @@ float SampleAmbientOcclusionFactors(float4 factors, float2 texCoord)
 	vout.AmbientOcclusionFactors = ComputeAmbientOcclusionFactors(vin.TextureIndex[1]); \
 	vout.WF1TexCoord = vin.TexCoord.x ? 1 : -1; \
 	vout.WF2TexCoord = vin.TexCoord.y ? 1 : -1; \
-    vout.PositionWS = mul(vin.Position, World); \
-	vout.ShadowPosition = mul(vin.Position, LightWorldViewProj);
+	vout.DepthVS = mul(vin.Position, WorldView).z; \
+    vout.PositionWS = mul(vin.Position, World);
 
-	//float4x4 biasedLightWorldViewProj = LightWorldViewProj; \
+	//vout.PositionLightVS = mul(mul(vin.Position, World), LightView);
+    //vout.DepthVS = vout.PositionCS.w; \
+    //vout.PositionWS = mul(vin.Position, World);
 
+static const float4 SplitColors[8] = 
+{
+    float4 ( 1.5f, 0.0f, 0.0f, 1.0f ),
+    float4 ( 0.0f, 1.5f, 0.0f, 1.0f ),
+    float4 ( 0.0f, 0.0f, 5.5f, 1.0f ),
+    float4 ( 1.5f, 0.0f, 5.5f, 1.0f ),
+    float4 ( 1.5f, 1.5f, 0.0f, 1.0f ),
+    float4 ( 1.0f, 1.0f, 1.0f, 1.0f ),
+    float4 ( 0.0f, 1.0f, 5.5f, 1.0f ),
+    float4 ( 0.5f, 3.5f, 0.75f, 1.0f )
+};
 // Vertex shader: basic.
 VSOutput VSBasic(VSInput vin)
 {
@@ -496,7 +518,16 @@ float4 blendWF(float4 src, float4 dst)
     }
 */
 
+float ComputerPercentageLit(int splitIndex, float4 shadowTexCoord, float dist)
+{
+	float shadowFactor = ShadowMapTexture.SampleCmpLevelZero(ShadowSampler, float3(shadowTexCoord.xy, splitIndex), dist);
+	//float shadowDistance = SAMPLE_TEXTURE(ShadowMapTexture, shadowTexCoord).x;
+	return shadowFactor;
+}
+
 // Pixel shader: vertex lighting + texture, no fog.
+// https://github.com/walbourn/directx-sdk-samples/blob/master/CascadedShadowMaps11/RenderCascadeScene.hlsl
+// https://github.com/walbourn/directx-sdk-samples/blob/master/CascadedShadowMaps11/CascadedShadowsManager.cpp
 float4 PSBasicVertexLightingTxNoFog(VSOutputTx pin) : SV_Target0
 {
 	// TODO light is wrongly calculated
@@ -513,37 +544,54 @@ float4 PSBasicVertexLightingTxNoFog(VSOutputTx pin) : SV_Target0
     
     color *= SampleAmbientOcclusionFactors(pin.AmbientOcclusionFactors, pin.TexCoord);
 
-	// quad wireframe
+	// wireframe
     float4 wfColor1 = SAMPLE_TEXTURE(WireframeTexture, pin.WF1TexCoord);
     color = blendWF(wfColor1, color);
     float4 wfColor2 = SAMPLE_TEXTURE(WireframeTexture, pin.WF2TexCoord);
     color = blendWF(wfColor2, color);
 
-    float4 PositionLS = mul(pin.PositionWS, LightWorldViewProj);
-    //float3 shadowPosition = mul(float4(samplePos, 1.0f), ShadowMatrix).xyz;
-
-	// FIXME this can be done upfront in the light projection
-    //float2 shadowTexCoord = mad(0.5f, pin.ShadowPosition.xy / pin.ShadowPosition.w, float2(0.5f, 0.5f));
-    float2 shadowTexCoord = mad(0.5f, PositionLS.xy / PositionLS.w, float2(0.5f, 0.5f));
-    shadowTexCoord.y = 1.0f - shadowTexCoord.y;
+	// shadow cascade
 	
-    //float lightDepth = SAMPLE_TEXTURE(ShadowMapTexture, shadowTexCoord).x;
-    //float lightDistance = pin.ShadowPosition.z / pin.ShadowPosition.w;
-    float lightDistance = PositionLS.z / PositionLS.w;
+	// Interval-based cascade selection uses a vector comparison and a dot product to determine the correct cacade.
+	// The CascadeCount specifies the number of cascades.
+	// The m_fCascadeFrustumsEyeSpaceDepths_data constrains the view frustum partitions.
+	// After the comparison, the fComparison contains a value of 1 where the current pixel is larger than the barrier, and a value of 0 when the current cascade is smaller.
+	// A dot product sums these values into an array index.
 
+	float4 depthVS = float4(-pin.DepthVS, -pin.DepthVS, -pin.DepthVS, -pin.DepthVS);
+	float4 splitDistances = float4(SplitDistances[0].x, SplitDistances[1].x, SplitDistances[2].x, SplitDistances[3].x);
+	float4 comparison = (depthVS > splitDistances);
+	float index = dot(float4( CascadeCount > 0, CascadeCount > 1, CascadeCount > 2, CascadeCount > 3), comparison);
+
+    index = min(index, CascadeCount - 1);
+    int splitIndex = (int)index;
+
+	// FIXME pin.PositionWS is actually in WS
+	float4 positionLightVS = mul(pin.PositionWS, LightViews[splitIndex]);
+	float4 shadowTexCoord = positionLightVS * SplitScales[splitIndex];
+	shadowTexCoord += SplitOffsets[splitIndex];
+	float lightDistance = shadowTexCoord.z;
+
+	//float4 PositionLS = mul(pin.PositionWS, LightView);
+	//float2 shadowTexCoord = mad(float2(0.5f, -0.5f), PositionLS.xy / PositionLS.w, float2(0.5f, 0.5f));
+    //float lightDistance = PositionLS.z / PositionLS.w;
+	
+	// shadow
+	float shadowFactor = ComputerPercentageLit(splitIndex, shadowTexCoord, lightDistance);
+
+	// pixel color
     float4 cout = color * AmbientColor;
 
-    //float2 shadowMapSize;
-    //float numSlices;
-    //ShadowMapTexture.GetDimensions(shadowMapSize.x, shadowMapSize.y/*, numSlices*/);
-
-    float shadowFactor = ShadowMapTexture.SampleCmpLevelZero(ShadowSampler, float3(shadowTexCoord.xy, 0), lightDistance);
     if (shadowFactor)
-    //if (lightDistance <= lightDepth)
     {
         cout += color * pin.Diffuse * shadowFactor;
         AddSpecular(cout, pin.Specular.rgb);
     }
+
+	if (VisualizeSplits)
+	{
+		cout *= SplitColors[splitIndex];
+	}
 
     return cout;
 }

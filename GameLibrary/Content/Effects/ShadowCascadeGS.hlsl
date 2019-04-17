@@ -20,6 +20,7 @@ struct GSOutput
 [maxvertexcount(3)]
 void MainGS(triangle in VSOutput gin[3], inout TriangleStream<GSOutput> triStream)
 {
+/*
     GSOutput gout;
 
     gout.RTIndex = gin[0].SplitIndex;
@@ -34,4 +35,5 @@ void MainGS(triangle in VSOutput gin[3], inout TriangleStream<GSOutput> triStrea
     triStream.Append(gout);
 
     triStream.RestartStrip();
+*/
 }

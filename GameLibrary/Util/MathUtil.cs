@@ -25,5 +25,11 @@ namespace GameLibrary.Component.Util
         {
             return u * (1 - s) + v * s;
         }
+
+        public static double Lerp(double u, double v, double s)
+        {
+            return u * (1 - s) + v * s;
+        }
+
     }
 }

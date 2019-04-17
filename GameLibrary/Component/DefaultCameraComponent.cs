@@ -64,21 +64,24 @@ namespace GameLibrary.Component.Camera
         private const float DEFAULT_ACCELERATION_X = 8.0f;
         private const float DEFAULT_ACCELERATION_Y = 8.0f;
         private const float DEFAULT_ACCELERATION_Z = 8.0f;
-        private const float DEFAULT_MOUSE_SMOOTHING_SENSITIVITY = 0.5f;
+
         private const float DEFAULT_SPEED_FLIGHT_YAW = 100.0f;
         private const float DEFAULT_SPEED_MOUSE_WHEEL = 1.0f;
         private const float DEFAULT_SPEED_ORBIT_ROLL = 100.0f;
         // rotation speed in radians/s
-        private const float DEFAULT_SPEED_ROTATION = MathHelper.Pi / 4;
+        private const float DEFAULT_SPEED_ROTATION = (MathHelper.Pi * 2) / 2000;
         private const float DEFAULT_VELOCITY_X = 2.0f;
         private const float DEFAULT_VELOCITY_Y = 2.0f;
         private const float DEFAULT_VELOCITY_Z = 2.0f;
 
-        public const int MOUSE_SMOOTHING_CACHE_SIZE = 10;
+        public const int MOUSE_SMOOTHING_SAMPLE_COUNT = 10;
+        public const float DEFAULT_MOUSE_SMOOTHING_PERIOD = (1.0f / 60.0f) * 10f;
+        private const float DEFAULT_MOUSE_SMOOTHING_SENSITIVITY = 0.5f;
 
         private DefaultCamera camera;
 
         private bool clickAndDragMouseRotation;
+        private bool mouseEnabled;
 
         private bool movingAlongPosX;
         private bool movingAlongNegX;
@@ -138,6 +141,9 @@ namespace GameLibrary.Component.Camera
             float aspect = (float)clientBounds.Width / (float)clientBounds.Height;
 
             Perspective(DefaultCamera.DEFAULT_FOVX, aspect, DefaultCamera.DEFAULT_ZNEAR, DefaultCamera.DEFAULT_ZFAR);
+
+            mouseEnabled = true;
+            Game.IsMouseVisible = !mouseEnabled;
 
             actionKeys = new Dictionary<Actions, Keys>();
 
@@ -275,20 +281,6 @@ namespace GameLibrary.Component.Camera
             ResetMouse();
         }
 
-        /*
-        public void SetAspect(float aspect)
-        {
-            camera.SetAspect(aspect);
-            ResetMouse();
-        }
-
-        public void SetZFar(float zfar)
-        {
-            camera.SetZFar(zfar);
-            ResetMouse();
-        }
-        */
-
         /// <summary>
         /// Rotates the camera. Positive angles specify counter clockwise
         /// rotations when looking down the axis of rotation towards the
@@ -310,7 +302,7 @@ namespace GameLibrary.Component.Camera
         {
             base.Update(gameTime);
             if (!Game.IsActive) return;
-            UpdateInput();
+            UpdateInput(gameTime);
             UpdateCamera(gameTime);
         }
 
@@ -568,7 +560,10 @@ namespace GameLibrary.Component.Camera
         /// <param name="e">Ignored.</param>
         private void HandleGameActivatedEvent(object sender, EventArgs e)
         {
-            cage.Activate();
+            if (mouseEnabled)
+            {
+                cage.Activate();
+            }
         }
 
         /// <summary>
@@ -578,7 +573,10 @@ namespace GameLibrary.Component.Camera
         /// <param name="e">Ignored.</param>
         private void HandleGameDeactivatedEvent(object sender, EventArgs e)
         {
-            cage.Deactivate();
+            if (mouseEnabled)
+            {
+                cage.Deactivate();
+            }
         }
 
 
@@ -611,13 +609,20 @@ namespace GameLibrary.Component.Camera
         /// Gathers and updates input from all supported input devices for use
         /// by the CameraComponent class.
         /// </summary>
-        private void UpdateInput()
+        private void UpdateInput(GameTime gameTime)
         {
+            float elapsed = (float)gameTime.ElapsedGameTime.TotalSeconds;
+
             currentGamePadState = GamePad.GetState(PlayerIndex.One);
 
             currentKeyboardState = Keyboard.GetState();
 
             cage.Update(Game.Window.ClientBounds);
+
+            if (cage.RightClicked())
+            {
+                MouseEnabled = !MouseEnabled;
+            }
 
             if (clickAndDragMouseRotation)
             {
@@ -647,10 +652,11 @@ namespace GameLibrary.Component.Camera
                                 }
                 */
             }
-            else
+            else if (mouseEnabled)
             {
-                filter.PerformMouseFiltering((float)cage.deltaX, (float)cage.deltaY);
-                filter.PerformMouseSmoothing();
+                filter.PerformMouseFiltering((float)cage.deltaX, (float)cage.deltaY, elapsed);
+                //filter.PerformMouseSmoothing();
+                //Console.WriteLine(cage.deltaX + " " + filter.smoothedMouseMovement.X);
             }
         }
 
@@ -866,10 +872,6 @@ namespace GameLibrary.Component.Camera
             Vector3 direction = new Vector3();
             GetMovementDirection(out direction);
 
-            float dx = 0.0f;
-            float dy = 0.0f;
-            float dz = 0.0f;
-
             // TODO better integrate game pad...
             GamePadThumbSticks thumbSticks = currentGamePadState.ThumbSticks;
             GamePadTriggers triggers = currentGamePadState.Triggers;
@@ -894,64 +896,79 @@ namespace GameLibrary.Component.Camera
             {
                 case DefaultCamera.Behavior.FirstPerson:
                 case DefaultCamera.Behavior.Spectator:
-                    dx = filter.smoothedMouseMovement.X;
-                    dy = filter.smoothedMouseMovement.Y;
-                    if (dx != 0 || dy != 0)
                     {
-                        //Console.WriteLine(dx);
-                        RotateSmoothly(dx * elapsed, dy * elapsed, 0.0f);
-                    }
-
-                    /*if ((dz = GetMouseWheelValueDelta()) != 0.0f)
-                    {
-                        camera.Move(ZAxis, new Vector3(dz * mouseWheelSpeed / 25));
-                    }*/
-
-                    //UpdatePosition(ref direction, elapsed);
-                    break;
-
-                case DefaultCamera.Behavior.Flight:
-                    dy = -filter.smoothedMouseMovement.Y;
-                    dz = filter.smoothedMouseMovement.X;
-
-                    if (dx != 0 || dy != 0)
-                    {
-                        RotateSmoothly(0.0f, dy, dz);
-                    }
-
-                    if ((dx = direction.X * flightYawSpeed * elapsed) != 0.0f)
-                    {
-                        camera.Rotate(dx, 0.0f, 0.0f);
-                    }
-
-                    direction.X = 0.0f; // ignore yaw motion when updating camera's velocity
-                    //UpdatePosition(ref direction, elapsed);
-                    break;
-
-                case DefaultCamera.Behavior.Orbit:
-                    dx = -filter.smoothedMouseMovement.X;
-                    dy = -filter.smoothedMouseMovement.Y;
-
-                    if (dx != 0 || dy != 0)
-                    {
-                        RotateSmoothly(dx, dy, 0.0f);
-                    }
-
-                    if (!camera.PreferTargetYAxisOrbiting)
-                    {
-                        if ((dz = direction.X * orbitRollSpeed * elapsed) != 0.0f)
+                        float dx = filter.smoothedMouseMovement.X;
+                        float dy = filter.smoothedMouseMovement.Y;
+                        //Console.Out.WriteLine(dx + " " + elapsed);
+                        if (elapsed != 0 && (dx != 0 || dy != 0))
                         {
-                            camera.Rotate(0.0f, 0.0f, dz);
+                            // FIXME should be constant speed as dx/dy is a distance (elapsed is already included)
+                            // but it stutters...
+                            //float mouseSpeed = 1 / elapsed;
+                            //float mouseSpeed = 0.005f;// elapsed; // 0.1f;
+
+                            //Console.WriteLine(dx + " " + (dx / elapsed) + " " + elapsed);
+
+                            // pixel / seconds ?
+                            //dx /= elapsed;
+                            //dy /= elapsed;
+
+                            RotateSmoothly(dx, dy, 0.0f);
+                        }
+
+                        /*if ((dz = GetMouseWheelValueDelta()) != 0.0f)
+                        {
+                            camera.Move(ZAxis, new Vector3(dz * mouseWheelSpeed / 25));
+                        }*/
+
+                        //UpdatePosition(ref direction, elapsed);
+                    }
+                    break;
+                case DefaultCamera.Behavior.Flight:
+                    {
+                        float dx = 0;
+                        float dy = -filter.smoothedMouseMovement.Y;
+                        float dz = filter.smoothedMouseMovement.X;
+
+                        if (dy != 0 || dz != 0)
+                        {
+                            RotateSmoothly(0.0f, dy, dz);
+                        }
+
+                        if ((dx = direction.X * flightYawSpeed * elapsed) != 0.0f)
+                        {
+                            camera.Rotate(dx, 0.0f, 0.0f);
+                        }
+
+                        direction.X = 0.0f; // ignore yaw motion when updating camera's velocity
+                                            //UpdatePosition(ref direction, elapsed);
+                    }
+                    break;
+                case DefaultCamera.Behavior.Orbit:
+                    {
+                        float dx = -filter.smoothedMouseMovement.X;
+                        float dy = -filter.smoothedMouseMovement.Y;
+                        float dz = 0;
+
+                        if (dx != 0 || dy != 0)
+                        {
+                            RotateSmoothly(dx, dy, 0.0f);
+                        }
+
+                        if (!camera.PreferTargetYAxisOrbiting)
+                        {
+                            if ((dz = direction.X * orbitRollSpeed * elapsed) != 0.0f)
+                            {
+                                camera.Rotate(0.0f, 0.0f, dz);
+                            }
+                        }
+
+                        if ((dz = GetMouseWheelDirection() * mouseWheelSpeed) != 0.0f)
+                        {
+                            camera.Zoom(dz, camera.OrbitMinZoom, camera.OrbitMaxZoom);
                         }
                     }
-
-                    if ((dz = GetMouseWheelDirection() * mouseWheelSpeed) != 0.0f)
-                    {
-                        camera.Zoom(dz, camera.OrbitMinZoom, camera.OrbitMaxZoom);
-                    }
-
                     break;
-
                 default:
                     break;
             }
@@ -988,10 +1005,26 @@ namespace GameLibrary.Component.Camera
             set
             {
                 clickAndDragMouseRotation = value;
-                Game.IsMouseVisible = value;
 
-                if (value == false)
+                Game.IsMouseVisible = value;
+                if (!value)
                     ResetMouse();
+            }
+        }
+
+        public bool MouseEnabled
+        {
+            get { return mouseEnabled; }
+
+            set
+            {
+                mouseEnabled = value;
+
+                Game.IsMouseVisible = !value;
+                if (value)
+                    cage.Activate();
+                else
+                    cage.Deactivate();
             }
         }
 
@@ -1089,10 +1122,22 @@ namespace GameLibrary.Component.Camera
             set { camera.OrbitTarget = value; }
         }
 
+        public float FovX
+        {
+            get { return camera.FovX; }
+            set { camera.FovX = value; }
+        }
+
         public float AspectRatio
         {
             get { return camera.AspectRatio; }
             set { camera.AspectRatio = value; }
+        }
+
+        public float ZNear
+        {
+            get { return camera.ZNear; }
+            set { camera.ZNear = value; }
         }
 
         public float ZFar
@@ -1193,9 +1238,9 @@ namespace GameLibrary.Component.Camera
             get { return camera.VisitOrder; }
         }
 
-        public SceneGraph.Bounding.Frustum BoundingFrustum
+        public SceneGraph.Bounding.Frustum Frustum
         {
-            get { return camera.BoundingFrustum; }
+            get { return camera.Frustum; }
         }
 
         public SceneGraph.Bounding.Box BoundingBox
@@ -1237,7 +1282,7 @@ namespace GameLibrary.Component.Camera
 
     internal sealed class MouseCage
     {
-        internal MouseState currentMouseState;
+        private MouseState currentMouseState;
         private MouseState previousMouseState;
 
         internal int deltaX;
@@ -1250,12 +1295,15 @@ namespace GameLibrary.Component.Camera
 
         private int cageSize = 100;
 
+        private bool active;
+
         internal MouseCage()
         {
             currentMouseState = Mouse.GetState();
             previousMouseState = currentMouseState;
             savedMousePosX = -1;
             savedMousePosY = -1;
+            active = true;
         }
 
         internal void Activate()
@@ -1265,6 +1313,7 @@ namespace GameLibrary.Component.Camera
                 Mouse.SetPosition(savedMousePosX, savedMousePosY);
                 currentMouseState = Mouse.GetState();
             }
+            active = true;
         }
 
         internal void Deactivate()
@@ -1272,6 +1321,7 @@ namespace GameLibrary.Component.Camera
             MouseState state = Mouse.GetState();
             savedMousePosX = state.X;
             savedMousePosY = state.Y;
+            active = false;
         }
 
         internal void Update(Rectangle clientBounds)
@@ -1283,6 +1333,8 @@ namespace GameLibrary.Component.Camera
             int centerY = clientBounds.Height / 2;
             deltaX = previousMouseState.X - currentMouseState.X;
             deltaY = previousMouseState.Y - currentMouseState.Y;
+
+            //Console.WriteLine(deltaX);
 
             /*
             if (deltaX != 0 || deltaY != 0)
@@ -1301,38 +1353,56 @@ namespace GameLibrary.Component.Camera
                 deltaWheel = 0;
             deltaWheelValue = currentWheelValue - previousWheelValue;
 
-            if ((Math.Abs(centerX - currentMouseState.X) >= cageSize) || (Math.Abs(centerY - currentMouseState.Y) >= cageSize))
+            if (active)
             {
                 // see https://github.com/MonoGame/MonoGame/issues/6262#issuecomment-417870908
-                Mouse.SetPosition(centerX, centerY);
-                currentMouseState = Mouse.GetState();
-                //if (currentMouseState.Position.X != centerX || currentMouseState.Position.Y != centerY)
-                //{
-                //    Console.WriteLine("!!!");
-                //}
+                int dx = Math.Abs(centerX - currentMouseState.X);
+                int dy = Math.Abs(centerY - currentMouseState.Y);
+                if ((dx >= cageSize) || (dy >= cageSize))
+                {
+                    Mouse.SetPosition(centerX, centerY);
+                    currentMouseState = Mouse.GetState();
+                    //Console.WriteLine(currentMouseState.Position);
+                }
             }
+        }
+
+        public bool RightClicked()
+        {
+            return ((currentMouseState.RightButton == ButtonState.Pressed) && (previousMouseState.RightButton == ButtonState.Released));
         }
 
         internal void Reset(Rectangle clientBounds)
         {
-            savedMousePosX = -1;
-            savedMousePosY = -1;
-
-            int centerX = clientBounds.Width / 2;
-            int centerY = clientBounds.Height / 2;
-            Mouse.SetPosition(centerX, centerY);
+            if (active)
+            {
+                int centerX = clientBounds.Width / 2;
+                int centerY = clientBounds.Height / 2;
+                Mouse.SetPosition(centerX, centerY);
+            }
 
             currentMouseState = Mouse.GetState();
             previousMouseState = currentMouseState;
 
             deltaX = 0;
             deltaY = 0;
+
+            savedMousePosX = -1;
+            savedMousePosY = -1;
         }
     }
 
     internal sealed class MouseFilter
     {
-        private Vector2[] mouseSmoothingCache;
+        struct Sample
+        {
+            public Vector2 Position;
+            public int Count;
+            public float Elapsed;
+        }
+
+        private Sample[] mouseSmoothingCache;
+        private int writeIndex;
 
         private Vector2[] mouseMovement;
         private int mouseIndex;
@@ -1343,7 +1413,9 @@ namespace GameLibrary.Component.Camera
 
         internal MouseFilter()
         {
-            mouseSmoothingCache = new Vector2[DefaultCameraComponent.MOUSE_SMOOTHING_CACHE_SIZE];
+            // add one for the write slot
+            mouseSmoothingCache = new Sample[DefaultCameraComponent.MOUSE_SMOOTHING_SAMPLE_COUNT + 1];
+            writeIndex = 0;
 
             mouseIndex = 0;
             mouseMovement = new Vector2[2];
@@ -1364,35 +1436,84 @@ namespace GameLibrary.Component.Camera
         /// </summary>
         /// <param name="x">Horizontal mouse distance from window center.</param>
         /// <param name="y">Vertical mouse distance from window center.</param>
-        internal void PerformMouseFiltering(float x, float y)
+        internal void PerformMouseFiltering(float x, float y, float elapsed)
         {
-            // Shuffle all the entries in the cache.
-            // Newer entries at the front. Older entries towards the back.
-            for (int i = mouseSmoothingCache.Length - 1; i > 0; --i)
-            {
-                mouseSmoothingCache[i].X = mouseSmoothingCache[i - 1].X;
-                mouseSmoothingCache[i].Y = mouseSmoothingCache[i - 1].Y;
-            }
+            // TODO should decimate samples at high fps (or average them)
 
             // Store the current mouse movement entry at the front of cache.
-            mouseSmoothingCache[0].X = x;
-            mouseSmoothingCache[0].Y = y;
+            float dt = DefaultCameraComponent.DEFAULT_MOUSE_SMOOTHING_PERIOD / DefaultCameraComponent.MOUSE_SMOOTHING_SAMPLE_COUNT;
+            if (mouseSmoothingCache[writeIndex].Elapsed + elapsed >= dt)
+            {
+                mouseSmoothingCache[writeIndex].Position.X += x;
+                mouseSmoothingCache[writeIndex].Position.Y += y;
+                mouseSmoothingCache[writeIndex].Count++;
+                mouseSmoothingCache[writeIndex].Elapsed += elapsed;
+                //Console.WriteLine("*** " + dt + " " + mouseSmoothingCache[writeIndex].Elapsed);
+                // move to next
+                writeIndex = (writeIndex + 1) % mouseSmoothingCache.Length;
+                mouseSmoothingCache[writeIndex].Position.X = 0;
+                mouseSmoothingCache[writeIndex].Position.Y = 0;
+                mouseSmoothingCache[writeIndex].Count = 0;
+                mouseSmoothingCache[writeIndex].Elapsed = 0;
+            }
+            else
+            {
+                mouseSmoothingCache[writeIndex].Position.X += x;
+                mouseSmoothingCache[writeIndex].Position.Y += y;
+                mouseSmoothingCache[writeIndex].Count++;
+                mouseSmoothingCache[writeIndex].Elapsed += elapsed;
+                //Console.WriteLine("--- " + elapsed);
+            }
 
             float averageX = 0.0f;
             float averageY = 0.0f;
             float averageTotal = 0.0f;
-            float currentWeight = 1.0f;
+            //float currentWeight = 1.0f;
 
             // Filter the mouse movement with the rest of the cache entries.
             // Use a weighted average where newer entries have more effect than
             // older entries (towards the back of the cache).
-            for (int i = 0; i < mouseSmoothingCache.Length; ++i)
+            float time = 0;
+            int count = 0;
+            int index = writeIndex;
+            if (mouseSmoothingCache[writeIndex].Elapsed == 0)
             {
-                averageX += mouseSmoothingCache[i].X * currentWeight;
-                averageY += mouseSmoothingCache[i].Y * currentWeight;
-                averageTotal += 1.0f * currentWeight;
-                currentWeight *= mouseSmoothingSensitivity;
+                index = (writeIndex - 1 + mouseSmoothingCache.Length) % mouseSmoothingCache.Length;
             }
+            while (time < DefaultCameraComponent.DEFAULT_MOUSE_SMOOTHING_PERIOD)
+            {
+                if (mouseSmoothingCache[index].Elapsed == 0)
+                {
+                    // no more samples...
+                    Console.WriteLine("*** NO MORE SAMPLES");
+                    break;
+                }
+                count++;
+                // exp 
+                // see https://chicounity3d.wordpress.com/2014/05/23/how-to-lerp-like-a-pro/
+                // see http://howlingmoonsoftware.com/wordpress/useful-math-snippets/
+                // TODO should use 
+                //currentWeight *= mouseSmoothingSensitivity;
+                float t = time / DefaultCameraComponent.DEFAULT_MOUSE_SMOOTHING_PERIOD;
+                //t = t * t;
+                t = 1 - (float)Math.Pow(t, mouseSmoothingSensitivity);
+                //t = (float) Math.Exp(mouseSmoothingSensitivity * t);
+                float weight = t;// MathHelper.LerpPrecise(1.0f, 0.0f, t);
+                averageX += mouseSmoothingCache[index].Position.X * weight / mouseSmoothingCache[index].Count;
+                averageY += mouseSmoothingCache[index].Position.Y * weight / mouseSmoothingCache[index].Count;
+                averageTotal += 1.0f * weight;
+                time += mouseSmoothingCache[index].Elapsed;
+                index = (index - 1 + mouseSmoothingCache.Length) % mouseSmoothingCache.Length;
+                if (index == writeIndex)
+                {
+                    break;
+                }
+            }
+            if (time < DefaultCameraComponent.DEFAULT_MOUSE_SMOOTHING_PERIOD)
+            {
+                Console.WriteLine("*** NOT ENOUGH SAMPLES");
+            }
+            //Console.WriteLine(time + " " + index + " " + writeIndex + " " + ((writeIndex - index + mouseSmoothingCache.Length) % mouseSmoothingCache.Length) + " " + count);
 
             // Calculate the new smoothed mouse movement.
             smoothedMouseMovement.X = averageX / averageTotal;
@@ -1408,8 +1529,8 @@ namespace GameLibrary.Component.Camera
         internal void PerformMouseSmoothing()
         {
             // FIXME divide by 10 is totally arbitrary...
-            mouseMovement[mouseIndex].X = smoothedMouseMovement.X / 10f;
-            mouseMovement[mouseIndex].Y = smoothedMouseMovement.Y / 10f;
+            mouseMovement[mouseIndex].X = smoothedMouseMovement.X;// / 10f;
+            mouseMovement[mouseIndex].Y = smoothedMouseMovement.Y;// / 10f;
 
             smoothedMouseMovement.X = (mouseMovement[0].X + mouseMovement[1].X) * 0.5f;
             smoothedMouseMovement.Y = (mouseMovement[0].Y + mouseMovement[1].Y) * 0.5f;
@@ -1424,8 +1545,8 @@ namespace GameLibrary.Component.Camera
             */
 
             mouseIndex ^= 1;
-            mouseMovement[mouseIndex].X = 0.0f;
-            mouseMovement[mouseIndex].Y = 0.0f;
+            //mouseMovement[mouseIndex].X = 0.0f;
+            //mouseMovement[mouseIndex].Y = 0.0f;
         }
 
         internal void Reset()
@@ -1434,7 +1555,10 @@ namespace GameLibrary.Component.Camera
                 mouseMovement[i] = Vector2.Zero;
 
             for (int i = 0; i < mouseSmoothingCache.Length; ++i)
-                mouseSmoothingCache[i] = Vector2.Zero;
+            {
+                mouseSmoothingCache[i].Position = Vector2.Zero;
+                mouseSmoothingCache[i].Elapsed = 0;
+            }
 
             smoothedMouseMovement = Vector2.Zero;
             mouseIndex = 0;
