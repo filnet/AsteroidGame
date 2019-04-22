@@ -16,11 +16,6 @@ namespace GameLibrary.Geometry
 
         private VertexBufferBuilder<VertexPositionColor> builder;
 
-        public FrustumMeshFactory(Vector3[] vertices)
-        {
-            this.vertices = vertices;
-        }
-
         public FrustumMeshFactory(SceneGraph.Bounding.Frustum frustum)
         {
             vertices = frustum.GetCorners();

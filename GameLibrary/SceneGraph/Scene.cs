@@ -37,6 +37,7 @@ namespace GameLibrary.SceneGraph
         // DEBUG STARTS HERE
         public static readonly int DEBUG = 20;
         public static readonly int FRUSTUM = 21;
+        public static readonly int REGION = 22;
 
         public static readonly int BOUNDING_SPHERE = 30;
         public static readonly int BOUNDING_BOX = 31;
@@ -55,6 +56,7 @@ namespace GameLibrary.SceneGraph
         public static readonly int HUD = 45;
         public static readonly int HORTO = 46;
 
+        private static readonly Color WHITE = new Color(Color.White, 255);
         private static readonly Color GREEN = new Color(Color.Green, 255);
         private static readonly Color BLUE = new Color(Color.Blue, 255);
         private static readonly Color YELLOW = new Color(Color.Yellow, 255);
@@ -138,6 +140,7 @@ namespace GameLibrary.SceneGraph
             //renderers[OCTREE] = new OctreeRenderer(EffectFactory.CreateBasicEffect1(GraphicsDevice)); // 3 lights
 
             renderers[FRUSTUM] = new FrustumRenderer(EffectFactory.CreateFrustumEffect(GraphicsDevice));
+            renderers[REGION] = new FrustumRenderer(EffectFactory.CreateVectorEffect(GraphicsDevice, false, WHITE));
 
             bool clip = false; // clipping
             renderers[BOUNDING_SPHERE] = new BoundRenderer(EffectFactory.CreateVectorEffect(GraphicsDevice, clip, GREEN), boundingSphereGeo);
@@ -443,9 +446,10 @@ namespace GameLibrary.SceneGraph
                 }
                 RenderBin renderBin = renderBinKVP.Value;
                 List<Drawable> drawableList = renderBin.DrawableList;
-                if (drawableList.Count() == 0) continue;
-
-                if (Debug) Console.WriteLine(renderBinId + " " + drawableList.Count);
+                if (drawableList.Count() == 0)
+                {
+                    continue;
+                }
 
                 Renderer renderer;
                 renderers.TryGetValue(renderBinId, out renderer);
@@ -455,10 +459,7 @@ namespace GameLibrary.SceneGraph
                 }
                 else
                 {
-                    if (Debug)
-                    {
-                        Console.WriteLine("No renderer found for render group " + renderBinId);
-                    }
+                    if (Debug) Console.WriteLine("No renderer found for render group " + renderBinId);
                 }
             }
 

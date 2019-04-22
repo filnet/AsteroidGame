@@ -331,6 +331,7 @@ namespace GameLibrary.SceneGraph.Bounding
             }
 
             // project hull vertices
+            // TODO this loop can be merged into the next one (and get rid of dst array)
             Vector2[] dst = new Vector2[count];
             for (int i = 0; i < count; i++)
             {

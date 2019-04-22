@@ -277,13 +277,13 @@ namespace GameLibrary.SceneGraph
             drawRequested = false;
         }
 
-        public void CullBegin()
+        public virtual void CullBegin()
         {
             sceneMin = new Vector3(float.MaxValue);
             sceneMax = new Vector3(float.MinValue);
         }
 
-        public void CullEnd()
+        public virtual void CullEnd()
         {
             // visible bounding box includes "whole" chunks
             // so we need to intersect with Frustum to get a tighter visible bounding box
@@ -305,7 +305,12 @@ namespace GameLibrary.SceneGraph
 
         protected internal virtual void ShowStats(String name)
         {
-            Console.WriteLine(name + ": " + DrawCount + " (" + VertexCount + ")");
+            Console.WriteLine(name);
+            //Console.WriteLine("  Frustum cull count : {0}", FrustumCullCount);
+            //Console.WriteLine("  Distance cull count : {0}", FrustumCullCount);
+            //Console.WriteLine("  Frustum cull count : {0}", FrustumCullCount);
+            Console.WriteLine("  Draw count : {0}", DrawCount);
+            Console.WriteLine("  Vertices count : {0}", VertexCount);
         }
 
         public Vector2 ProjectToScreen2(ref Vector3 vector)

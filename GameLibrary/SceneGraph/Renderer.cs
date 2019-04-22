@@ -699,23 +699,27 @@ namespace GameLibrary.SceneGraph
                         }
                         if (instanced)
                         {
-                            int instanceOffset = cascadeSplitInfoList[i].StartSplit;
-                            int instanceCount = cascadeSplitInfoList[i].EndSplit - cascadeSplitInfoList[i].StartSplit + 1;
-                            //Console.WriteLine(cascadeSplitInfoList[i].StartSplit + "-" + cascadeSplitInfoList[i].EndSplit);
+                            CascadeSplitInfo splitInfo = cascadeSplitInfoList[i];
+                            int instanceOffset = splitInfo.StartSplit;
+                            int instanceCount = splitInfo.EndSplit - splitInfo.StartSplit + 1;
 
                             drawable.PreDrawInstanced(rc.GraphicsDevice, instanceVertexBuffer, instanceOffset);
                             drawable.DrawInstanced(rc.GraphicsDevice, instanceCount);
                             drawable.PostDrawInstanced(rc.GraphicsDevice);
+
+                            rc.DrawCount++;
+                            // TODO should mutliply by instanceCount
+                            rc.VertexCount += drawable.VertexCount;
                         }
                         else
                         {
                             drawable.PreDraw(rc.GraphicsDevice);
                             drawable.Draw(rc.GraphicsDevice);
                             drawable.PostDraw(rc.GraphicsDevice);
+
+                            rc.DrawCount++;
+                            rc.VertexCount += drawable.VertexCount;
                         }
-                        rc.DrawCount++;
-                        // TODO should mutliply by instanceCount
-                        rc.VertexCount += drawable.VertexCount;
                     }
                     i++;
                 }
@@ -775,23 +779,26 @@ namespace GameLibrary.SceneGraph
                     {
                         if (instanced)
                         {
-                            int instanceOffset = cascadeSplitInfoList[i].StartSplit;
-                            int instanceCount = cascadeSplitInfoList[i].EndSplit - cascadeSplitInfoList[i].StartSplit + 1;
-                            //Console.WriteLine(cascadeSplitInfoList[i].StartSplit + "-" + cascadeSplitInfoList[i].EndSplit);
+                            CascadeSplitInfo splitInfo = cascadeSplitInfoList[i];
+                            int instanceOffset = splitInfo.StartSplit;
+                            int instanceCount = splitInfo.EndSplit - splitInfo.StartSplit + 1;
 
                             drawable.PreDrawInstanced(rc.GraphicsDevice, instanceVertexBuffer, instanceOffset);
                             drawable.DrawInstanced(rc.GraphicsDevice, instanceCount);
                             drawable.PostDrawInstanced(rc.GraphicsDevice);
+
+                            rc.DrawCount++;
+                            // TODO should mutliply by instanceCount
+                            rc.VertexCount += drawable.VertexCount;
                         }
                         else
                         {
                             drawable.PreDraw(rc.GraphicsDevice);
                             drawable.Draw(rc.GraphicsDevice);
                             drawable.PostDraw(rc.GraphicsDevice);
+                            rc.DrawCount++;
+                            rc.VertexCount += drawable.VertexCount;
                         }
-                        rc.DrawCount++;
-                        // TODO should mutliply by instanceCount
-                        rc.VertexCount += drawable.VertexCount;
                     }
                     i++;
                 }

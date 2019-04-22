@@ -42,9 +42,11 @@ namespace GameLibrary.Geometry
         {
             int vertexCount = close ? vertices.Count() + 1 : vertices.Count();
             VertexBufferBuilder<VertexPositionColor> builder = VertexBufferBuilder<VertexPositionColor>.createVertexPositionColorBufferBuilder(gd, vertexCount, 0);
+            Color color = Color.Red;
             foreach (Vector3 vertex in vertices)
             {
-                builder.AddVertex(vertex, Vector3.Zero, Color.White, Vector2.Zero);
+                builder.AddVertex(vertex, Vector3.Zero, color, Vector2.Zero);
+                color = Color.White;
             }
             if (close)
             {

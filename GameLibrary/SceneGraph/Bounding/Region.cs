@@ -12,6 +12,9 @@ namespace GameLibrary.SceneGraph.Bounding
         private readonly Vector3[] corners = new Vector3[MaxCornerCount];
         private readonly Plane[] planes = new Plane[MaxPlaneCount];
 
+        // DEBUG
+        public Vector3[] lines = new Vector3[0];
+
         #endregion
 
         #region Public Fields
@@ -26,9 +29,12 @@ namespace GameLibrary.SceneGraph.Bounding
         /// <summary>
         /// The number of corner corners in the frustum.
         /// </summary>
-        public const int MaxCornerCount = 8 + 6;
+        public const int MaxCornerCount = 8 + 6 + 6;
 
         public int CornerCount;
+
+        // DEBUG
+        public int LineCount;
 
         #endregion
 
@@ -98,18 +104,30 @@ namespace GameLibrary.SceneGraph.Bounding
         {
             PlaneCount = 0;
             CornerCount = 0;
+            LineCount = 0;
         }
 
-        public void addPlane(ref Plane plane)
+        public void AddPlane(ref Plane plane)
         {
             planes[PlaneCount] = plane;
             PlaneCount++;
         }
 
-        public void addCorner(ref Vector3 point)
+        public void AddCorner(ref Vector3 point)
         {
             corners[CornerCount] = point;
             CornerCount++;
+        }
+
+        // DEBUG
+        public void AddLine(ref Vector3 p1, ref Vector3 p2)
+        {
+            if (lines.Length < LineCount + 2)
+            {
+                Array.Resize(ref lines, LineCount + 2);
+            }
+            lines[LineCount++] = p1;
+            lines[LineCount++] = p2;
         }
 
         #region Contains

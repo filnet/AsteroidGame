@@ -435,7 +435,9 @@ namespace GameLibrary.SceneGraph.Bounding
 
         public override int[] HullIndices(ref Vector3 eye)
         {
-            // compute 6-bit code to classify eye with respect to the 6 defining planes
+            // compute 6-bit code to classify direction with respect to the 6 defining planes
+            // NOTE it is possible to have pos outside the supported range
+            // See HullIndicesFromDirection for fixes
             int pos = 0;
             pos += (ClassifyPoint(ref planes[2], ref eye) > 0.0f) ? 1 << 0 : 0; //  1 = left
             pos += (ClassifyPoint(ref planes[3], ref eye) > 0.0f) ? 1 << 1 : 0; //  2 = right
@@ -472,7 +474,9 @@ namespace GameLibrary.SceneGraph.Bounding
 
         public override Vector3[] HullCornersFromDirection(ref Vector3 dir)
         {
-            // compute 6-bit code to classify eye with respect to the 6 defining planes
+            // compute 6-bit code to classify direction with respect to the 6 defining planes
+            // NOTE it is possible to have pos outside the supported range
+            // See HullIndicesFromDirection for fixes
             int pos = 0;
             pos += (planes[2].DotNormal(dir) > 0.0f) ? 1 << 0 : 0; //  1 = left
             pos += (planes[3].DotNormal(dir) > 0.0f) ? 1 << 1 : 0; //  2 = right
@@ -481,18 +485,16 @@ namespace GameLibrary.SceneGraph.Bounding
             pos += (planes[1].DotNormal(dir) > 0.0f) ? 1 << 5 : 0; // 32 = back / far !!!
             pos += (planes[0].DotNormal(dir) > 0.0f) ? 1 << 4 : 0; // 16 = front / near !!!
 
-            // return empty array if inside
-            if (pos == 0)
-            {
-                return new Vector3[0];
-            }
-
             // look up number of vertices
             pos *= 7;
+            if (pos == 0 || pos >= HULL_LOOKUP_TABLE.Length)
+            {
+                throw new InvalidOperationException("invalid hull lookup index: " + pos / 7);
+            }
             int count = HULL_LOOKUP_TABLE[pos];
             if (count == 0)
             {
-                throw new InvalidOperationException("invalid hull lookup index: " + pos);
+                throw new InvalidOperationException("unsupported hull lookup index: " + pos / 7);
             }
 
             // compute the hull
@@ -518,19 +520,18 @@ namespace GameLibrary.SceneGraph.Bounding
             pos += (planes[1].DotNormal(dir) > 0.0f) ? 1 << 5 : 0; // 32 = back / far !!!
             pos += (planes[0].DotNormal(dir) > 0.0f) ? 1 << 4 : 0; // 16 = front / near !!!
 
-            // return empty array if inside
-            if (pos == 0)
-            {
-                return new int[0];
-            }
-
             // look up number of vertices
             pos *= 7;
+            if (pos == 0 || pos >= HULL_LOOKUP_TABLE.Length)
+            {
+                throw new InvalidOperationException("invalid hull lookup index: " + pos / 7);
+            }
             int count = HULL_LOOKUP_TABLE[pos];
             if (count == 0)
             {
-                throw new InvalidOperationException("invalid hull lookup index: " + pos);
+                throw new InvalidOperationException("unsupported hull lookup index: " + pos / 7);
             }
+            //Console.WriteLine((pos / 7) + " " + region.PlaneCount + " " + count);
 
             // compute the hull
             int[] dst = new int[count];
@@ -544,62 +545,87 @@ namespace GameLibrary.SceneGraph.Bounding
             return dst;
         }
 
+        // http://lspiroengine.com/?p=153
+        // http://lspiroengine.com/?p=187
         public /*override*/ bool RegionFromDirection(ref Vector3 dir, Region region)
         {
+            bool debug = false;
+
+            Vector3 v1, v2, v3, v4;
+
             // 
             region.Clear();
 
             // compute 6-bit code to classify eye with respect to the 6 defining planes
             // and add back faces
+            // NOTE it is possible to have pos outside the supported range
+            // for example 53 (11 01 01)
+            // where both near and far planes are found (when direction is // to near and far planes)
+            // probably other cases fail too...
+            // FIXED by not testing near if far is selected
             int pos = 0;
             if (planes[2].DotNormal(dir) > 0.0f)
             {
                 pos |= 1 << 0; //  1 = left
-                region.addPlane(ref planes[2]);
+                region.AddPlane(ref planes[2]);
             }
             if (planes[3].DotNormal(dir) > 0.0f)
             {
                 pos |= 1 << 1; //  2 = right
-                region.addPlane(ref planes[3]);
+                region.AddPlane(ref planes[3]);
             }
             if (planes[5].DotNormal(dir) > 0.0f)
             {
                 pos |= 1 << 2; //  4 = bottom
-                region.addPlane(ref planes[5]);
+                region.AddPlane(ref planes[5]);
             }
             if (planes[4].DotNormal(dir) > 0.0f)
             {
                 pos |= 1 << 3; //  8 = top
-                region.addPlane(ref planes[4]);
+                region.AddPlane(ref planes[4]);
             }
+            // IMPORTANT note the else if...
+            // to avoid having both near and far selected when direction is // to these planes
+            // FIXME should use an epsilon
             if (planes[1].DotNormal(dir) > 0.0f)
             {
                 pos |= 1 << 5; // 32 = back / far !!!
-                region.addPlane(ref planes[1]);
+                region.AddPlane(ref planes[1]);
+                if (debug)
+                {
+                    v1 = corners[4];
+                    v2 = corners[5];
+                    v3 = corners[6];
+                    v4 = corners[7];
+                    // edges
+                    region.AddLine(ref v1, ref v2);
+                    region.AddLine(ref v2, ref v3);
+                    region.AddLine(ref v3, ref v4);
+                    region.AddLine(ref v4, ref v1);
+                    // normal
+                    Vector3 n1 = (v1 + v3) / 2.0f;
+                    Vector3 n2 = n1 + (planes[1].Normal * 5.0f);
+                    region.AddLine(ref n1, ref n2);
+                }
             }
-            if (planes[0].DotNormal(dir) > 0.0f)
+            else if (planes[0].DotNormal(dir) > 0.0f)
             {
                 pos |= 1 << 4; // 16 = front / near !!!
-                region.addPlane(ref planes[0]);
-            }
-
-            // return false if inside
-            // FIXME makes no sense for a direction to be inside the frustum...
-            if (pos == 0)
-            {
-                return false;// new Vector3[0];
+                region.AddPlane(ref planes[0]);
             }
 
             // look up number of vertices
             pos *= 7;
+            if (pos == 0 || pos >= HULL_LOOKUP_TABLE.Length)
+            {
+                throw new InvalidOperationException("invalid hull lookup index: " + pos / 7);
+            }
             int count = HULL_LOOKUP_TABLE[pos];
-
-            //Console.WriteLine((pos / 7) + " " + region.PlaneCount + " " + count);
-
             if (count == 0)
             {
-                throw new InvalidOperationException("invalid hull lookup index: " + pos);
+                throw new InvalidOperationException("unsupported hull lookup index: " + pos / 7);
             }
+            //Console.WriteLine((pos / 7) + " " + region.PlaneCount + " " + count);
 
             // add corners
             // the frustum and the generated region share the same corners
@@ -611,33 +637,72 @@ namespace GameLibrary.SceneGraph.Bounding
             // FIXME : performances...
             for (int i = 0; i < CornerCount; i++)
             {
-                region.addCorner(ref corners[i]);
+                region.AddCorner(ref corners[i]);
             }
-            Vector3 fakeDir = 100000.0f * dir;
+
+            Vector3 fakeDir = 10000.0f * dir;
 
             // compute lateral faces
-            Vector3[] dst = new Vector3[count];
             int index = HULL_LOOKUP_TABLE[pos + count];
             // FIXME frustrum corners are not ordered the same as BB_HULL_VERTICES
             if (index < 4) index = 3 - index; else index = 11 - index;
-            Vector3 v1 = corners[index];
+            v1 = corners[index];
             for (int i = 0; i < count; i++)
             {
                 index = HULL_LOOKUP_TABLE[++pos];
                 // FIXME frustrum corners are not ordered the same as BB_HULL_VERTICES
                 if (index < 4) index = 3 - index; else index = 11 - index;
-                Vector3 v2 = corners[index];
+                v2 = corners[index];
 
-                Plane p = new Plane(v1, v2, v1 - dir);
-                region.addPlane(ref p);
+                // HACK
+                v3 = v2 - fakeDir;
+                v4 = v1 - fakeDir;
+
+                Plane p = new Plane(v1, v2, v3);
+                region.AddPlane(ref p);
 
                 // add fake corners...
                 // HACK
-                Vector3 c = v1 - fakeDir;
-                region.addCorner(ref c);
+                region.AddCorner(ref v3);
+                region.AddCorner(ref v4);
+
+                if (debug)
+                {
+                    // edges
+                    region.AddLine(ref v1, ref v2);
+                    region.AddLine(ref v2, ref v3);
+                    region.AddLine(ref v3, ref v4);
+                    region.AddLine(ref v4, ref v1);
+                    // normal
+                    Vector3 n1 = (v1 + v3) / 2.0f;
+                    Vector3 n2 = n1 + (p.Normal * 5.0f);
+                    region.AddLine(ref n1, ref n2);
+                }
 
                 v1 = v2;
             }
+
+            /*Matrix m = Matrix.CreateLookAt(Vector3.Zero, Vector3.Zero + dir, Vector3.Up);
+            Vector2[] dst = new Vector2[count];
+            pos -= count;
+            for (int i = 0; i < count; i++)
+            {
+                index = HULL_LOOKUP_TABLE[++pos];
+                // FIXME frustrum corners are not ordered the same as BB_HULL_VERTICES
+                if (index < 4) index = 3 - index; else index = 11 - index;
+                Vector3 v = corners[index];
+
+                v = Vector3.Transform(v, m);
+                dst[i].X = v.X;
+                dst[i].Y = v.Y;
+            }
+            float sum = (dst[count - 1].X - dst[0].X) * (dst[count - 1].Y + dst[0].Y);
+            for (int i = 0; i < count - 1; i++)
+            {
+                sum += (dst[i].X - dst[i + 1].X) * (dst[i].Y + dst[i + 1].Y);
+            }
+            Console.WriteLine(" " + Math.Sign(sum) + " " + sum);*/
+
             return true;
         }
 

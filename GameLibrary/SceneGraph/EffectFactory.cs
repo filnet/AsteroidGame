@@ -174,7 +174,8 @@ namespace GameLibrary.SceneGraph
             BasicEffect effect = new BasicEffect(gd);
 
             // primitive color
-            effect.AmbientLightColor = new Vector3(1f, 1f, 1f);
+            effect.VertexColorEnabled = true;
+            effect.AmbientLightColor = new Vector3(0.5f, 0.5f, 0.5f);
             effect.DiffuseColor = new Vector3(1.0f, 1.0f, 1.0f);
             effect.SpecularColor = new Vector3(0.25f, 0.25f, 0.25f);
             //effect.SpecularPower = 5.0f;

@@ -28,8 +28,8 @@ namespace GameLibrary.Component.Camera
 
         public const float DEFAULT_FOVX = MathHelper.Pi / 3.0f;
         public const float DEFAULT_ZNEAR = 0.1f;
-        //public const float DEFAULT_ZFAR = 1000;
-        public const float DEFAULT_ZFAR = 500;
+        public const float DEFAULT_ZFAR = 1000;
+        //public const float DEFAULT_ZFAR = 500;
         //public const float DEFAULT_ZFAR = 55.7965f;
         //public const float DEFAULT_ZFAR = 50;
 

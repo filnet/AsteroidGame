@@ -29,6 +29,7 @@
     <Compile Include="$(MSBuildThisFileDirectory)Geometry\Common\BuilderFactory.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Geometry\Common\VertexPositionColorNormalTexture.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Geometry\Common\ShadowInstanceVertex.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)Geometry\RegionMeshFactory.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)SceneGraph\Bounding\Box.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)SceneGraph\Bounding\Region.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)SceneGraph\Bounding\Frustum.cs" />

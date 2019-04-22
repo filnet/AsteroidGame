@@ -59,6 +59,7 @@ namespace GameLibrary.SceneGraph
 
         // lights
         private bool shadowsEnabled;
+
         private readonly List<LightNode> lightNodes;
         private readonly List<LightRenderContext> lightRenderContextes;
 
@@ -182,7 +183,6 @@ namespace GameLibrary.SceneGraph
         {
             lightNodes.Add(lightNode);
 
-            LightRenderContext lightRenderContext;
             int index = lightNodes.Count - 1;
             if (index >= lightRenderContextes.Count)
             {
@@ -191,17 +191,11 @@ namespace GameLibrary.SceneGraph
                 lightDirection.Normalize();
                 LightCamera lightCamera = new LightCamera(lightDirection);
 
-                lightRenderContext = new LightRenderContext(GraphicsDevice, lightCamera);
+                LightRenderContext lightRenderContext = new LightRenderContext(GraphicsDevice, lightCamera);
                 lightRenderContext.ShowShadowMap = true;
 
                 lightRenderContextes.Add(lightRenderContext);
-
             }
-            else
-            {
-                lightRenderContext = lightRenderContextes[index];
-            }
-            lightRenderContext.FitToViewStable(this);
         }
 
         public void AddRefraction()
@@ -310,6 +304,7 @@ namespace GameLibrary.SceneGraph
         public override void ResetStats()
         {
             base.ResetStats();
+            // TODO not all lights are used...
             foreach (RenderContext context in lightRenderContextes)
             {
                 context.ResetStats();
@@ -333,6 +328,7 @@ namespace GameLibrary.SceneGraph
         {
             base.ShowStats(name);
             int i = 1;
+            // TODO not all lights are used...
             foreach (RenderContext context in lightRenderContextes)
             {
                 context.ShowStats("Light #" + i++);
@@ -347,6 +343,21 @@ namespace GameLibrary.SceneGraph
             {
                 context.ShowStats("Reflection #" + i++);
             }
+        }
+
+        public override void CullBegin()
+        {
+            base.CullBegin();
+            // TODO not all lights are used...
+            foreach (LightRenderContext context in lightRenderContextes)
+            {
+                context.FitToViewStable(this);
+            }
+        }
+
+        public override void CullEnd()
+        {
+            base.CullEnd();
         }
 
         protected override void AddToRenderBin(RenderBin renderBin, Drawable drawable)
