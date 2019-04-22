@@ -174,9 +174,13 @@ namespace GameLibrary.Voxel
                 //if (n < 0.001f) return 3;
                 if (y < 5)
                 {
-                    int lx = (x >= 0) ? x % size : size + (x % size) - 1;
-                    int ly = (y >= 0) ? y % size : size + (y % size) - 1;
-                    int lz = (z >= 0) ? z % size : size + (z % size) - 1;
+                    int lx, ly, lz;
+                    lx = (x >= 0) ? x % size : size + (x % size) - 1;
+                    ly = (y >= 0) ? y % size : size + (y % size) - 1;
+                    lz = (z >= 0) ? z % size : size + (z % size) - 1;
+                    /*lx = x;
+                    ly = y;
+                    lz = z;*/
 
                     if ((lx == 2 || lx == 3) && (lz == 2 || lz == 3))
                     {

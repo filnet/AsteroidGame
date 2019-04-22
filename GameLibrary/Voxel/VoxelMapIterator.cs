@@ -104,11 +104,10 @@ namespace GameLibrary.Voxel
                 // inside
                 return map.Get(nx, ny, nz);
             }
-         
+
             // outside
             Direction nDirection = Octree<VoxelChunk>.DIR_LOOKUP_TABLE[lookupIndex];
             VoxelMap nMap = getNeighbourMap(nDirection);
-
             Debug.Assert(nMap.Contains(nx, ny, nz));
             return nMap.Get(nx, ny, nz);
         }
@@ -134,10 +133,13 @@ namespace GameLibrary.Voxel
             {
                 ulong l = octree.GetNeighborOfGreaterOrEqualSize(node.locCode, direction);
                 OctreeNode<VoxelChunk> neighbourNode = octree.LookupNode(l);
-                map = (neighbourNode != null) ? neighbourNode.obj.VoxelMap : EmptyVoxelMap.INSTANCE;
+                map = (neighbourNode != null) ? neighbourNode.obj.VoxelMap : null;
+                if (map == null)
+                {
+                    map = EmptyVoxelMap.INSTANCE;
+                }
                 neighboursMap[(int)direction] = map;
             }
-
             return map;
         }
     }
