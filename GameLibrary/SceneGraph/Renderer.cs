@@ -438,16 +438,14 @@ namespace GameLibrary.SceneGraph
                 pass.Apply();
                 foreach (Drawable drawable in drawableList)
                 {
-                    if (!drawable.Enabled || !drawable.Visible)
+                    if (drawable.Enabled && drawable.Visible)
                     {
-                        break;
+                        drawable.PreDraw(rc.GraphicsDevice);
+                        drawable.Draw(rc.GraphicsDevice);
+                        drawable.PostDraw(rc.GraphicsDevice);
+                        rc.DrawCount++;
+                        rc.VertexCount += drawable.VertexCount;
                     }
-                    drawable.PreDraw(rc.GraphicsDevice);
-                    drawable.Draw(rc.GraphicsDevice);
-                    drawable.PostDraw(rc.GraphicsDevice);
-
-                    rc.DrawCount++;
-                    rc.VertexCount += drawable.VertexCount;
                 }
             }
         }
@@ -513,7 +511,6 @@ namespace GameLibrary.SceneGraph
             foreach (EffectPass pass in effect.CurrentTechnique.Passes)
             {
                 pass.Apply();
-                int i = 0;
                 foreach (Drawable drawable in drawableList)
                 {
                     if (drawable.Enabled && drawable.Visible)
@@ -524,7 +521,6 @@ namespace GameLibrary.SceneGraph
                         rc.DrawCount++;
                         rc.VertexCount += drawable.VertexCount;
                     }
-                    i++;
                 }
             }
         }

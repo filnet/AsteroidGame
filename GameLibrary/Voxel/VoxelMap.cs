@@ -1,6 +1,7 @@
 ﻿using GameLibrary.Util;
 using System;
 using System.Diagnostics;
+using System.IO;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 
@@ -66,13 +67,16 @@ namespace GameLibrary.Voxel
         bool Next(ref MapIterator ite, out ushort value);
 
         void Visit(Visitor visitor, VoxelMapIterator ite);
+
+        void Read(BinaryReader reader);
+        void Write(BinaryWriter writer);
     }
 
     class EmptyVoxelMap : VoxelMap
     {
         public static readonly VoxelMap INSTANCE = new EmptyVoxelMap();
 
-        public EmptyVoxelMap() { }
+        private EmptyVoxelMap() { }
 
         public int X0() { return 0; }
         public int Y0() { return 0; }
@@ -97,6 +101,9 @@ namespace GameLibrary.Voxel
         }
 
         public void Visit(Visitor visitor, VoxelMapIterator ite) { }
+
+        public void Read(BinaryReader reader) { }
+        public void Write(BinaryWriter writer) { }
     }
 
     public abstract class AbstractVoxelMap : VoxelMap
@@ -216,6 +223,9 @@ namespace GameLibrary.Voxel
         {
             return (x - x0) + (y - y0) * size + (z - z0) * size2;
         }
+
+        public virtual void Read(BinaryReader reader) { throw new NotImplementedException(); }
+        public virtual void Write(BinaryWriter writer) { throw new NotImplementedException(); }
     }
 
     public class ArrayVoxelMap : AbstractVoxelMap
@@ -278,6 +288,7 @@ namespace GameLibrary.Voxel
             ite.index++;
             return true;
         }
+
     }
 
     public class RLEVoxelMap : AbstractVoxelMap
@@ -399,6 +410,41 @@ namespace GameLibrary.Voxel
             }
             return true;
         }
+
+        public override void Read(BinaryReader reader)
+        {
+            ushort length = reader.ReadUInt16();
+
+            byte[] buffer = new byte[length * 2];
+            reader.Read(buffer, 0, buffer.Length);
+
+            data = new ushort[length];
+
+            int p = 0;
+            for (int i = 0; i < data.Length; i++)
+            {
+                ushort d = (ushort) ((buffer[p + 1] << 8) + buffer[p]);
+                data[i] = d;
+                p += 2;
+            }
+        }
+
+        public override void Write(BinaryWriter writer)
+        {
+            writer.Write((ushort) data.Length);
+
+            byte[] buffer = new byte[data.Length * 2];
+            int p = 0;
+            for(int i = 0; i < data.Length; i++)
+            {
+                ushort d = data[i];
+                buffer[p] = (byte)(d & 0xFF);
+                buffer[p + 1] = (byte)((d >> 8) & 0xFF);
+                p += 2;
+            }
+            writer.Write(buffer);
+        }
+
     }
 
 }

@@ -555,6 +555,7 @@ namespace GameLibrary.SceneGraph
                 // FIXME get rid this endless if/else if/else if/...
                 if (node is VoxelOctreeGeometry voxelOctreeGeometry)
                 {
+                    // FIXME violently clears load queue
                     voxelOctreeGeometry.voxelOctree.ClearLoadQueue();
                     voxelOctreeGeometry.voxelOctree.Visit(
                         ctxt.CullCamera.VisitOrder, VOXEL_OCTREE_CULL_VISITOR, null, VOXEL_OCTREE_CULL_POST_VISITOR, ref arg);

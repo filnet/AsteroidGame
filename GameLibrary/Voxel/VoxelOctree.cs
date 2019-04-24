@@ -9,6 +9,7 @@ using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Diagnostics;
+using System.IO;
 using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
@@ -160,23 +161,38 @@ namespace GameLibrary.Voxel
             }
             else
             {
-                int x;
-                int y;
-                int z;
+                int x, y, z;
                 octree.GetNodeCoordinates(node, out x, out y, out z);
-                //VoxelMap map = new AOTestVoxelMap(chunkSize, x, y, z);
-                //VoxelMap map = new SpongeVoxelMap(chunkSize, x, y, z);
-                VoxelMap perlinNoiseMap = new PerlinNoiseVoxelMap(chunkSize, x, y, z);
-
-                VoxelMap map = perlinNoiseMap;
-
-                if (CompressAtInitialization)
+                String name = Octree<VoxelChunk>.LocCodeToString(node.locCode);
+                VoxelMap map = EmptyVoxelMap.INSTANCE;
+                bool loaded = false;
+                if (!loaded)
                 {
-                    RLEVoxelMap rleMap = new RLEVoxelMap(map);
-                    rleMap.InitializeFrom(map);
-                    map = rleMap;
+                    RLEVoxelMap rleMap = new RLEVoxelMap(chunkSize, x, y, z);
+                    if (ReadVoxelMap(name, rleMap))
+                    {
+                        map = rleMap;
+                        loaded = true;
+                    }
                 }
+                if (!loaded)
+                {
+                    //VoxelMap map = new AOTestVoxelMap(chunkSize, x, y, z);
+                    //VoxelMap map = new SpongeVoxelMap(chunkSize, x, y, z);
+                    VoxelMap perlinNoiseMap = new PerlinNoiseVoxelMap(chunkSize, x, y, z);
 
+                    map = perlinNoiseMap;
+
+                    if (CompressAtInitialization)
+                    {
+                        RLEVoxelMap rleMap = new RLEVoxelMap(map);
+                        rleMap.InitializeFrom(map);
+                        map = rleMap;
+                    }
+
+                    WriteVoxelMap(name, map);
+                    loaded = true;
+                }
                 if (!map.IsEmpty())
                 {
                     voxelChunk = new VoxelChunk();
@@ -218,6 +234,35 @@ namespace GameLibrary.Voxel
                 }
             }
             return voxelChunk;
+        }
+
+        public bool ReadVoxelMap(String name, VoxelMap map)
+        {
+            String path = "C:\\Projects\\XNA\\Save\\" + name;
+
+            try
+            {
+                using (var reader = new BinaryReader(File.Open(path, FileMode.Open)))
+                {
+                    map.Read(reader);
+                }
+            }
+            catch (IOException ex)
+            {
+                //Console.WriteLine(ex.Message);
+                return false;
+            }
+            return true;
+        }
+
+        public bool WriteVoxelMap(String name, VoxelMap map)
+        {
+            String path = "C:\\Projects\\XNA\\Save\\" + name;
+            using (var writer = new BinaryWriter(File.Open(path, FileMode.OpenOrCreate)))
+            {
+                map.Write(writer);
+            }
+            return true;
         }
 
         public override bool LoadNode(OctreeNode<VoxelChunk> node, ref Object arg)

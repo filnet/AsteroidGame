@@ -103,7 +103,6 @@ float SampleAmbientOcclusionFactors(float4 factors, float2 texCoord)
 
 	//vout.PositionLightVS = mul(mul(vin.Position, World), LightView);
     //vout.DepthVS = vout.PositionCS.w; \
-    //vout.PositionWS = mul(vin.Position, World);
 
 static const float4 SplitColors[8] = 
 {

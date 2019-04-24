@@ -493,7 +493,7 @@ namespace GameLibrary.Voxel
                 TileInfo oppositeTileInfo = TileInfo.TILES[ite.Value(face)];
                 // check if voxel has a face in given direction
                 bool show = tileInfo.HasFace(face);
-                // check if neighbour opposite face is opaque and, if yes, di=on't show this face
+                // check if neighbour opposite face is opaque and, if yes, don't show this face
                 show = show && !oppositeTileInfo.HasOpaqueFace(oppositeFace);
                 // check that both are not transparent (transparent cancels out...)
                 show = show && !(tileInfo.IsTransparent && oppositeTileInfo.IsSolid && oppositeTileInfo.IsTransparent);

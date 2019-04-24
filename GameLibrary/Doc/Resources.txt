@@ -38,6 +38,14 @@ Voxel
 
 http://codeflow.org/entries/2010/dec/09/minecraft-like-rendering-experiments-in-opengl-4/#ambient-occlusion
 
+Voxel Cave Culling
+
+quite good: https://tomcc.github.io/2014/08/31/visibility-1.html
+
+Voxel LOD
+
+https://0fps.net/2018/03/03/a-level-of-detail-method-for-blocky-voxels/
+
 Octree + portals + custom Frustum
 
 Octree Front to back traversal : http://graphicsinterface.org/wp-content/uploads/gi1991-21.pdf
