@@ -138,6 +138,16 @@ namespace Voxel
             }
         }
 
+        public Matrix DepthWorldView
+        {
+            get { return worldView; }
+
+            set
+            {
+                worldView = value;
+                //dirtyFlags |= EffectDirtyFlags.WorldViewProj | EffectDirtyFlags.EyePosition | EffectDirtyFlags.Fog;
+            }
+        }
 
         /// <summary>
         /// Gets or sets the material ambient color (range 0 to 1).
@@ -556,9 +566,12 @@ namespace Voxel
         /// </summary>
         protected override void OnApply()
         {
+            // HACK set it now so we use the "DepthWorldView"
+            worldViewParam.SetValue(worldView);
             // Recompute the world+view+projection matrix or fog vector?
             dirtyFlags = EffectHelpers.SetWorldViewProj(dirtyFlags, ref world, ref view, ref projection, ref worldView, worldViewProjParam);
-            worldViewParam.SetValue(worldView);
+            // HACK line below was commented out to use "DepthWorldView"
+            //worldViewParam.SetValue(worldView);
 
             dirtyFlags |= EffectHelpers.SetFog(dirtyFlags, ref worldView, fogEnabled, fogStart, fogEnd, fogVectorParam);
 

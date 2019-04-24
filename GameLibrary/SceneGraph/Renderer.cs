@@ -432,6 +432,8 @@ namespace GameLibrary.SceneGraph
                 effectMatrices.View = rc.RenderCamera.ViewMatrix;
                 effectMatrices.World = Matrix.Identity;
             }
+            // HACK to properly see splits when CullCamera is frozen...
+            effect.DepthWorldView = rc.CullCamera.ViewMatrix;
 
             foreach (EffectPass pass in effect.CurrentTechnique.Passes)
             {
