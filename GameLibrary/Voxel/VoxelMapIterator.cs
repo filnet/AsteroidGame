@@ -10,24 +10,28 @@ namespace GameLibrary.Voxel
 {
     public abstract class VoxelMapIterator
     {
-        protected readonly VoxelMap map;
+        protected VoxelMap map;
+
+        protected int x0;
+        protected int y0;
+        protected int z0;
+
+        protected int size;
 
         protected int x;
         protected int y;
         protected int z;
         protected ushort v;
 
-        protected readonly int x0;
-        protected readonly int y0;
-        protected readonly int z0;
-
-        protected readonly int size;
-
         public int emptyVoxelsCount;
         public int voxelsCount;
         public int facesCount;
 
-        public VoxelMapIterator(VoxelMap map)
+        public VoxelMapIterator()
+        {
+        }
+
+        internal void Init(VoxelMap map)
         {
             this.map = map;
             size = map.Size();
@@ -53,15 +57,15 @@ namespace GameLibrary.Voxel
 
     class OctreeVoxelMapIterator : VoxelMapIterator
     {
-        private readonly VoxelOctree octree;
-        private readonly OctreeNode<VoxelChunk> node;
+        private readonly Octree<VoxelChunk> octree;
+        private readonly ulong nodeLocCode;
 
         private VoxelMap[] neighboursMap;
 
-        public OctreeVoxelMapIterator(VoxelOctree octree, OctreeNode<VoxelChunk> node) : base(node.obj.VoxelMap)
+        public OctreeVoxelMapIterator(Octree<VoxelChunk> octree, ulong nodeLocCode)
         {
             this.octree = octree;
-            this.node = node;
+            this.nodeLocCode = nodeLocCode;
         }
 
         public override int Value()
@@ -134,7 +138,7 @@ namespace GameLibrary.Voxel
             VoxelMap map = neighboursMap[(int)direction];
             if (map == null)
             {
-                ulong l = octree.GetNeighborOfGreaterOrEqualSize(node.locCode, direction);
+                ulong l = octree.GetNeighborOfGreaterOrEqualSize(nodeLocCode, direction);
                 OctreeNode<VoxelChunk> neighbourNode = octree.LookupNode(l);
                 map = (neighbourNode != null) ? neighbourNode.obj.VoxelMap : null;
                 if (map == null)
@@ -149,7 +153,7 @@ namespace GameLibrary.Voxel
 
     class SimpleVoxelMapIterator : VoxelMapIterator
     {
-        public SimpleVoxelMapIterator(VoxelMap map) : base(map)
+        public SimpleVoxelMapIterator()
         {
         }
 

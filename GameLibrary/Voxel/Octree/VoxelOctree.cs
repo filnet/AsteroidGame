@@ -54,7 +54,7 @@ namespace GameLibrary.Voxel.Octree
         public void Initialize(GraphicsDevice graphicsDevice)
         {
             this.graphicsDevice = graphicsDevice;
-            meshFactory = new VoxelMapMeshFactory(this, graphicsDevice);
+            meshFactory = new VoxelMapMeshFactory(graphicsDevice);
 
             Stopwatch sw = new Stopwatch();
             sw.Start();
@@ -249,14 +249,15 @@ namespace GameLibrary.Voxel.Octree
 
         public override bool LoadNode(OctreeNode<VoxelChunk> node, ref Object arg)
         {
+            //Console.WriteLine("Queuing " + node.locCode + " " + node.obj.State);
             node.obj.State = VoxelChunkState.Queued;
-            //Console.WriteLine("Queuing " + node.locCode);
             loadQueue.Add(node);
             return true;
         }
 
         public override void ClearLoadQueue()
         {
+            //Console.WriteLine("ClearLoadQueue");
             // FIXME emptying the queue will cause the consumer thread to take "newer" items early
             // should pause the thread
             // TODO don't clear on each redraw...
@@ -354,11 +355,16 @@ namespace GameLibrary.Voxel.Octree
             // TODO performance: the depth test is expensive...
             if (node.obj.VoxelMap != null /*&& Octree<VoxelChunk>.GetNodeTreeDepth(node) == Depth*/)
             {
-                Mesh mesh = meshFactory.CreateMesh(node);
-                if (mesh != null)
+                // FIXME : garbage
+                VoxelMapIterator ite = new OctreeVoxelMapIterator(this, node.locCode);
+                meshFactory.BuildMeshes(node.obj, ite);
+
+                Mesh opaqueMesh = meshFactory.CreateOpaqueMesh();
+                if (opaqueMesh != null)
                 {
-                    node.obj.Drawable = new MeshDrawable(Scene.VOXEL, mesh);
+                    node.obj.Drawable = new MeshDrawable(Scene.VOXEL, opaqueMesh);
                 }
+
                 // FIXME meshFactory API is bad...
                 Mesh transparentMesh = meshFactory.CreateTransparentMesh();
                 if (transparentMesh != null)

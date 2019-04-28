@@ -9,18 +9,15 @@ namespace GameLibrary.Voxel
 {
     public class VoxelMapMeshFactory : IMeshFactory
     {
-        private readonly VoxelOctree octree;
-
         private readonly GraphicsDevice graphicsDevice;
 
         private readonly DrawVisitor drawVisitor;
 
-        public VoxelMapMeshFactory(VoxelOctree octree, GraphicsDevice graphicsDevice)
+        public VoxelMapMeshFactory(GraphicsDevice graphicsDevice)
         {
-            this.octree = octree;
             this.graphicsDevice = graphicsDevice;
 
-            drawVisitor = new DrawVisitor(this);
+            drawVisitor = new DrawVisitor();
             drawVisitor.opaqueBuilder = VertexBufferBuilder<VoxelVertex>.createVoxelVertexBufferBuilder(graphicsDevice);
             drawVisitor.transparentBuilder = VertexBufferBuilder<VoxelVertex>.createVoxelVertexBufferBuilder(graphicsDevice);
         }
@@ -31,56 +28,43 @@ namespace GameLibrary.Voxel
             return null;
         }
 
-        ArrayVoxelMap arrayVoxelMap;
+        // FIXME should come from a pool
+        private ArrayVoxelMap arrayVoxelMap;
 
-        public Mesh CreateMesh(OctreeNode<VoxelChunk> node)
+        public void BuildMeshes(VoxelChunk voxelChunk, VoxelMapIterator ite)
         {
             drawVisitor.opaqueBuilder.Reset();
             drawVisitor.transparentBuilder.Reset();
 
             if (arrayVoxelMap == null)
             {
-                arrayVoxelMap = new ArrayVoxelMap(node.obj.VoxelMap);
+                arrayVoxelMap = new ArrayVoxelMap(voxelChunk.VoxelMap);
             }
-            arrayVoxelMap.InitializeFrom(node.obj.VoxelMap);
+            arrayVoxelMap.InitializeFrom(voxelChunk.VoxelMap);
+            arrayVoxelMap.Visit(drawVisitor, ite);
+        }
 
-            // HACK
-            VoxelMap tmpVoxelMap = node.obj.VoxelMap;
-            node.obj.VoxelMap = arrayVoxelMap;
-
-            // FIXME : garbage
-            VoxelMapIterator ite = new OctreeVoxelMapIterator(octree, node);
-
-            node.obj.VoxelMap.Visit(drawVisitor, ite);
-
-            node.obj.VoxelMap = tmpVoxelMap;
-
-            if (drawVisitor.opaqueBuilder.VertexCount <= 0)
-            {
-                return null;
-            }
-            Mesh mesh = new Mesh(PrimitiveType.TriangleList, drawVisitor.opaqueBuilder.VertexCount / 2);
-            drawVisitor.opaqueBuilder.SetToMesh(mesh);
-
-            //mesh.BoundingVolume = new GameLibrary.SceneGraph.Bounding.BoundingBox(octree.Center, octree.HalfSize);
-            SceneGraph.Bounding.Box box = new SceneGraph.Bounding.Box();
-            drawVisitor.opaqueBuilder.ExtractBoundingBox(box);
-            mesh.BoundingVolume = box;
-
-            return mesh;
+        public Mesh CreateOpaqueMesh()
+        {
+            return CreateMesh(drawVisitor.opaqueBuilder);
         }
 
         public Mesh CreateTransparentMesh()
         {
-            if (drawVisitor.transparentBuilder.VertexCount <= 0)
+            return CreateMesh(drawVisitor.transparentBuilder);
+        }
+
+        private static Mesh CreateMesh(VertexBufferBuilder<VoxelVertex> builder)
+        {
+            if (builder.VertexCount <= 0)
             {
                 return null;
             }
-            Mesh mesh = new Mesh(PrimitiveType.TriangleList, drawVisitor.transparentBuilder.VertexCount / 2);
-            drawVisitor.transparentBuilder.SetToMesh(mesh);
+            Mesh mesh = new Mesh(PrimitiveType.TriangleList, builder.VertexCount / 2);
+            builder.SetToMesh(mesh);
 
             SceneGraph.Bounding.Box box = new SceneGraph.Bounding.Box();
-            drawVisitor.transparentBuilder.ExtractBoundingBox(box);
+            builder.ExtractBoundingBox(box);
             mesh.BoundingVolume = box;
 
             return mesh;
@@ -90,7 +74,6 @@ namespace GameLibrary.Voxel
         {
             //private static float DEFAULT_VOXEL_SIZE = 0.5773502692f; // 1 over the square root of 3
 
-            private readonly VoxelMapMeshFactory factory;
             public VertexBufferBuilder<VoxelVertex> opaqueBuilder;
             public VertexBufferBuilder<VoxelVertex> transparentBuilder;
 
@@ -152,10 +135,8 @@ namespace GameLibrary.Voxel
             Vector3 leftNormal = new Vector3(-1.0f, 0.0f, 0.0f);
             Vector3 rightNormal = new Vector3(1.0f, 0.0f, 0.0f);
 
-            public DrawVisitor(VoxelMapMeshFactory factory)
+            public DrawVisitor()
             {
-                this.factory = factory;
-
                 // front face vertices
                 bottomLeftFront = new Vector3(-d, -d, d);
                 topLeftFront = new Vector3(-d, d, d);

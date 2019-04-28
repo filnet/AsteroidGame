@@ -187,6 +187,8 @@ namespace GameLibrary.Voxel
             int y = 0;
             int z = 0;
 
+            ite.Init(this);
+
             MapIterator iterator = new MapIterator(this);
             ushort value;
             while (iterator.Next(out value))

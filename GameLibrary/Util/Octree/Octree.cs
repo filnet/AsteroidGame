@@ -258,14 +258,13 @@ namespace GameLibrary.Util.Octree
         // TODO does not belong here
         public virtual bool LoadNode(OctreeNode<T> node, ref Object arg)
         {
-            // NOOP
-            return true;
+            throw new NotImplementedException();
         }
 
         // TODO does not belong here
         public virtual void ClearLoadQueue()
         {
-            // NOOP
+            throw new NotImplementedException();
         }
 
         public void GetNodeHalfSize(OctreeNode<T> node, out Vector3 halfSize)
@@ -416,12 +415,7 @@ namespace GameLibrary.Util.Octree
 
         public ulong GetNeighborOfGreaterOrEqualSize(ulong nodeLocCode, Direction direction)
         {
-            //String nodeLocCodeString = Convert.ToString((long)nodeLocCode, 2);
             DirData dirData = DIR_DATA[(int)direction];
- /*           if (direction == Direction.TopRight)
-            {
-                Console.WriteLine("!!!");
-            }*/
             return getNeighborOfGreaterOrEqualSize(nodeLocCode, dirData.mask, dirData.value);
         }
 

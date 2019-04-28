@@ -21,7 +21,7 @@ namespace GameLibrary.Voxel.Grid
 
         private GraphicsDevice graphicsDevice;
 
-        //private VoxelMapMeshFactory meshFactory;
+        private VoxelMapMeshFactory meshFactory;
 
         //private bool CompressAtInitialization = true;
         //private bool LoadAtInitialization = false;
@@ -47,7 +47,7 @@ namespace GameLibrary.Voxel.Grid
         public void Initialize(GraphicsDevice graphicsDevice)
         {
             this.graphicsDevice = graphicsDevice;
-            //meshFactory = new VoxelMapMeshFactory(this, graphicsDevice);
+            meshFactory = new VoxelMapMeshFactory(graphicsDevice);
 
             Stopwatch sw = new Stopwatch();
             sw.Start();
@@ -213,13 +213,18 @@ namespace GameLibrary.Voxel.Grid
             // TODO performance: the depth test is expensive...
             if (item.obj.VoxelMap != null /*&& Grid<VoxelChunk>.GetItemTreeDepth(item) == Depth*/)
             {
-                Mesh mesh = null;// meshFactory.CreateMesh(item);
+                // FIXME : garbage
+                VoxelMapIterator ite = null;
+
+                meshFactory.BuildMeshes(item.obj, ite);
+
+                Mesh mesh = meshFactory.CreateOpaqueMesh();
                 if (mesh != null)
                 {
                     item.obj.Drawable = new MeshDrawable(Scene.VOXEL, mesh);
                 }
                 // FIXME meshFactory API is bad...
-                Mesh transparentMesh = null;// meshFactory.CreateTransparentMesh();
+                Mesh transparentMesh = meshFactory.CreateTransparentMesh();
                 if (transparentMesh != null)
                 {
                     item.obj.TransparentDrawable = new MeshDrawable(Scene.VOXEL_WATER, transparentMesh);
