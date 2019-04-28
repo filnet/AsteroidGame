@@ -71,7 +71,7 @@ END_CONSTANTS
 
 static float4 ambientOcclusionCurve = float4(0.2f, 0.6f, 0.8f, 1.0f);
 //static float4 ambientOcclusionCurve = float4(0.0f, 0.33f, 0.66f, 1.0f);
-//static float4 ambientOcclusionCurve = float4(0.0f, 01.0f, 0.0f, 1.0f);
+//static float4 ambientOcclusionCurve = float4(0.0f, 0.0f, 0.0f, 1.0f);
 
 float4 ComputeAmbientOcclusionFactors(int aoBits)
 {
