@@ -47,6 +47,8 @@
     <Compile Include="$(MSBuildThisFileDirectory)StockEffects\C#\ShadowEffect.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Util\Direction.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Util\Grid\Grid.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)SceneGraph\Common\FakeDrawable.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)SceneGraph\Common\MeshDrawable.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Voxel\Octree\OctreeVoxelMapIterator.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Voxel\VoxelChunk.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Voxel\Effect\VoxelWaterEffect.cs" />
