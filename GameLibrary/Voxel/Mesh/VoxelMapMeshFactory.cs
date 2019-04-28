@@ -29,7 +29,7 @@ namespace GameLibrary.Voxel
         // FIXME should come from a pool
         private ArrayVoxelMap arrayVoxelMap;
 
-        public void BuildMeshes(VoxelChunk voxelChunk, VoxelMapIterator ite)
+        public void CreateMeshes(VoxelChunk voxelChunk, VoxelMapIterator ite)
         {
             drawVisitor.opaqueBuilder.Reset();
             drawVisitor.transparentBuilder.Reset();

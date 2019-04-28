@@ -19,6 +19,7 @@ namespace GameLibrary.Voxel.Grid
 
         private GraphicsDevice graphicsDevice;
 
+        private VoxelMapIterator mapIterator;
         private VoxelMapMeshFactory meshFactory;
 
         //private bool CompressAtInitialization = true;
@@ -45,6 +46,8 @@ namespace GameLibrary.Voxel.Grid
         public void Initialize(GraphicsDevice graphicsDevice)
         {
             this.graphicsDevice = graphicsDevice;
+
+            mapIterator = null;
             meshFactory = new VoxelMapMeshFactory(graphicsDevice);
 
             Stopwatch sw = new Stopwatch();
@@ -196,36 +199,34 @@ namespace GameLibrary.Voxel.Grid
 
         private void load(GridItem<VoxelChunk> item)
         {
+            VoxelChunk voxelChunk = item.obj;
             // FIXME works because there is a single loader thread
-            if (item.obj.State == VoxelChunkState.Queued)
+            if (voxelChunk.State == VoxelChunkState.Queued)
             {
-                item.obj.State = VoxelChunkState.Loading;
+                voxelChunk.State = VoxelChunkState.Loading;
                 //Console.WriteLine("Loading item " + item.locCode);
-                createMeshes(item);
-                item.obj.State = VoxelChunkState.Ready;
+                createMeshes(voxelChunk);
+                voxelChunk.State = VoxelChunkState.Ready;
             }
         }
 
-        private void createMeshes(GridItem<VoxelChunk> item)
+        private void createMeshes(VoxelChunk voxelChunk)
         {
-            // TODO performance: the depth test is expensive...
-            if (item.obj.VoxelMap != null /*&& Grid<VoxelChunk>.GetItemTreeDepth(item) == Depth*/)
+            if (voxelChunk.VoxelMap != null)
             {
-                // FIXME : garbage
-                VoxelMapIterator ite = null;
+                meshFactory.CreateMeshes(voxelChunk, mapIterator);
 
-                meshFactory.BuildMeshes(item.obj, ite);
-
-                Mesh mesh = meshFactory.CreateOpaqueMesh();
-                if (mesh != null)
+                Mesh opaqueMesh = meshFactory.CreateOpaqueMesh();
+                if (opaqueMesh != null)
                 {
-                    item.obj.Drawable = new MeshDrawable(Scene.VOXEL, mesh);
+                    voxelChunk.Drawable = new MeshDrawable(Scene.VOXEL, opaqueMesh);
                 }
+
                 // FIXME meshFactory API is bad...
                 Mesh transparentMesh = meshFactory.CreateTransparentMesh();
                 if (transparentMesh != null)
                 {
-                    item.obj.TransparentDrawable = new MeshDrawable(Scene.VOXEL_WATER, transparentMesh);
+                    voxelChunk.TransparentDrawable = new MeshDrawable(Scene.VOXEL_WATER, transparentMesh);
                 }
             }
         }

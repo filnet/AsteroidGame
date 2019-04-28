@@ -10,14 +10,33 @@ namespace GameLibrary.Voxel.Octree
     public class OctreeVoxelMapIterator : VoxelMapIterator
     {
         private readonly Octree<VoxelChunk> octree;
-        private readonly ulong nodeLocCode;
 
-        private VoxelMap[] neighboursMap;
+        private ulong nodeLocCode;
 
-        public OctreeVoxelMapIterator(Octree<VoxelChunk> octree, ulong nodeLocCode)
+        private readonly VoxelMap[] neighboursMap;
+
+        public ulong NodeLocCode
+        {
+            get
+            {
+                return nodeLocCode;
+            }
+            set
+            {
+                if (value != nodeLocCode)
+                {
+                    nodeLocCode = value;
+                    Array.Clear(neighboursMap, 0, neighboursMap.Length);
+                }
+            }
+        }
+
+        public OctreeVoxelMapIterator(Octree<VoxelChunk> octree)
         {
             this.octree = octree;
-            this.nodeLocCode = nodeLocCode;
+            //this.nodeLocCode = nodeLocCode;
+            int n = Enum.GetNames(typeof(Direction)).Length;
+            neighboursMap = new VoxelMap[n];
         }
 
         public override int Value()
@@ -81,12 +100,6 @@ namespace GameLibrary.Voxel.Octree
 
         private VoxelMap getNeighbourMap(Direction direction)
         {
-            // FIXME garbage generation here...
-            if (neighboursMap == null)
-            {
-                int n = Enum.GetNames(typeof(Direction)).Length;
-                neighboursMap = new VoxelMap[n];
-            }
             VoxelMap map = neighboursMap[(int)direction];
             if (map == null)
             {

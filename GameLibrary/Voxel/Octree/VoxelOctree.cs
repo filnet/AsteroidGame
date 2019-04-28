@@ -23,6 +23,7 @@ namespace GameLibrary.Voxel.Octree
 
         private GraphicsDevice graphicsDevice;
 
+        private OctreeVoxelMapIterator mapIterator;
         private VoxelMapMeshFactory meshFactory;
 
         private bool CompressAtInitialization = true;
@@ -54,6 +55,8 @@ namespace GameLibrary.Voxel.Octree
         public void Initialize(GraphicsDevice graphicsDevice)
         {
             this.graphicsDevice = graphicsDevice;
+
+            mapIterator = new OctreeVoxelMapIterator(this);
             meshFactory = new VoxelMapMeshFactory(graphicsDevice);
 
             Stopwatch sw = new Stopwatch();
@@ -340,36 +343,40 @@ namespace GameLibrary.Voxel.Octree
 
         private void load(OctreeNode<VoxelChunk> node)
         {
+            VoxelChunk voxelChunk = node.obj;
             // FIXME works because there is a single loader thread
-            if (node.obj.State == VoxelChunkState.Queued)
+            if (voxelChunk.State == VoxelChunkState.Queued)
             {
-                node.obj.State = VoxelChunkState.Loading;
-                //Console.WriteLine("Loading node " + node.locCode);
-                createMeshes(node);
-                node.obj.State = VoxelChunkState.Ready;
+                voxelChunk.State = VoxelChunkState.Loading;
+                //Console.WriteLine("Loading item " + item.locCode);
+                // TODO performance: the depth test is expensive...
+                if (true /*&& Octree<VoxelChunk>.GetNodeTreeDepth(node) == Depth*/)
+                {
+                    // HACK...
+                    mapIterator.NodeLocCode = node.locCode;
+                    createMeshes(voxelChunk);
+                }
+                voxelChunk.State = VoxelChunkState.Ready;
             }
         }
 
-        private void createMeshes(OctreeNode<VoxelChunk> node)
+        private void createMeshes(VoxelChunk voxelChunk)
         {
-            // TODO performance: the depth test is expensive...
-            if (node.obj.VoxelMap != null /*&& Octree<VoxelChunk>.GetNodeTreeDepth(node) == Depth*/)
+            if (voxelChunk.VoxelMap != null)
             {
-                // FIXME : garbage
-                VoxelMapIterator ite = new OctreeVoxelMapIterator(this, node.locCode);
-                meshFactory.BuildMeshes(node.obj, ite);
+                meshFactory.CreateMeshes(voxelChunk, mapIterator);
 
                 Mesh opaqueMesh = meshFactory.CreateOpaqueMesh();
                 if (opaqueMesh != null)
                 {
-                    node.obj.Drawable = new MeshDrawable(Scene.VOXEL, opaqueMesh);
+                    voxelChunk.Drawable = new MeshDrawable(Scene.VOXEL, opaqueMesh);
                 }
 
                 // FIXME meshFactory API is bad...
                 Mesh transparentMesh = meshFactory.CreateTransparentMesh();
                 if (transparentMesh != null)
                 {
-                    node.obj.TransparentDrawable = new MeshDrawable(Scene.VOXEL_WATER, transparentMesh);
+                    voxelChunk.TransparentDrawable = new MeshDrawable(Scene.VOXEL_WATER, transparentMesh);
                 }
             }
         }
