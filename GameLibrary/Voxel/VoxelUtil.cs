@@ -1,14 +1,9 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
+﻿using GameLibrary.Component.Util;
 using Microsoft.Xna.Framework;
-using GameLibrary.Geometry.Common;
 using Microsoft.Xna.Framework.Graphics;
-using GameLibrary.Component.Util;
-using GameLibrary.Util;
-using GameLibrary.Voxel;
+using System;
+using System.Collections.Generic;
 using Voxel;
-using System.Collections;
 
 namespace GameLibrary.Voxel
 {

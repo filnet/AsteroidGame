@@ -2,9 +2,7 @@
 using GameLibrary.SceneGraph;
 using GameLibrary.SceneGraph.Bounding;
 using GameLibrary.SceneGraph.Common;
-using GameLibrary.Util;
 using GameLibrary.Util.Grid;
-using Microsoft.Xna.Framework;
 using Microsoft.Xna.Framework.Graphics;
 using System;
 using System.Collections.Concurrent;

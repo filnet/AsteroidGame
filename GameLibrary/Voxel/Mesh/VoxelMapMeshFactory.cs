@@ -1,7 +1,5 @@
 ﻿using GameLibrary.Geometry.Common;
 using GameLibrary.Util;
-using GameLibrary.Util.Octree;
-using GameLibrary.Voxel.Octree;
 using Microsoft.Xna.Framework;
 using Microsoft.Xna.Framework.Graphics;
 

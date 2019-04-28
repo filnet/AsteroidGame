@@ -47,6 +47,7 @@
     <Compile Include="$(MSBuildThisFileDirectory)StockEffects\C#\ShadowEffect.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Util\Direction.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Util\Grid\Grid.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)Voxel\Octree\OctreeVoxelMapIterator.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Voxel\VoxelChunk.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Voxel\Effect\VoxelWaterEffect.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Voxel\Grid\VoxelGrid.cs" />
@@ -267,6 +268,5 @@
   </ItemGroup>
   <ItemGroup>
     <Folder Include="$(MSBuildThisFileDirectory)Util\Octree\" />
-    <Folder Include="$(MSBuildThisFileDirectory)Voxel\Octree\" />
   </ItemGroup>
 </Project>
