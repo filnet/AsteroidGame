@@ -1,6 +1,4 @@
 ﻿using GameLibrary.Util;
-using System;
-using System.Diagnostics;
 
 namespace GameLibrary.Voxel
 {

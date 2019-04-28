@@ -3,17 +3,15 @@ using GameLibrary.SceneGraph;
 using GameLibrary.SceneGraph.Bounding;
 using GameLibrary.SceneGraph.Common;
 using GameLibrary.Util;
+using GameLibrary.Util.Octree;
 using Microsoft.Xna.Framework;
 using Microsoft.Xna.Framework.Graphics;
 using System;
 using System.Collections.Concurrent;
-using System.Collections.Generic;
 using System.Diagnostics;
 using System.IO;
-using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
-using static GameLibrary.SceneGraph.Scene;
 
 namespace GameLibrary.Voxel
 {

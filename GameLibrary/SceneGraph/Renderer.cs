@@ -1,16 +1,11 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
+﻿using GameLibrary.Geometry.Common;
+using GameLibrary.SceneGraph.Common;
 using Microsoft.Xna.Framework;
 using Microsoft.Xna.Framework.Graphics;
-using GameLibrary.Control;
-using GameLibrary.SceneGraph.Common;
-using GameLibrary.SceneGraph.Bounding;
-using GameLibrary.Geometry.Common;
-using GameLibrary.Geometry;
-using Voxel;
 using StockEffects;
+using System.Collections.Generic;
 using System.ComponentModel;
+using Voxel;
 
 namespace GameLibrary.SceneGraph
 {

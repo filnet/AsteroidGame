@@ -1,14 +1,12 @@
-﻿using System;
-using System.Collections.Generic;
+﻿using GameLibrary.Component.Camera;
+using GameLibrary.Geometry;
+using GameLibrary.SceneGraph.Bounding;
+using GameLibrary.SceneGraph.Common;
 using Microsoft.Xna.Framework;
 using Microsoft.Xna.Framework.Graphics;
-using GameLibrary.SceneGraph.Common;
-using GameLibrary.SceneGraph.Bounding;
+using System;
+using System.Collections.Generic;
 using System.ComponentModel;
-using GameLibrary.Component;
-using GameLibrary.Component.Camera;
-using System.Linq;
-using GameLibrary.Geometry;
 
 namespace GameLibrary.SceneGraph
 {

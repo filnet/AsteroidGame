@@ -45,6 +45,8 @@
     <Compile Include="$(MSBuildThisFileDirectory)SceneGraph\SimpleCamera.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)StockEffects\C#\ShadowCascadeEffect.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)StockEffects\C#\ShadowEffect.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)Util\Direction.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)Util\Grid\Grid.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Voxel\Effect\VoxelWaterEffect.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Voxel\Mesh\VoxelVertex.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Geometry\Common\VertexPositionColorNormalTextureArray.cs" />
@@ -98,7 +100,7 @@
     <Compile Include="$(MSBuildThisFileDirectory)Voxel\VoxelUtil.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Voxel\VoxelOctreeGeometry.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Voxel\VoxelOctree.cs" />
-    <Compile Include="$(MSBuildThisFileDirectory)Voxel\Octree.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)Util\Octree\Octree.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Voxel\Mesh\VoxelMapMeshFactory.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Physics\Integrator.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)SceneGraph\EffectFactory.cs" />
@@ -259,5 +261,8 @@
     <None Include="$(MSBuildThisFileDirectory)StockEffects\HLSL\Lighting.fxh" />
     <None Include="$(MSBuildThisFileDirectory)StockEffects\HLSL\Macros.fxh" />
     <None Include="$(MSBuildThisFileDirectory)StockEffects\HLSL\Structures.fxh" />
+  </ItemGroup>
+  <ItemGroup>
+    <Folder Include="$(MSBuildThisFileDirectory)Util\Octree\" />
   </ItemGroup>
 </Project>

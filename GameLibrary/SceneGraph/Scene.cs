@@ -4,14 +4,13 @@ using GameLibrary.Control;
 using GameLibrary.Geometry;
 using GameLibrary.SceneGraph.Bounding;
 using GameLibrary.SceneGraph.Common;
+using GameLibrary.Util.Octree;
 using GameLibrary.Voxel;
 using Microsoft.Xna.Framework;
 using Microsoft.Xna.Framework.Graphics;
 using System;
 using System.Collections.Generic;
-using System.Linq;
 using Voxel;
-using static GameLibrary.SceneGraph.RenderContext;
 using static GameLibrary.SceneGraph.SceneRenderContext;
 
 namespace GameLibrary.SceneGraph
@@ -458,7 +457,7 @@ namespace GameLibrary.SceneGraph
                 }
                 RenderBin renderBin = renderBinKVP.Value;
                 List<Drawable> drawableList = renderBin.DrawableList;
-                if (drawableList.Count() == 0)
+                if (drawableList.Count == 0)
                 {
                     continue;
                 }
@@ -989,9 +988,9 @@ namespace GameLibrary.SceneGraph
         private void checkCollisions(List<Node> nodes, Dictionary<int, LinkedList<Collision>> cache)
         {
             //int n = 0;
-            for (int i = 0; i < nodes.Count() - 1; i++)
+            for (int i = 0; i < nodes.Count - 1; i++)
             {
-                for (int j = i + 1; j < nodes.Count(); j++)
+                for (int j = i + 1; j < nodes.Count; j++)
                 {
                     Node node1 = nodes[i];
                     Node node2 = nodes[j];
@@ -1009,10 +1008,10 @@ namespace GameLibrary.SceneGraph
         private void checkCollisions(List<Node> nodes1, List<Node> nodes2, Dictionary<int, LinkedList<Collision>> cache)
         {
             //int n = 0;
-            for (int i = 0; i < nodes1.Count(); i++)
+            for (int i = 0; i < nodes1.Count; i++)
             {
                 Node node1 = nodes1[i];
-                for (int j = 0; j < nodes2.Count(); j++)
+                for (int j = 0; j < nodes2.Count; j++)
                 {
                     Node node2 = nodes2[j];
                     /*
