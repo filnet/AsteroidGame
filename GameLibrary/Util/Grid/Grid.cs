@@ -1,5 +1,6 @@
 ﻿using Microsoft.Xna.Framework;
 using System;
+using System.Collections.Generic;
 
 namespace GameLibrary.Util.Grid
 {
@@ -8,34 +9,60 @@ namespace GameLibrary.Util.Grid
         internal T obj;
     }
 
+    // See http://hhoppe.com/perfecthash.pdf
+    public struct Key
+    {
+        public readonly short X;
+        public readonly short Y;
+        public readonly short Z;
+
+        private class KeyEqualityComparer : IEqualityComparer<Key>
+        {
+            public bool Equals(Key key1, Key key2)
+            {
+                return ((key1.X == key2.X) & (key1.Y == key2.Y) & (key1.Z == key2.Z));
+            }
+
+            public int GetHashCode(Key key)
+            {
+                int hash = key.X;
+                hash = hash * 31 + key.Y;
+                hash = hash * 31 + key.Z;
+                return hash;
+            }
+
+        }
+    }
+
     public class Grid<T>
     {
-        //public OctreeNode<T> RootNode;
+        //public OctreeItem<T> RootItem;
 
         //public Vector3 Center;
         //public Vector3 HalfSize;
 
-        //private readonly Dictionary<ulong, OctreeNode<T>> nodes;
+        private readonly Dictionary<Key, GridItem<T>> items;
 
-        //public delegate T ObjectFactory(Octree<T> octree, OctreeNode<T> node);
+        //public delegate T ObjectFactory(Octree<T> octree, OctreeItem<T> item);
 
         //public ObjectFactory objectFactory;
 
-        public Grid(Vector3 center, Vector3 halfSize)
+        public Grid()
         {
             /*Center = center;
-            HalfSize = halfSize;
-            RootNode = new OctreeNode<T>();
-            RootNode.locCode = 1;
+            HalfSize = halfSize;*/
+            /*RootItem = new OctreeItem<T>();
+            RootItem.locCode = 1;
 
-            nodes = new Dictionary<ulong, OctreeNode<T>>();
+            items = new Dictionary<ulong, OctreeItem<T>>();
 
-            nodes.Add(RootNode.locCode, RootNode);
+            items.Add(RootItem.locCode, RootItem);
             */
+            items = new Dictionary<Key, GridItem<T>>();
         }
 
         // TODO does not belong here
-        public virtual bool LoadNode(GridItem<T> node, ref Object arg)
+        public virtual bool LoadItem(GridItem<T> item, ref Object arg)
         {
             // NOOP
             return true;
@@ -91,7 +118,7 @@ namespace GameLibrary.Util.Grid
             ctxt.preVisitor = preVisitor;
             ctxt.inVisitor = inVisitor;
             ctxt.postVisitor = postVisitor;
-            //visit(RootNode, ref ctxt, ref arg);
+            //visit(RootItem, ref ctxt, ref arg);
         }
 
         internal struct VisitContext

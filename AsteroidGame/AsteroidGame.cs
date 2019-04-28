@@ -1,25 +1,17 @@
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using Microsoft.Xna.Framework;
-using Microsoft.Xna.Framework.Audio;
-using Microsoft.Xna.Framework.Content;
-using Microsoft.Xna.Framework.Graphics;
-using Microsoft.Xna.Framework.Input;
-using Microsoft.Xna.Framework.Media;
-using GameLibrary;
 using AsteroidGame.Control;
-using GameLibrary.SceneGraph;
-using GameLibrary.Control;
-using GameLibrary.SceneGraph.Common;
-using GameLibrary.Geometry;
-using GameLibrary.Geometry.Common;
 using AsteroidGame.Geometry;
-using GameLibrary.Util;using GameLibrary.Voxel;
+using GameLibrary;
+using GameLibrary.Component.Camera;
+using GameLibrary.Control;
+using GameLibrary.Geometry;
+using GameLibrary.SceneGraph;
+using GameLibrary.SceneGraph.Common;
+using GameLibrary.Util;
+using GameLibrary.Voxel.Octree;
+using Microsoft.Xna.Framework;
+using System;
 using System.Threading;
 using WpfLibrary;
-using static GameLibrary.VectorUtil;
-using GameLibrary.Component.Camera;
 
 namespace AsteroidGame
 {

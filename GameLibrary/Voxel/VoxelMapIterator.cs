@@ -1,5 +1,6 @@
 ﻿using GameLibrary.Util;
 using GameLibrary.Util.Octree;
+using GameLibrary.Voxel.Octree;
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;

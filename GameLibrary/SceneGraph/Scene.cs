@@ -6,6 +6,7 @@ using GameLibrary.SceneGraph.Bounding;
 using GameLibrary.SceneGraph.Common;
 using GameLibrary.Util.Octree;
 using GameLibrary.Voxel;
+using GameLibrary.Voxel.Octree;
 using Microsoft.Xna.Framework;
 using Microsoft.Xna.Framework.Graphics;
 using System;
@@ -613,7 +614,7 @@ namespace GameLibrary.SceneGraph
 
         static float minA = float.MaxValue;
 
-        private static readonly VoxelOctree.Visitor<VoxelChunk> VOXEL_OCTREE_CULL_VISITOR = delegate (Octree<VoxelChunk> octree, OctreeNode<VoxelChunk> node, ref Object arg)
+        private static readonly VoxelOctree.Visitor<Voxel.VoxelChunk> VOXEL_OCTREE_CULL_VISITOR = delegate (Octree<Voxel.VoxelChunk> octree, OctreeNode<Voxel.VoxelChunk> node, ref Object arg)
         {
             RenderContext ctxt = arg as RenderContext;
 
@@ -844,7 +845,7 @@ namespace GameLibrary.SceneGraph
             return containmentType;
         }
 
-        private static readonly VoxelOctree.Visitor<VoxelChunk> VOXEL_OCTREE_CULL_POST_VISITOR = delegate (Octree<VoxelChunk> octree, OctreeNode<VoxelChunk> node, ref Object arg)
+        private static readonly VoxelOctree.Visitor<Voxel.VoxelChunk> VOXEL_OCTREE_CULL_POST_VISITOR = delegate (Octree<Voxel.VoxelChunk> octree, OctreeNode<Voxel.VoxelChunk> node, ref Object arg)
         {
             RenderContext ctxt = arg as RenderContext;
             // restore culling flags

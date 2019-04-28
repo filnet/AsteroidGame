@@ -307,6 +307,13 @@ namespace GameLibrary.Voxel
             return (data.Length <= 0);
         }
 
+#if DEBUG_VOXEL_MAP
+        private static int maxSize = -1;
+        private static int maxResizeCount = -1;
+        private static int resizeTotalCount = 0;
+        private static int wastedTotalCount = 0;
+#endif
+
         public void InitializeFrom(VoxelMap map)
         {
             if (size != map.Size())
@@ -316,6 +323,11 @@ namespace GameLibrary.Voxel
             x0 = map.X0();
             y0 = map.Y0();
             z0 = map.Z0();
+
+#if DEBUG_VOXEL_MAP
+            int resizeCount = 0;
+            int wastedCount = 0;
+#endif
 
             MapIterator iterator = new MapIterator(map);
             ushort lastValue;
@@ -334,11 +346,14 @@ namespace GameLibrary.Voxel
                     {
                         if (pos == 0)
                         {
-                            data = new ushort[size2];
+                            data = new ushort[size2 * 2];
                         }
                         else if (pos == data.Length)
                         {
-                            Array.Resize(ref data, data.Length * 2);
+#if DEBUG_VOXEL_MAP
+                            resizeCount++;
+#endif
+                            Array.Resize(ref data, data.Length + size2);
                         }
                         data[pos++] = count;
                         data[pos++] = lastValue;
@@ -359,15 +374,32 @@ namespace GameLibrary.Voxel
                     }
                     else
                     {
+#if DEBUG_VOXEL_MAP
+                        resizeCount++;
+                        wastedCount = data.Length - (pos + 2);
+#endif
                         Array.Resize(ref data, pos + 2);
                     }
                     data[pos++] = count;
                     data[pos++] = lastValue;
                 }
             }
+#if DEBUG_VOXEL_MAP
             //check();
+            maxSize = Math.Max(maxSize, data.Length);
+            maxResizeCount = Math.Max(maxResizeCount, resizeCount);
+            resizeTotalCount += resizeCount;
+            wastedTotalCount += wastedCount;
+            if (resizeCount != 0)
+            {
+                Console.WriteLine("resizes = {0}, wasted = {1}", resizeCount, wastedCount);
+                Console.WriteLine("max resizes = {0}, max size = {1}", maxResizeCount, maxSize);
+                Console.WriteLine("total resizes = {0}, wasted = {1}", resizeTotalCount, wastedTotalCount);
+            }
+#endif
         }
 
+#if DEBUG_VOXEL_MAP
         private void check()
         {
             int count = 0;
@@ -377,6 +409,7 @@ namespace GameLibrary.Voxel
             }
             Debug.Assert(count == size3);
         }
+#endif
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public ushort Get(int index)
