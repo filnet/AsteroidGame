@@ -166,13 +166,14 @@ namespace GameLibrary.Voxel
                 String name = Octree<VoxelChunk>.LocCodeToString(node.locCode);
                 VoxelMap map = EmptyVoxelMap.INSTANCE;
                 bool loaded = false;
-                if (!loaded)
+                if (true && !loaded)
                 {
                     RLEVoxelMap rleMap = new RLEVoxelMap(chunkSize, x, y, z);
                     if (ReadVoxelMap(name, rleMap))
                     {
                         map = rleMap;
                         loaded = true;
+                        //Console.WriteLine("Loaded map for {0},{1},{2} ({3})", x, y, z, map.IsEmpty());
                     }
                 }
                 if (!loaded)
@@ -192,6 +193,7 @@ namespace GameLibrary.Voxel
 
                     WriteVoxelMap(name, map);
                     loaded = true;
+                    //Console.WriteLine("Generated map for {0},{1},{2} ({3})", x, y, z, map.IsEmpty());
                 }
                 if (!map.IsEmpty())
                 {
@@ -207,6 +209,7 @@ namespace GameLibrary.Voxel
                 {
                     // no geometry to create
                     //voxelChunk.State = VoxelChunkState.Ready;
+                    //Console.WriteLine("Empty map for {0},{1},{2}", x, y, z);
                 }
             }
 

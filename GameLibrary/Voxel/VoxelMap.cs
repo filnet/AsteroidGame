@@ -294,7 +294,6 @@ namespace GameLibrary.Voxel
     public class RLEVoxelMap : AbstractVoxelMap
     {
         private ushort[] data;
-        private bool empty;
 
         public RLEVoxelMap(int size, int x0, int y0, int z0) : base(size, x0, y0, z0)
         {
@@ -306,7 +305,7 @@ namespace GameLibrary.Voxel
 
         public override bool IsEmpty()
         {
-            return empty;
+            return (data.Length <= 0);
         }
 
         public void InitializeFrom(VoxelMap map)
@@ -319,16 +318,12 @@ namespace GameLibrary.Voxel
             y0 = map.Y0();
             z0 = map.Z0();
 
-            int totalValue = 0;
-
             MapIterator iterator = new MapIterator(map);
             ushort lastValue;
             if (iterator.Next(out lastValue))
             {
-                data = new ushort[size2];
-
                 ushort count = 1;
-                int pos = 0;
+                ushort pos = 0;
                 ushort value;
                 while (iterator.Next(out value))
                 {
@@ -338,26 +333,40 @@ namespace GameLibrary.Voxel
                     }
                     else
                     {
-                        if (pos == data.Length)
+                        if (pos == 0)
+                        {
+                            data = new ushort[size2];
+                        }
+                        else if (pos == data.Length)
                         {
                             Array.Resize(ref data, data.Length * 2);
                         }
                         data[pos++] = count;
                         data[pos++] = lastValue;
-                        totalValue += lastValue;
                         lastValue = value;
                         count = 1;
                     }
 
                 }
-                Array.Resize(ref data, pos + 2);
-                data[pos++] = count;
-                data[pos++] = lastValue;
-                totalValue += lastValue;
+                if (pos == 0 && lastValue == 0)
+                {
+                    data = new ushort[0];
+                }
+                else
+                {
+                    if (pos == 0)
+                    {
+                        data = new ushort[2];
+                    }
+                    else
+                    {
+                        Array.Resize(ref data, pos + 2);
+                    }
+                    data[pos++] = count;
+                    data[pos++] = lastValue;
+                }
             }
             //check();
-
-            empty = (totalValue == 0);
         }
 
         private void check()
@@ -414,37 +423,44 @@ namespace GameLibrary.Voxel
         public override void Read(BinaryReader reader)
         {
             ushort length = reader.ReadUInt16();
-
-            byte[] buffer = new byte[length * 2];
-            reader.Read(buffer, 0, buffer.Length);
-
-            data = new ushort[length];
-
-            int p = 0;
-            for (int i = 0; i < data.Length; i++)
+            if (length > 0)
             {
-                ushort d = (ushort) ((buffer[p + 1] << 8) + buffer[p]);
-                data[i] = d;
-                p += 2;
+                byte[] buffer = new byte[length * 2];
+                reader.Read(buffer, 0, buffer.Length);
+
+                data = new ushort[length];
+
+                int p = 0;
+                for (int i = 0; i < data.Length; i++)
+                {
+                    ushort d = (ushort)((buffer[p + 1] << 8) + buffer[p]);
+                    data[i] = d;
+                    p += 2;
+                }
+            }
+            else
+            {
+                data = new ushort[0];
             }
         }
 
         public override void Write(BinaryWriter writer)
         {
-            writer.Write((ushort) data.Length);
-
-            byte[] buffer = new byte[data.Length * 2];
-            int p = 0;
-            for(int i = 0; i < data.Length; i++)
+            writer.Write((ushort)data.Length);
+            if (data.Length > 0)
             {
-                ushort d = data[i];
-                buffer[p] = (byte)(d & 0xFF);
-                buffer[p + 1] = (byte)((d >> 8) & 0xFF);
-                p += 2;
+                byte[] buffer = new byte[data.Length * 2];
+                int p = 0;
+                for (int i = 0; i < data.Length; i++)
+                {
+                    ushort d = data[i];
+                    buffer[p] = (byte)(d & 0xFF);
+                    buffer[p + 1] = (byte)((d >> 8) & 0xFF);
+                    p += 2;
+                }
+                writer.Write(buffer);
             }
-            writer.Write(buffer);
         }
-
     }
 
 }

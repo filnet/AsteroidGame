@@ -47,7 +47,7 @@ namespace GameLibrary.Voxel
             node.obj.VoxelMap = arrayVoxelMap;
 
             // FIXME : garbage
-            VoxelMapIterator ite = new DefaultVoxelMapIterator(octree, node);
+            VoxelMapIterator ite = new OctreeVoxelMapIterator(octree, node);
 
             node.obj.VoxelMap.Visit(drawVisitor, ite);
 

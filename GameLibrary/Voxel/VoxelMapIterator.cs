@@ -48,14 +48,14 @@ namespace GameLibrary.Voxel
         public abstract int Value(Direction direction);
     }
 
-    class DefaultVoxelMapIterator : VoxelMapIterator
+    class OctreeVoxelMapIterator : VoxelMapIterator
     {
         private readonly VoxelOctree octree;
         private readonly OctreeNode<VoxelChunk> node;
 
         private VoxelMap[] neighboursMap;
 
-        public DefaultVoxelMapIterator(VoxelOctree octree, OctreeNode<VoxelChunk> node) : base(node.obj.VoxelMap)
+        public OctreeVoxelMapIterator(VoxelOctree octree, OctreeNode<VoxelChunk> node) : base(node.obj.VoxelMap)
         {
             this.octree = octree;
             this.node = node;
