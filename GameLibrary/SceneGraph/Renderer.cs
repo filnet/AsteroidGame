@@ -10,6 +10,7 @@ using GameLibrary.Geometry.Common;
 using GameLibrary.Geometry;
 using Voxel;
 using StockEffects;
+using System.ComponentModel;
 
 namespace GameLibrary.SceneGraph
 {
@@ -21,7 +22,19 @@ namespace GameLibrary.SceneGraph
         public RasterizerState RasterizerState;
         public SamplerState SamplerState;
 
-        public static RasterizerState WireFrameRasterizer = new RasterizerState()
+        public static RasterizerState WireFrameCullClockwise = new RasterizerState()
+        {
+            CullMode = CullMode.CullClockwiseFace,
+            FillMode = FillMode.WireFrame,
+        };
+
+        public static RasterizerState WireFrameCullCounterClockwise = new RasterizerState()
+        {
+            CullMode = CullMode.CullCounterClockwiseFace,
+            FillMode = FillMode.WireFrame,
+        };
+
+        public static RasterizerState WireFrameCullNone = new RasterizerState()
         {
             CullMode = CullMode.None,
             FillMode = FillMode.WireFrame,
@@ -145,7 +158,7 @@ namespace GameLibrary.SceneGraph
     {
         public WireFrameRenderer(Effect effect) : base(effect)
         {
-            RasterizerState = WireFrameRasterizer;
+            RasterizerState = WireFrameCullNone;
         }
     }
 
@@ -387,14 +400,27 @@ namespace GameLibrary.SceneGraph
 
     public class VoxelRenderer : EffectRenderer<VoxelEffect>
     {
+        [Category("Rasterizer")]
+        public CullMode CullMode
+        {
+            get { return RasterizerState.CullMode; }
+            set { updateRasterizerState(FillMode, value); }
+        }
+
+        [Category("Rasterizer")]
+        public FillMode FillMode
+        {
+            get { return RasterizerState.FillMode; }
+            set { updateRasterizerState(value, CullMode); }
+        }
+
         private readonly SamplerState wireframeSamplerState = new SamplerState();
 
         private readonly SamplerState shadowSamplerState = new SamplerState();
 
         public VoxelRenderer(VoxelEffect effect) : base(effect)
         {
-            //RasterizerState = RasterizerState.CullNone;
-            //RasterizerState = WireFrameRasterizer;
+            RasterizerState = RasterizerState.CullClockwise;
 
             // wireframe texture sampler
             //wireframeSamplerState.Filter = TextureFilter.MinLinearMagPointMipLinear;
@@ -409,6 +435,41 @@ namespace GameLibrary.SceneGraph
             shadowSamplerState.ComparisonFunction = CompareFunction.LessEqual;
             shadowSamplerState.FilterMode = TextureFilterMode.Comparison;
             shadowSamplerState.BorderColor = Color.White;
+        }
+
+        // TODO move to parent class
+        internal void updateRasterizerState(FillMode fillMode, CullMode cullMode)
+        {
+            if (fillMode == FillMode.Solid)
+            {
+                switch (cullMode)
+                {
+                    case CullMode.CullClockwiseFace:
+                        RasterizerState = RasterizerState.CullClockwise;
+                        break;
+                    case CullMode.CullCounterClockwiseFace:
+                        RasterizerState = RasterizerState.CullCounterClockwise;
+                        break;
+                    case CullMode.None:
+                        RasterizerState = RasterizerState.CullNone;
+                        break;
+                }
+            }
+            else
+            {
+                switch (cullMode)
+                {
+                    case CullMode.CullClockwiseFace:
+                        RasterizerState = WireFrameCullClockwise;
+                        break;
+                    case CullMode.CullCounterClockwiseFace:
+                        RasterizerState = WireFrameCullCounterClockwise;
+                        break;
+                    case CullMode.None:
+                        RasterizerState = WireFrameCullNone;
+                        break;
+                }
+            }
         }
 
         internal override void Render(RenderContext rc, List<Drawable> drawableList)

@@ -171,6 +171,18 @@ namespace GameLibrary.SceneGraph
             renderContext = new SceneRenderContext(GraphicsDevice, cameraComponent);
         }
 
+        public Dictionary<string, object> GetRendererMap()
+        {
+            Dictionary<string, object> map = new Dictionary<string, object>();
+
+            foreach (KeyValuePair<int, Renderer> rendererKVP in renderers)
+            {
+                string name = "#" + rendererKVP.Key + " " + rendererKVP.Value.GetType().Name;
+                map[name] = rendererKVP.Value;
+            }
+            return map;
+        }
+
         public void Dispose()
         {
             rootNode.Visit(DISPOSE_VISITOR);
