@@ -57,7 +57,8 @@ namespace WpfLibrary
             bool first = true;
             foreach (KeyValuePair<string, object> rendererKVP in rendererMap)
             {
-                RendererItems.Add(new ComboBoxItem { Content = rendererKVP.Key, IsSelected = first });
+                RendererItems.Add(new ComboBoxItem { Content = rendererKVP.Key, IsSelected = first,
+                    HorizontalContentAlignment = HorizontalAlignment.Left, VerticalContentAlignment = VerticalAlignment.Stretch });
                 first = false;
             }
             ComboBoxItem item = RendererItems[0];
