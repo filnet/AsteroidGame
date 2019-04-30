@@ -1,4 +1,6 @@
-﻿using GameLibrary.Geometry.Common;
+﻿//#define DEBUG_VOXEL_OCTREE
+
+using GameLibrary.Geometry.Common;
 using GameLibrary.SceneGraph;
 using GameLibrary.SceneGraph.Common;
 using GameLibrary.Util;
@@ -26,6 +28,8 @@ namespace GameLibrary.Voxel.Octree
         private VoxelMapMeshFactory meshFactory;
 
         private bool CompressAtInitialization = true;
+        private bool LoadFromDisk = true;
+        private bool WriteToDisk = true;
         private bool LoadAtInitialization = false;
         //private bool CreateMeshOnInitialization = false;
         private bool ExitAfterLoad = false;
@@ -60,25 +64,27 @@ namespace GameLibrary.Voxel.Octree
             mapIterator = new OctreeVoxelMapIterator(this, pool);
             meshFactory = new VoxelMapMeshFactory(graphicsDevice, pool);
 
-            Stopwatch sw = new Stopwatch();
-            sw.Start();
-            RootNode.obj = createObject(this, RootNode);
-            sw.Stop();
-            Console.WriteLine("Creating VoxelOctree took {0}", sw.Elapsed);
+            using (Stats.Use("VoxelOctree.Create"))
+            {
+                RootNode.obj = createObject(this, RootNode);
+            }
 
             //fill();
             if (LoadAtInitialization)
             {
                 Object d = Vector3.Zero;
-                sw.Start();
-                Visit(0, loadVisitor, ref d);
-                sw.Stop();
-                Console.WriteLine("Loading VoxelOctree took {0}", sw.Elapsed);
-                if (ExitAfterLoad)
+                using (Stats.Use("VoxelOctree.Load"))
                 {
-                    Environment.Exit(0);
+                    Visit(0, loadVisitor, ref d);
                 }
             }
+            if (ExitAfterLoad)
+            {
+                Environment.Exit(0);
+            }
+
+            Stats.Log("VoxelOctree.");
+
             StartLoadQueue();
         }
 
@@ -93,7 +99,6 @@ namespace GameLibrary.Voxel.Octree
         {
             arrayMap.InitializeFrom(map);
         }
-
 
         private bool loadVisitor(Octree<VoxelChunk> octree, OctreeNode<VoxelChunk> node, ref Object arg)
         {
@@ -130,6 +135,7 @@ namespace GameLibrary.Voxel.Octree
         }
         */
 
+        // NOTE this method is called recursvily (via Octree.AddChild() calls)
         // TODO this should be done asynchronously
         private VoxelChunk createObject(Octree<VoxelChunk> octree, OctreeNode<VoxelChunk> node)
         {
@@ -160,36 +166,51 @@ namespace GameLibrary.Voxel.Octree
                 octree.GetNodeCoordinates(node, out x, out y, out z);
                 String name = Octree<VoxelChunk>.LocCodeToString(node.locCode);
                 VoxelMap map = EmptyVoxelMap.INSTANCE;
-                bool load = true;
                 bool loaded = false;
-                if (load && !loaded)
+                if (LoadFromDisk && !loaded)
                 {
-                    RLEVoxelMap rleMap = new RLEVoxelMap(chunkSize, x, y, z);
-                    if (ReadVoxelMap(name, rleMap))
+                    using (Stats.Use("VoxelOctree.ReadMap"))
                     {
-                        map = rleMap;
-                        loaded = true;
-                        //Console.WriteLine("Loaded map for {0},{1},{2} ({3})", x, y, z, map.IsEmpty());
+                        RLEVoxelMap rleMap = new RLEVoxelMap(chunkSize, x, y, z);
+                        if (ReadVoxelMap(name, rleMap))
+                        {
+                            map = rleMap;
+                            loaded = true;
+#if DEBUG_VOXEL_OCTREE
+                           Console.WriteLine("Loaded map for {0},{1},{2} ({3})", x, y, z, map.IsEmpty());
+#endif
+                        }
                     }
                 }
                 if (!loaded)
                 {
-                    //VoxelMap map = new AOTestVoxelMap(chunkSize, x, y, z);
-                    //VoxelMap map = new SpongeVoxelMap(chunkSize, x, y, z);
-                    VoxelMap perlinNoiseMap = new PerlinNoiseVoxelMap(chunkSize, x, y, z);
-
-                    map = perlinNoiseMap;
-
-                    if (CompressAtInitialization)
+                    using (Stats.Use("VoxelOctree.CreateMap"))
                     {
-                        RLEVoxelMap rleMap = new RLEVoxelMap(map);
-                        rleMap.InitializeFrom(map);
-                        map = rleMap;
-                    }
+                        //VoxelMap map = new AOTestVoxelMap(chunkSize, x, y, z);
+                        //VoxelMap map = new SpongeVoxelMap(chunkSize, x, y, z);
+                        VoxelMap perlinNoiseMap = new PerlinNoiseVoxelMap(chunkSize, x, y, z);
 
-                    WriteVoxelMap(name, map);
-                    loaded = true;
-                    //Console.WriteLine("Generated map for {0},{1},{2} ({3})", x, y, z, map.IsEmpty());
+                        map = perlinNoiseMap;
+
+                        if (CompressAtInitialization)
+                        {
+                            RLEVoxelMap rleMap = new RLEVoxelMap(map);
+                            rleMap.InitializeFrom(map);
+                            map = rleMap;
+                            if (WriteToDisk)
+                            {
+                                using (Stats.Use("VoxelOctree.WriteMap"))
+                                {
+                                    WriteVoxelMap(name, map);
+                                }
+                            }
+                        }
+
+                        loaded = true;
+#if DEBUG_VOXEL_OCTREE
+                        Console.WriteLine("Created map for {0},{1},{2} ({3})", x, y, z, map.IsEmpty());
+#endif
+                    }
                 }
                 if (!map.IsEmpty())
                 {
@@ -204,8 +225,9 @@ namespace GameLibrary.Voxel.Octree
                 else
                 {
                     // no geometry to create
-                    //voxelChunk.State = VoxelChunkState.Ready;
-                    //Console.WriteLine("Empty map for {0},{1},{2}", x, y, z);
+#if DEBUG_VOXEL_OCTREE
+                    Console.WriteLine("Empty map for {0},{1},{2}", x, y, z);
+#endif
                 }
             }
 
@@ -235,10 +257,15 @@ namespace GameLibrary.Voxel.Octree
             return voxelChunk;
         }
 
-        public bool ReadVoxelMap(String name, VoxelMap map)
+        private string GetFilePath(string name)
         {
             String path = "C:\\Projects\\XNA\\Save\\" + name;
+            return path;
+        }
 
+        public bool ReadVoxelMap(String name, VoxelMap map)
+        {
+            String path = GetFilePath(name);
             try
             {
                 using (var reader = new BinaryReader(File.Open(path, FileMode.Open)))
@@ -256,7 +283,7 @@ namespace GameLibrary.Voxel.Octree
 
         public bool WriteVoxelMap(String name, VoxelMap map)
         {
-            String path = "C:\\Projects\\XNA\\Save\\" + name;
+            String path = GetFilePath(name);
             using (var writer = new BinaryWriter(File.Open(path, FileMode.OpenOrCreate)))
             {
                 map.Write(writer);
@@ -349,9 +376,9 @@ namespace GameLibrary.Voxel.Octree
                 cts.Cancel();
                 // wait for load task to end
                 Task.WaitAll(loadTask);
+                loadTask.Dispose();
             }
-            loadTask.Dispose();
-            loadQueue.Dispose();
+            loadQueue?.Dispose();
             cts.Dispose();
         }
 
@@ -376,19 +403,27 @@ namespace GameLibrary.Voxel.Octree
 
         private void createMeshes(VoxelChunk voxelChunk)
         {
-            if (voxelChunk.VoxelMap != null)
+            Debug.Assert(voxelChunk.VoxelMap != null);
+
+            using (Stats.Use("VoxelOctree.CreateMeshes"))
             {
                 meshFactory.CreateMeshes(voxelChunk, mapIterator);
+            }
 
-                Mesh opaqueMesh = meshFactory.CreateOpaqueMesh();
-                if (opaqueMesh != null)
+            Mesh opaqueMesh = meshFactory.CreateOpaqueMesh();
+            if (opaqueMesh != null)
+            {
+                using (Stats.Use("VoxelOctree.CreateOpaqueMesh"))
                 {
                     voxelChunk.Drawable = new MeshDrawable(Scene.VOXEL, opaqueMesh);
                 }
+            }
 
-                // FIXME meshFactory API is bad...
-                Mesh transparentMesh = meshFactory.CreateTransparentMesh();
-                if (transparentMesh != null)
+            // FIXME meshFactory API is bad...
+            Mesh transparentMesh = meshFactory.CreateTransparentMesh();
+            if (transparentMesh != null)
+            {
+                using (Stats.Use("VoxelOctree.CreateTransparentMesh"))
                 {
                     voxelChunk.TransparentDrawable = new MeshDrawable(Scene.VOXEL_WATER, transparentMesh);
                 }

@@ -50,6 +50,7 @@
     <Compile Include="$(MSBuildThisFileDirectory)SceneGraph\Common\FakeDrawable.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)SceneGraph\Common\MeshDrawable.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Util\ObjectPool.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)Util\Stats.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Voxel\Octree\OctreeVoxelMapIterator.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Voxel\Octree\VoxelOctree.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Voxel\VoxelChunk.cs" />

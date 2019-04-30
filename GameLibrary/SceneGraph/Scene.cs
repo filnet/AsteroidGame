@@ -4,6 +4,7 @@ using GameLibrary.Control;
 using GameLibrary.Geometry;
 using GameLibrary.SceneGraph.Bounding;
 using GameLibrary.SceneGraph.Common;
+using GameLibrary.Util;
 using GameLibrary.Util.Octree;
 using GameLibrary.Voxel;
 using GameLibrary.Voxel.Octree;
@@ -187,7 +188,7 @@ namespace GameLibrary.SceneGraph
         {
             rootNode.Visit(DISPOSE_VISITOR);
 
-            renderContext.Dispose();
+            renderContext?.Dispose();
         }
 
         public void Dump()
@@ -225,151 +226,157 @@ namespace GameLibrary.SceneGraph
 
         public void Update(GameTime gameTime)
         {
-            // FIXME WrapController use the node's WorldBoundingVolume but it might be
-            // invalidated after by other controllers (like the PlayerController or AsteroidController)
-            // is it enough (for now...) to change the visit order ?
-            // Controllers should not be registered in nodes...
-            // FIXME some controllers need to run before update (those that move nodes) others after (warp)
-            // some controllers should  run early (rip)
-            rootNode.Visit(CONTROLLER_VISITOR, gameTime);
-
-            bool structureDirty = RootNode.IsDirty(Node.DirtyFlag.Structure) || RootNode.IsDirty(Node.DirtyFlag.ChildStructure);
-            if (structureDirty)
+            using (Stats.Use("Scene.Update"))
             {
-                rootNode.Visit(COMMIT_VISITOR, this);
-            }
+                // FIXME WrapController use the node's WorldBoundingVolume but it might be
+                // invalidated after by other controllers (like the PlayerController or AsteroidController)
+                // is it enough (for now...) to change the visit order ?
+                // Controllers should not be registered in nodes...
+                // FIXME some controllers need to run before update (those that move nodes) others after (warp)
+                // some controllers should  run early (rip)
+                rootNode.Visit(CONTROLLER_VISITOR, gameTime);
 
-            // update
-            rootNode.Visit(UPDATE_VISITOR, null, UPDATE_POST_VISITOR);
-
-            if (CheckCollisions)
-            {
-                handleCollisions();
-            }
-
-            bool cameraDirty = renderContext.CameraDirty() || CaptureFrustum;
-
-            // TODO implement sceneDirty (easy)
-            // Octree should set it when needed
-            // LIMIT LOAD QUEUE SIZE (100?)
-            // !!! and flush only when ADDING a 1st new chunk !!!!!!
-            // but it won't work
-            bool sceneDirty = false;
-
-            renderContext.GameTime = gameTime;
-            renderContext.ResetStats();
-
-            // do the RENDER_GROUP_VISITOR only if:
-            // - camera is dirty
-            // - TODO scene is dirty (something has moved in the scene)
-            // - scene structure is dirty
-            if (cameraDirty || sceneDirty || structureDirty || renderContext.RedrawRequested())
-            {
-                if (CaptureFrustum)
-                {
-                    CaptureFrustum = false;
-                    switch (renderContext.Mode)
-                    {
-                        case CameraMode.Default:
-                            renderContext.SetCameraMode(CameraMode.FreezeCull);
-                            break;
-                        case CameraMode.FreezeCull:
-                            renderContext.SetCameraMode(CameraMode.FreezeRender);
-                            break;
-                        case CameraMode.FreezeRender:
-                            renderContext.SetCameraMode(CameraMode.Default);
-                            break;
-                    }
-                }
-
-                if (cameraDirty || renderContext.RedrawRequested())
-                {
-                    renderContext.ClearRedrawRequested();
-                }
+                bool structureDirty = RootNode.IsDirty(Node.DirtyFlag.Structure) || RootNode.IsDirty(Node.DirtyFlag.ChildStructure);
                 if (structureDirty)
                 {
-                    if (Debug) Console.WriteLine("Structure Dirty");
+                    rootNode.Visit(COMMIT_VISITOR, this);
                 }
 
-                // FIXME most of the time nodes stay in the same render group
-                // so doing a clear + full reconstruct is not very efficient
-                // but RENDER_GROUP_VISITOR does the culling...
-                renderContext.Clear();
+                // update
+                rootNode.Visit(UPDATE_VISITOR, null, UPDATE_POST_VISITOR);
 
-                // setup light render context
-                // need to do it before view culling to handle shadow receivers
-                // this is done in SceneRenderContext.AddLight()...
-                /*if (renderContext.ShadowsEnabled)
+                if (CheckCollisions)
                 {
-                    for (int i = 0; i < renderContext.LightCount; i++)
+                    handleCollisions();
+                }
+
+                bool cameraDirty = renderContext.CameraDirty() || CaptureFrustum;
+
+                // TODO implement sceneDirty (easy)
+                // Octree should set it when needed
+                // LIMIT LOAD QUEUE SIZE (100?)
+                // !!! and flush only when ADDING a 1st new chunk !!!!!!
+                // but it won't work
+                bool sceneDirty = false;
+
+                renderContext.GameTime = gameTime;
+                renderContext.ResetStats();
+
+                // do the RENDER_GROUP_VISITOR only if:
+                // - camera is dirty
+                // - TODO scene is dirty (something has moved in the scene)
+                // - scene structure is dirty
+                if (cameraDirty || sceneDirty || structureDirty || renderContext.RedrawRequested())
+                {
+                    if (CaptureFrustum)
                     {
-                        LightRenderContext lightRenderContext = renderContext.LightRenderContext(i);
-                        if (lightRenderContext.Enabled)
+                        CaptureFrustum = false;
+                        switch (renderContext.Mode)
                         {
-                            lightRenderContext.FitToViewStable(renderContext);
+                            case CameraMode.Default:
+                                renderContext.SetCameraMode(CameraMode.FreezeCull);
+                                break;
+                            case CameraMode.FreezeCull:
+                                renderContext.SetCameraMode(CameraMode.FreezeRender);
+                                break;
+                            case CameraMode.FreezeRender:
+                                renderContext.SetCameraMode(CameraMode.Default);
+                                break;
                         }
                     }
-                }*/
 
-                // view camera culling
-                renderContext.CullBegin();
-                rootNode.Visit(CULL_VISITOR, renderContext);
-                renderContext.CullEnd();
-
-                // light camera culling
-                if (renderContext.ShadowsEnabled)
-                {
-                    for (int i = 0; i < renderContext.LightCount; i++)
+                    if (cameraDirty || renderContext.RedrawRequested())
                     {
-                        LightRenderContext lightRenderContext = renderContext.LightRenderContext(i);
-                        if (lightRenderContext.Enabled)
+                        renderContext.ClearRedrawRequested();
+                    }
+                    if (structureDirty)
+                    {
+                        if (Debug) Console.WriteLine("Structure Dirty");
+                    }
+
+                    // FIXME most of the time nodes stay in the same render group
+                    // so doing a clear + full reconstruct is not very efficient
+                    // but RENDER_GROUP_VISITOR does the culling...
+                    renderContext.Clear();
+
+                    // setup light render context
+                    // need to do it before view culling to handle shadow receivers
+                    // this is done in SceneRenderContext.AddLight()...
+                    /*if (renderContext.ShadowsEnabled)
+                    {
+                        for (int i = 0; i < renderContext.LightCount; i++)
                         {
-                            // TODO if there are no occludees (i.e. main view is not rendering anything then there is not point in finding occluders)
-                            // FIXME this will trigger chunk loading in conflict with main camera
-                            // TODO should load occluders at a lower priority (but will cause shadow pops)
-                            // TODO non casters (water, transparent, ...) are currently not excluded from culling
-                            lightRenderContext.CullBegin();
-                            rootNode.Visit(CULL_VISITOR, lightRenderContext);
-                            lightRenderContext.CullEnd();
+                            LightRenderContext lightRenderContext = renderContext.LightRenderContext(i);
+                            if (lightRenderContext.Enabled)
+                            {
+                                lightRenderContext.FitToViewStable(renderContext);
+                            }
+                        }
+                    }*/
+
+                    // view camera culling
+                    using (Stats.Use("Scene.Cull"))
+                    {
+                        renderContext.CullBegin();
+                        rootNode.Visit(CULL_VISITOR, renderContext);
+                        renderContext.CullEnd();
+                    }
+                    //Stats.Stop("Scene.Update");
+
+                    // light camera culling
+                    if (renderContext.ShadowsEnabled)
+                    {
+                        for (int i = 0; i < renderContext.LightCount; i++)
+                        {
+                            LightRenderContext lightRenderContext = renderContext.LightRenderContext(i);
+                            if (lightRenderContext.Enabled)
+                            {
+                                // TODO if there are no occludees (i.e. main view is not rendering anything then there is not point in finding occluders)
+                                // FIXME this will trigger chunk loading in conflict with main camera
+                                // TODO should load occluders at a lower priority (but will cause shadow pops)
+                                // TODO non casters (water, transparent, ...) are currently not excluded from culling
+                                lightRenderContext.CullBegin();
+                                rootNode.Visit(CULL_VISITOR, lightRenderContext);
+                                lightRenderContext.CullEnd();
+                            }
                         }
                     }
+
+                    // refraction
+                    // TODO skip if no water in scene...
+                    // TODO tighter frustum culling around water...
+                    // TODO exclude refractive surface itself
+                    // DO IT ONLY IF THERE ARE elements in VOXEL_WATER bin
+                    renderContext.AddRefraction();
+                    RefractionRenderContext refractionRenderContext = renderContext.RefractionRenderContext(0);
+                    if (refractionRenderContext.Enabled)
+                    {
+                        refractionRenderContext.Update(renderContext.CullCamera);
+
+                        //refractionRenderContext.CullBegin();
+                        //rootNode.Visit(CULL_VISITOR, refractionRenderContext);
+                        //refractionRenderContext.CullEnd();
+                    }
+
+                    // reflection
+                    // TODO skip if no water in scene...
+                    // TODO tighter frustum culling around water...
+                    // TODO exclude reflective surface itself
+                    // DO IT ONLY IF THERE ARE elements in VOXEL_WATER bin
+                    renderContext.AddReflection();
+                    ReflectionRenderContext reflectionRenderContext = renderContext.ReflectionRenderContext(0);
+                    if (reflectionRenderContext.Enabled)
+                    {
+                        reflectionRenderContext.Update(renderContext.CullCamera);
+
+                        reflectionRenderContext.CullBegin();
+                        rootNode.Visit(CULL_VISITOR, reflectionRenderContext);
+                        reflectionRenderContext.CullEnd();
+                    }
+                    // debug geometry
+                    renderContext.DebugGeometryAddTo(renderContext);
                 }
-
-                // refraction
-                // TODO skip if no water in scene...
-                // TODO tighter frustum culling around water...
-                // TODO exclude refractive surface itself
-                // DO IT ONLY IF THERE ARE elements in VOXEL_WATER bin
-                renderContext.AddRefraction();
-                RefractionRenderContext refractionRenderContext = renderContext.RefractionRenderContext(0);
-                if (refractionRenderContext.Enabled)
-                {
-                    refractionRenderContext.Update(renderContext.CullCamera);
-
-                    //refractionRenderContext.CullBegin();
-                    //rootNode.Visit(CULL_VISITOR, refractionRenderContext);
-                    //refractionRenderContext.CullEnd();
-                }
-
-                // reflection
-                // TODO skip if no water in scene...
-                // TODO tighter frustum culling around water...
-                // TODO exclude reflective surface itself
-                // DO IT ONLY IF THERE ARE elements in VOXEL_WATER bin
-                renderContext.AddReflection();
-                ReflectionRenderContext reflectionRenderContext = renderContext.ReflectionRenderContext(0);
-                if (reflectionRenderContext.Enabled)
-                {
-                    reflectionRenderContext.Update(renderContext.CullCamera);
-
-                    reflectionRenderContext.CullBegin();
-                    rootNode.Visit(CULL_VISITOR, reflectionRenderContext);
-                    reflectionRenderContext.CullEnd();
-                }
-                // debug geometry
-                renderContext.DebugGeometryAddTo(renderContext);
             }
-
         }
 
         public void Draw(GameTime gameTime)
@@ -431,6 +438,7 @@ namespace GameLibrary.SceneGraph
             if (ShowStats)
             {
                 renderContext.ShowStats();
+                Stats.Log();
                 ShowStats = false;
             }
         }
