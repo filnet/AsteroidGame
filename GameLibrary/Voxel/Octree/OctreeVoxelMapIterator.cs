@@ -11,32 +11,39 @@ namespace GameLibrary.Voxel.Octree
     {
         private readonly Octree<VoxelChunk> octree;
 
-        private ulong nodeLocCode;
+        private readonly VoxelMap[] neighbourMap;
+        private readonly VoxelMap[] neighbourKeyMap;
 
-        private readonly VoxelMap[] neighboursMap;
+        private readonly ObjectPool<VoxelMap, ArrayVoxelMap> pool;
 
-        public ulong NodeLocCode
-        {
-            get
-            {
-                return nodeLocCode;
-            }
-            set
-            {
-                if (value != nodeLocCode)
-                {
-                    nodeLocCode = value;
-                    Array.Clear(neighboursMap, 0, neighboursMap.Length);
-                }
-            }
-        }
+        public ulong NodeLocCode { get; set; }
 
-        public OctreeVoxelMapIterator(Octree<VoxelChunk> octree)
+        public OctreeVoxelMapIterator(Octree<VoxelChunk> octree, ObjectPool<VoxelMap, ArrayVoxelMap> pool)
         {
             this.octree = octree;
-            //this.nodeLocCode = nodeLocCode;
+            this.pool = pool;
             int n = Enum.GetNames(typeof(Direction)).Length;
-            neighboursMap = new VoxelMap[n];
+            neighbourMap = new VoxelMap[n];
+            neighbourKeyMap = new VoxelMap[n];
+        }
+
+        internal override void Begin(VoxelMap map)
+        {
+            base.Begin(map);
+        }
+
+        internal override void End()
+        {
+            base.End();
+            for (int i = 0; i < neighbourMap.Length; i++)
+            {
+                if (neighbourMap[i] != null && neighbourKeyMap[i] != null)
+                {
+                    pool.Give(neighbourKeyMap[i]);
+                }
+                neighbourMap[i] = null;
+                neighbourKeyMap[i] = null;
+            }
         }
 
         public override int Value()
@@ -100,17 +107,29 @@ namespace GameLibrary.Voxel.Octree
 
         private VoxelMap getNeighbourMap(Direction direction)
         {
-            VoxelMap map = neighboursMap[(int)direction];
+            VoxelMap map = neighbourMap[(int)direction];
             if (map == null)
             {
-                ulong l = octree.GetNeighborOfGreaterOrEqualSize(nodeLocCode, direction);
-                OctreeNode<VoxelChunk> neighbourNode = octree.LookupNode(l);
+                // find neighbourg node if any
+                OctreeNode<VoxelChunk> neighbourNode = null;
+                ulong l = octree.GetNeighborOfGreaterOrEqualSize(NodeLocCode, direction);
+                // TODO check that node is a leaf
+                if (l > 0)
+                {
+                    neighbourNode = octree.LookupNode(l);
+                }
                 map = (neighbourNode != null) ? neighbourNode.obj.VoxelMap : null;
                 if (map == null)
                 {
                     map = EmptyVoxelMap.INSTANCE;
                 }
-                neighboursMap[(int)direction] = map;
+                else
+                {
+                    // remember key used in pool
+                    neighbourKeyMap[(int)direction] = map;
+                    map = pool.Take(map);
+                }
+                neighbourMap[(int)direction] = EmptyVoxelMap.INSTANCE;
             }
             return map;
         }

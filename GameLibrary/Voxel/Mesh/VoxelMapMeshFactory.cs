@@ -2,6 +2,8 @@
 using GameLibrary.Util;
 using Microsoft.Xna.Framework;
 using Microsoft.Xna.Framework.Graphics;
+using System;
+using System.Diagnostics;
 
 namespace GameLibrary.Voxel
 {
@@ -11,35 +13,40 @@ namespace GameLibrary.Voxel
 
         private readonly DrawVisitor drawVisitor;
 
-        public VoxelMapMeshFactory(GraphicsDevice graphicsDevice)
+        private ObjectPool<VoxelMap, ArrayVoxelMap> pool;
+
+        public VoxelMapMeshFactory(GraphicsDevice graphicsDevice, ObjectPool<VoxelMap, ArrayVoxelMap> pool)
         {
             this.graphicsDevice = graphicsDevice;
 
             drawVisitor = new DrawVisitor();
             drawVisitor.opaqueBuilder = VertexBufferBuilder<VoxelVertex>.createVoxelVertexBufferBuilder(graphicsDevice);
             drawVisitor.transparentBuilder = VertexBufferBuilder<VoxelVertex>.createVoxelVertexBufferBuilder(graphicsDevice);
+
+            this.pool = pool;
         }
 
         public Mesh CreateMesh(GraphicsDevice graphicsDevice)
         {
             // not used...
-            return null;
+            throw new NotImplementedException();
         }
-
-        // FIXME should come from a pool
-        private ArrayVoxelMap arrayVoxelMap;
 
         public void CreateMeshes(VoxelChunk voxelChunk, VoxelMapIterator ite)
         {
             drawVisitor.opaqueBuilder.Reset();
             drawVisitor.transparentBuilder.Reset();
 
-            if (arrayVoxelMap == null)
+            ArrayVoxelMap arrayVoxelMap = pool.Take(voxelChunk.VoxelMap);
+            Debug.Assert(arrayVoxelMap != null);
+            try
             {
-                arrayVoxelMap = new ArrayVoxelMap(voxelChunk.VoxelMap);
+                arrayVoxelMap.Visit(drawVisitor, ite);
             }
-            arrayVoxelMap.InitializeFrom(voxelChunk.VoxelMap);
-            arrayVoxelMap.Visit(drawVisitor, ite);
+            finally
+            {
+                pool.Give(voxelChunk.VoxelMap);
+            }
         }
 
         public Mesh CreateOpaqueMesh()

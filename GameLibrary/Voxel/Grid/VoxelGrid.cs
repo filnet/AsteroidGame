@@ -47,7 +47,7 @@ namespace GameLibrary.Voxel.Grid
             this.graphicsDevice = graphicsDevice;
 
             mapIterator = null;
-            meshFactory = new VoxelMapMeshFactory(graphicsDevice);
+            meshFactory = new VoxelMapMeshFactory(graphicsDevice, null);
 
             Stopwatch sw = new Stopwatch();
             sw.Start();

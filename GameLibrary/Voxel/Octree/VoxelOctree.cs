@@ -55,8 +55,10 @@ namespace GameLibrary.Voxel.Octree
         {
             this.graphicsDevice = graphicsDevice;
 
-            mapIterator = new OctreeVoxelMapIterator(this);
-            meshFactory = new VoxelMapMeshFactory(graphicsDevice);
+            ObjectPool<VoxelMap, ArrayVoxelMap> pool = new ObjectPool<VoxelMap, ArrayVoxelMap>(CreateArrayVoxelMap, MutateArrayVoxelMap, AbstractVoxelMap.EqualityComparerInstance);
+
+            mapIterator = new OctreeVoxelMapIterator(this, pool);
+            meshFactory = new VoxelMapMeshFactory(graphicsDevice, pool);
 
             Stopwatch sw = new Stopwatch();
             sw.Start();
@@ -79,6 +81,19 @@ namespace GameLibrary.Voxel.Octree
             }
             StartLoadQueue();
         }
+
+        private static ArrayVoxelMap CreateArrayVoxelMap(VoxelMap map)
+        {
+            ArrayVoxelMap arrayMap = new ArrayVoxelMap(map);
+            arrayMap.InitializeFrom(map);
+            return arrayMap;
+        }
+
+        private static void MutateArrayVoxelMap(VoxelMap map, ArrayVoxelMap arrayMap)
+        {
+            arrayMap.InitializeFrom(map);
+        }
+
 
         private bool loadVisitor(Octree<VoxelChunk> octree, OctreeNode<VoxelChunk> node, ref Object arg)
         {
@@ -135,7 +150,7 @@ namespace GameLibrary.Voxel.Octree
                 if (Octree<VoxelChunk>.HasChildren(node))
                 {
                     voxelChunk = new VoxelChunk();
-                    // no need to load parent nodes
+                    // no need to load this internal node
                     voxelChunk.State = VoxelChunkState.Ready;
                 }
             }

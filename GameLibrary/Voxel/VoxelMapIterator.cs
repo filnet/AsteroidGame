@@ -26,13 +26,17 @@ namespace GameLibrary.Voxel
         {
         }
 
-        internal void Init(VoxelMap map)
+        internal virtual void Begin(VoxelMap map)
         {
             this.map = map;
             size = map.Size();
             this.x0 = map.X0();
             this.y0 = map.Y0();
             this.z0 = map.Z0();
+        }
+
+        internal virtual void End()
+        {
         }
 
         public int X { get { return x; } }

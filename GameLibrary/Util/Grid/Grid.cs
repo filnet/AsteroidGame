@@ -4,23 +4,27 @@ using System.Collections.Generic;
 
 namespace GameLibrary.Util.Grid
 {
-    public sealed class GridItem<T>
-    {
-        internal T obj;
-    }
-
     // See http://hhoppe.com/perfecthash.pdf
     public struct Key
     {
-        public readonly short X;
-        public readonly short Y;
-        public readonly short Z;
+        public static readonly IEqualityComparer<Key> KeyEqualityComparerInstance = new KeyEqualityComparer();
 
-        private class KeyEqualityComparer : IEqualityComparer<Key>
+        public int X;
+        public int Y;
+        public int Z;
+
+        public Key(int X, int Y, int Z)
+        {
+            this.X = X;
+            this.Y = Y;
+            this.Z = Z;
+        }
+
+        private sealed class KeyEqualityComparer : IEqualityComparer<Key>
         {
             public bool Equals(Key key1, Key key2)
             {
-                return ((key1.X == key2.X) & (key1.Y == key2.Y) & (key1.Z == key2.Z));
+                return ((key1.X == key2.X) && (key1.Y == key2.Y) && (key1.Z == key2.Z));
             }
 
             public int GetHashCode(Key key)
@@ -30,8 +34,12 @@ namespace GameLibrary.Util.Grid
                 hash = hash * 31 + key.Z;
                 return hash;
             }
-
         }
+    }
+
+    public sealed class GridItem<T>
+    {
+        internal T obj;
     }
 
     public class Grid<T>

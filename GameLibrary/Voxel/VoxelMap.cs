@@ -1,4 +1,6 @@
-﻿using System;
+﻿using GameLibrary.Util;
+using System;
+using System.Collections.Generic;
 using System.Diagnostics;
 using System.IO;
 using System.Runtime.CompilerServices;
@@ -71,6 +73,22 @@ namespace GameLibrary.Voxel
         void Write(BinaryWriter writer);
     }
 
+    class VoxelMapEqualityComparer : IEqualityComparer<VoxelMap>
+    {
+        public bool Equals(VoxelMap map1, VoxelMap map2)
+        {
+            return ((map1.X0() == map2.X0()) && (map1.Y0() == map2.Y0()) && (map1.Z0() == map2.Z0()));
+        }
+
+        public int GetHashCode(VoxelMap map)
+        {
+            int hash = map.X0();
+            hash = hash * 31 + map.Y0();
+            hash = hash * 31 + map.Z0();
+            return hash;
+        }
+    }
+
     class EmptyVoxelMap : VoxelMap
     {
         public static readonly VoxelMap INSTANCE = new EmptyVoxelMap();
@@ -107,6 +125,8 @@ namespace GameLibrary.Voxel
 
     public abstract class AbstractVoxelMap : VoxelMap
     {
+        public static readonly IEqualityComparer<VoxelMap> EqualityComparerInstance = new VoxelMapEqualityComparer();
+
         protected readonly int size;
         protected readonly int size2;
         protected readonly int size3;
@@ -187,10 +207,9 @@ namespace GameLibrary.Voxel
             int y = 0;
             int z = 0;
 
-            ite.Init(this);
-
             MapIterator iterator = new MapIterator(this);
             ushort value;
+            ite.Begin(this);
             while (iterator.Next(out value))
             {
                 ite.Set(x0 + x, y0 + y, z0 + z, value);
@@ -208,6 +227,7 @@ namespace GameLibrary.Voxel
                     }
                 }
             }
+            ite.End();
             visitor.End();
             if (false)
             {
@@ -227,6 +247,11 @@ namespace GameLibrary.Voxel
 
         public virtual void Read(BinaryReader reader) { throw new NotImplementedException(); }
         public virtual void Write(BinaryWriter writer) { throw new NotImplementedException(); }
+
+        public override string ToString()
+        {
+            return base.ToString() + "[" + x0 + ", " + y0 + ", " + z0 + "]";
+        }
     }
 
     public class ArrayVoxelMap : AbstractVoxelMap

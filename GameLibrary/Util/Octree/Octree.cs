@@ -420,7 +420,7 @@ namespace GameLibrary.Util.Octree
         }
 
         // https://geidav.wordpress.com/2017/12/02/advanced-octrees-4-finding-neighbor-nodes/
-        public ulong getNeighborOfGreaterOrEqualSize(ulong nodeLocCode, int mask, int value)
+        private ulong getNeighborOfGreaterOrEqualSize(ulong nodeLocCode, int mask, int value)
         {
             if (nodeLocCode == 1)
             {
