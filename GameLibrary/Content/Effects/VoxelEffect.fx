@@ -86,10 +86,11 @@ float4 ComputeAmbientOcclusionFactors(int aoBits)
 float SampleAmbientOcclusionFactors(float4 factors, float2 texCoord)
 {
    // TODO optimize lerps away if all factors are the same
-    float a1 = lerp(factors[1], factors[3], texCoord.x);
-    float a2 = lerp(factors[0], factors[2], texCoord.x);
-    float a = lerp(a1, a2, texCoord.y);
-    return a;
+    float f1 = lerp(factors[0], factors[2], texCoord.x);
+    float f2 = lerp(factors[1], factors[3], texCoord.x);
+    float f = lerp(f1, f2, texCoord.y);
+    //return f > 0.5 ? f : 0;
+	return f;
 }
 
 #define SetVoxelVSOutputParams \
@@ -539,7 +540,7 @@ float4 PSBasicVertexLightingTxNoFog(VSOutputTx pin) : SV_Target0
 	// i.e. get rid of "visibility" and, instead, add diffuse if not facing light *or* in 
 
     //float4 color = float4(1,1,1,1);
-    float4 color = SAMPLE_TEXTURE_ARRAY(Texture, float3(pin.TexCoord, pin.TextureIndex[0])); //* pin.Diffuse;
+    float4 color = SAMPLE_TEXTURE_ARRAY(Texture, float3(pin.TexCoord.x, -pin.TexCoord.y, pin.TextureIndex[0])); //* pin.Diffuse;
     
     color *= SampleAmbientOcclusionFactors(pin.AmbientOcclusionFactors, pin.TexCoord);
 

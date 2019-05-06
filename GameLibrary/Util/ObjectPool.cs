@@ -8,13 +8,15 @@ namespace GameLibrary.Util
 {
     public class ObjectPool<K, V>
     {
-        struct PoolEntry
+        public delegate V ObjectFactory(K key, V obj);
+
+        private sealed class PoolEntry
         {
             internal int refCount;
             internal V obj;
         }
 
-        struct FreeEntry
+        private struct FreeEntry
         {
             internal K key;
             internal V obj;
@@ -23,6 +25,7 @@ namespace GameLibrary.Util
         private sealed class FreeEntryEqualityComparer : IEqualityComparer<FreeEntry>
         {
             private readonly IEqualityComparer<K> keyEqualityComparer;
+
             public FreeEntryEqualityComparer(IEqualityComparer<K> keyEqualityComparer)
             {
                 this.keyEqualityComparer = keyEqualityComparer;
@@ -44,18 +47,12 @@ namespace GameLibrary.Util
         private readonly Dictionary<K, PoolEntry> pool;
         private readonly HashSet<FreeEntry> freeSet;
 
-        public delegate V ObjectFactory(K key);
-        public delegate void ObjectMutator(K key, V obj);
-
         private readonly ObjectFactory objectFactory;
-        private readonly ObjectMutator objectMutator;
 
-        public ObjectPool(ObjectFactory objectFactory, ObjectMutator objectMutator, IEqualityComparer<K> keyEqualityComparer)
+        public ObjectPool(ObjectFactory objectFactory, IEqualityComparer<K> keyEqualityComparer)
         {
             if (objectFactory == null) throw new ArgumentNullException("objectFactory");
-            if (objectMutator == null) throw new ArgumentNullException("objectMutator");
             this.objectFactory = objectFactory;
-            this.objectMutator = objectMutator;
             pool = new Dictionary<K, PoolEntry>(keyEqualityComparer);
             FreeEntryEqualityComparer freeEntryEqualityComparer = new FreeEntryEqualityComparer(keyEqualityComparer);
             freeSet = new HashSet<FreeEntry>(freeEntryEqualityComparer);
@@ -63,7 +60,6 @@ namespace GameLibrary.Util
 
         public V Take(K key)
         {
-            FreeEntry freeEntryToRemove;
             PoolEntry entry;
             if (pool.TryGetValue(key, out entry))
             {
@@ -72,59 +68,54 @@ namespace GameLibrary.Util
 #endif
                 if (entry.refCount == 0)
                 {
+                    FreeEntry freeEntryToRemove;
                     freeEntryToRemove.key = key;
                     freeEntryToRemove.obj = entry.obj;
                     freeSet.Remove(freeEntryToRemove);
                 }
                 entry.refCount++;
-                pool[key] = entry;
+                // needed because of the use of structs!
+                //pool[key] = entry;
                 return entry.obj;
             }
-            freeEntryToRemove.key = key;
-            freeEntryToRemove.obj = entry.obj;
-            if (freeSet.Remove(freeEntryToRemove))
+            if (pool.Count >= maxCount)
             {
-                // reuseing pooled object
-                entry.obj = freeEntryToRemove.obj;
+                // max reached, start reusing entries
+                // TODO should be lifo... not sure HashSet works like that
+                FreeEntry freeEntry = freeSet.First();
 #if DEBUG_POOL
-                Console.WriteLine("ObjectPool: Reusing entry for {0}", key);
+                Console.WriteLine("ObjectPool: Reusing entry for {0}, old entry {1}", key, freeEntry.key);
 #endif
+                if (!freeSet.Remove(freeEntry))
+                {
+                    throw new InvalidOperationException("invalid pool state");
+                }
+                // remove and reuse pool entry
+                if (!pool.TryGetValue(freeEntry.key, out entry))
+                {
+                    throw new InvalidOperationException("invalid pool state");
+                }
+                if (!pool.Remove(freeEntry.key))
+                {
+                    throw new InvalidOperationException("invalid pool state");
+                }
+
+                entry.obj = objectFactory(key, freeEntry.obj);
             }
             else
             {
-                if (pool.Count >= maxCount)
-                {
-                    // max reached, start reusing entries
-                    FreeEntry freeEntry = freeSet.First();
 #if DEBUG_POOL
-                    Console.WriteLine("ObjectPool: Reusing entry for {0}, old entry {1}", key, freeEntry.key);
+                Console.WriteLine("ObjectPool: Adding entry for {0}", key);
 #endif
-                    if (!freeSet.Remove(freeEntry))
-                    {
-                        throw new InvalidOperationException("invalid pool state");
-                    }
-                    // need to remove pool entry ?
-                    pool.Remove(freeEntry.key);
-
-                    entry.obj = freeEntry.obj;
-                    objectMutator(key, entry.obj);
-                }
-                else
-                {
-                    // create a new object
-                    entry.obj = objectFactory(key);
-#if DEBUG_POOL
-                    Console.WriteLine("ObjectPool: Adding entry for {0}", key);
-#endif
-                }
+                // create a new object
+                entry = new PoolEntry();
+                entry.obj = objectFactory(key, default(V));
             }
             entry.refCount = 1;
             pool.Add(key, entry);
-
 #if DEBUG_POOL
             Console.WriteLine("ObjectPool: size = {0}, free size = {1}", pool.Count, freeSet.Count);
 #endif
-
             return entry.obj;
         }
 
@@ -144,20 +135,20 @@ namespace GameLibrary.Util
                     freeEntry.key = key;
                     freeEntry.obj = entry.obj;
                     freeSet.Add(freeEntry);
-                    pool[key] = entry;
 #if DEBUG_POOL
                     //Console.WriteLine("ObjectPool: Freed {0}", key);
 #endif
                 }
-                else
-                {
-                    throw new InvalidOperationException("invalid give");
-                }
-#if DEBUG_POOL
-                Console.WriteLine("ObjectPool: size = {0}, free size = {1}", pool.Count, freeSet.Count);
-#endif
+                // needed because of the use of structs!
+                //pool[key] = entry;
             }
-
+            else
+            {
+                throw new InvalidOperationException("invalid give");
+            }
+#if DEBUG_POOL
+            Console.WriteLine("ObjectPool: size = {0}, free size = {1}", pool.Count, freeSet.Count);
+#endif
         }
     }
 }

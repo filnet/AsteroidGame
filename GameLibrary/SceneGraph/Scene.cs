@@ -31,12 +31,13 @@ namespace GameLibrary.SceneGraph
         public static readonly int ASTEROID = 8;
 
         public static readonly int OCTREE = 10;
-        //public static readonly int VOXEL_MAP = 11;
         public static readonly int VOXEL = 12;
-        public static readonly int VOXEL_WATER = 13;
+        public static readonly int VOXEL_TRANSPARENT = 13;
+        public static readonly int VOXEL_WATER = 14;
 
         // DEBUG STARTS HERE
         public static readonly int DEBUG = 20;
+
         public static readonly int FRUSTUM = 21;
         public static readonly int REGION = 22;
 
@@ -135,6 +136,7 @@ namespace GameLibrary.SceneGraph
             //renderers[VOXEL_MAP] = new VoxelMapInstancedRenderer(EffectFactory.CreateInstancedEffect(GraphicsDevice));
 
             renderers[VOXEL] = new VoxelRenderer(VoxelUtil.CreateVoxelEffect(GraphicsDevice));
+            renderers[VOXEL_TRANSPARENT] = new VoxelTransparentRenderer(VoxelUtil.CreateVoxelTransparentEffect(GraphicsDevice));
             renderers[VOXEL_WATER] = new VoxelWaterRenderer(VoxelUtil.CreateVoxelWaterEffect(GraphicsDevice));
 
             //renderers[OCTREE] = new OctreeRenderer(EffectFactory.CreateBasicEffect3(GraphicsDevice)); // no light
@@ -403,6 +405,10 @@ namespace GameLibrary.SceneGraph
                     voxelEffect.SplitScales = lightRenderContext.splitScales;
                     voxelEffect.ShadowMapTexture = lightRenderContext.ShadowRenderTarget;
                     voxelEffect.VisualizeSplits = lightRenderContext.ShowSplits;
+
+                    // HACK
+                    VoxelSimpleEffect voxelTransparentEffect = ((VoxelTransparentRenderer)renderers[VOXEL_TRANSPARENT]).effect;
+                    voxelTransparentEffect.DirectionalLight0.Direction = lightRenderContext.RenderCamera.ViewDirection;
 
                     // HACK
                     VoxelWaterEffect voxelWaterEffect = ((VoxelWaterRenderer)renderers[VOXEL_WATER]).effect;

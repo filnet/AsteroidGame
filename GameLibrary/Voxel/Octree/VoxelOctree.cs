@@ -1,10 +1,12 @@
-﻿//#define DEBUG_VOXEL_OCTREE
+﻿//#define NEW_FACTORY
+//#define DEBUG_VOXEL_OCTREE
 
 using GameLibrary.Geometry.Common;
 using GameLibrary.SceneGraph;
 using GameLibrary.SceneGraph.Common;
 using GameLibrary.Util;
 using GameLibrary.Util.Octree;
+using GameLibrary.Voxel.Geometry;
 using Microsoft.Xna.Framework;
 using Microsoft.Xna.Framework.Graphics;
 using System;
@@ -25,10 +27,14 @@ namespace GameLibrary.Voxel.Octree
         private GraphicsDevice graphicsDevice;
 
         private OctreeVoxelMapIterator mapIterator;
+#if NEW_FACTORY
+        private NewVoxelMapMeshFactory meshFactory;
+#else
         private VoxelMapMeshFactory meshFactory;
+#endif
 
         private bool CompressAtInitialization = true;
-        private bool LoadFromDisk = true;
+        private bool LoadFromDisk = false;
         private bool WriteToDisk = true;
         private bool LoadAtInitialization = false;
         //private bool CreateMeshOnInitialization = false;
@@ -59,10 +65,14 @@ namespace GameLibrary.Voxel.Octree
         {
             this.graphicsDevice = graphicsDevice;
 
-            ObjectPool<VoxelMap, ArrayVoxelMap> pool = new ObjectPool<VoxelMap, ArrayVoxelMap>(CreateArrayVoxelMap, MutateArrayVoxelMap, AbstractVoxelMap.EqualityComparerInstance);
+            ObjectPool<VoxelMap, ArrayVoxelMap> pool = new ObjectPool<VoxelMap, ArrayVoxelMap>(ArrayVoxelMapFactory, AbstractVoxelMap.EqualityComparerInstance);
 
             mapIterator = new OctreeVoxelMapIterator(this, pool);
+#if NEW_FACTORY
+            meshFactory = new NewVoxelMapMeshFactory(graphicsDevice, pool);
+#else
             meshFactory = new VoxelMapMeshFactory(graphicsDevice, pool);
+#endif
 
             using (Stats.Use("VoxelOctree.Create"))
             {
@@ -88,16 +98,14 @@ namespace GameLibrary.Voxel.Octree
             StartLoadQueue();
         }
 
-        private static ArrayVoxelMap CreateArrayVoxelMap(VoxelMap map)
+        private static ArrayVoxelMap ArrayVoxelMapFactory(VoxelMap map, ArrayVoxelMap arrayMap)
         {
-            ArrayVoxelMap arrayMap = new ArrayVoxelMap(map);
+            if (arrayMap == null)
+            {
+                arrayMap = new ArrayVoxelMap(map);
+            }
             arrayMap.InitializeFrom(map);
             return arrayMap;
-        }
-
-        private static void MutateArrayVoxelMap(VoxelMap map, ArrayVoxelMap arrayMap)
-        {
-            arrayMap.InitializeFrom(map);
         }
 
         private bool loadVisitor(Octree<VoxelChunk> octree, OctreeNode<VoxelChunk> node, ref Object arg)
@@ -425,7 +433,7 @@ namespace GameLibrary.Voxel.Octree
             {
                 using (Stats.Use("VoxelOctree.CreateTransparentMesh"))
                 {
-                    voxelChunk.TransparentDrawable = new MeshDrawable(Scene.VOXEL_WATER, transparentMesh);
+                    voxelChunk.TransparentDrawable = new MeshDrawable(Scene.VOXEL_TRANSPARENT, transparentMesh);
                 }
             }
         }

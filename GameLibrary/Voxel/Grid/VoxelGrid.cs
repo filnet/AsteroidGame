@@ -2,6 +2,7 @@
 using GameLibrary.SceneGraph;
 using GameLibrary.SceneGraph.Common;
 using GameLibrary.Util.Grid;
+using GameLibrary.Voxel.Geometry;
 using Microsoft.Xna.Framework.Graphics;
 using System;
 using System.Collections.Concurrent;
@@ -225,7 +226,7 @@ namespace GameLibrary.Voxel.Grid
                 Mesh transparentMesh = meshFactory.CreateTransparentMesh();
                 if (transparentMesh != null)
                 {
-                    voxelChunk.TransparentDrawable = new MeshDrawable(Scene.VOXEL_WATER, transparentMesh);
+                    voxelChunk.TransparentDrawable = new MeshDrawable(Scene.VOXEL_TRANSPARENT, transparentMesh);
                 }
             }
         }

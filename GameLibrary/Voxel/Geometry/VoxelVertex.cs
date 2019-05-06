@@ -3,7 +3,7 @@ using Microsoft.Xna.Framework.Graphics;
 using Microsoft.Xna.Framework.Graphics.PackedVector;
 using System.Runtime.InteropServices;
 
-namespace GameLibrary.Geometry.Common
+namespace GameLibrary.Voxel.Geometry
 {
     [StructLayout(LayoutKind.Sequential, Pack = 1)]
     public struct VoxelVertex : IVertexType

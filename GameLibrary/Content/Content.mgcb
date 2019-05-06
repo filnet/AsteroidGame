@@ -64,6 +64,12 @@
 /processorParam:DebugMode=Auto
 /build:Effects/VoxelShadowEffect.fx
 
+#begin Effects/VoxelSimpleEffect.fx
+/importer:EffectImporter
+/processor:EffectProcessor
+/processorParam:DebugMode=Auto
+/build:Effects/VoxelSimpleEffect.fx
+
 #begin Effects/VoxelWaterEffect.fx
 /importer:EffectImporter
 /processor:EffectProcessor

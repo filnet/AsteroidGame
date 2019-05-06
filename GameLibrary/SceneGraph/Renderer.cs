@@ -417,6 +417,10 @@ namespace GameLibrary.SceneGraph
         {
             RasterizerState = RasterizerState.CullClockwise;
 
+            SamplerState = new SamplerState();
+            SamplerState.AddressU = TextureAddressMode.Wrap;
+            SamplerState.AddressV = TextureAddressMode.Wrap;
+
             // wireframe texture sampler
             //wireframeSamplerState.Filter = TextureFilter.MinLinearMagPointMipLinear;
             //wireframeSamplerState.Filter = TextureFilter.LinearMipPoint;
@@ -509,13 +513,114 @@ namespace GameLibrary.SceneGraph
         }
     }
 
+    public class VoxelTransparentRenderer : EffectRenderer<VoxelSimpleEffect>
+    {
+        [Category("Rasterizer")]
+        public CullMode CullMode
+        {
+            get { return RasterizerState.CullMode; }
+            set { updateRasterizerState(FillMode, value); }
+        }
+
+        [Category("Rasterizer")]
+        public FillMode FillMode
+        {
+            get { return RasterizerState.FillMode; }
+            set { updateRasterizerState(value, CullMode); }
+        }
+
+        public VoxelTransparentRenderer(VoxelSimpleEffect effect) : base(effect)
+        {
+            BlendState = BlendState.AlphaBlend;
+
+            // TODO there is no need to disable depth write if the transparent is Z sorted
+            //DepthStencilState depthState = new DepthStencilState();
+            //depthState.DepthBufferEnable = true;
+            //depthState.DepthBufferWriteEnable = false;
+            //DepthStencilState = depthState;
+
+            RasterizerState = RasterizerState.CullNone;
+
+            SamplerState = new SamplerState();
+            SamplerState.AddressU = TextureAddressMode.Wrap;
+            SamplerState.AddressV = TextureAddressMode.Wrap;
+        }
+
+        // TODO move to parent class
+        internal void updateRasterizerState(FillMode fillMode, CullMode cullMode)
+        {
+            if (fillMode == FillMode.Solid)
+            {
+                switch (cullMode)
+                {
+                    case CullMode.CullClockwiseFace:
+                        RasterizerState = RasterizerState.CullClockwise;
+                        break;
+                    case CullMode.CullCounterClockwiseFace:
+                        RasterizerState = RasterizerState.CullCounterClockwise;
+                        break;
+                    case CullMode.None:
+                        RasterizerState = RasterizerState.CullNone;
+                        break;
+                }
+            }
+            else
+            {
+                switch (cullMode)
+                {
+                    case CullMode.CullClockwiseFace:
+                        RasterizerState = WireFrameCullClockwise;
+                        break;
+                    case CullMode.CullCounterClockwiseFace:
+                        RasterizerState = WireFrameCullCounterClockwise;
+                        break;
+                    case CullMode.None:
+                        RasterizerState = WireFrameCullNone;
+                        break;
+                }
+            }
+        }
+        public override void Render(RenderContext rc, RenderBin renderBin)
+        {
+            rc.GraphicsDevice.BlendState = BlendState;
+            rc.GraphicsDevice.DepthStencilState = DepthStencilState;
+            rc.GraphicsDevice.RasterizerState = RasterizerState;
+
+            // main texture
+            rc.GraphicsDevice.SamplerStates[0] = SamplerState;
+
+            if (effectMatrices != null)
+            {
+                effectMatrices.Projection = rc.RenderCamera.ProjectionMatrix;
+                effectMatrices.View = rc.RenderCamera.ViewMatrix;
+                effectMatrices.World = Matrix.Identity;
+            }
+
+            List<Drawable> drawableList = renderBin.DrawableList;
+            foreach (EffectPass pass in effect.CurrentTechnique.Passes)
+            {
+                pass.Apply();
+                foreach (Drawable drawable in drawableList)
+                {
+                    if (drawable.Enabled && drawable.Visible)
+                    {
+                        drawable.PreDraw(rc.GraphicsDevice);
+                        drawable.Draw(rc.GraphicsDevice);
+                        drawable.PostDraw(rc.GraphicsDevice);
+                        rc.DrawCount++;
+                        rc.VertexCount += drawable.VertexCount;
+                    }
+                }
+            }
+        }
+    }
+
     public class VoxelWaterRenderer : EffectRenderer<VoxelWaterEffect>
     {
         private readonly SamplerState reflectionSamplerState = new SamplerState();
 
         public VoxelWaterRenderer(VoxelWaterEffect effect) : base(effect)
         {
-            RasterizerState = RasterizerState.CullNone;
             BlendState = BlendState.AlphaBlend;
             /*
             BlendState = BlendState.Additive;
@@ -525,6 +630,7 @@ namespace GameLibrary.SceneGraph
             blendState.AlphaDestinationBlend = Blend.SourceColor;
             BlendState = blendState;
             */
+
             // TODO there is no need to disable depth write if the transparent is Z sorted
             /*
             DepthStencilState depthState = new DepthStencilState();
@@ -532,6 +638,8 @@ namespace GameLibrary.SceneGraph
             depthState.DepthBufferWriteEnable = false;
             DepthStencilState = depthState;
             */
+
+            RasterizerState = RasterizerState.CullNone;
 
             // shadow texture sampler
             //reflectionSamplerState.Filter = TextureFilter.Linear;

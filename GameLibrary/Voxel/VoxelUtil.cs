@@ -45,6 +45,42 @@ namespace GameLibrary.Voxel
             return effect;
         }
 
+        public static VoxelSimpleEffect CreateVoxelTransparentEffect(GraphicsDevice gd)
+        {
+            VoxelSimpleEffect effect = new VoxelSimpleEffect(gd);
+
+            // primitive color
+            effect.SpecularColor = new Vector3(1.0f, 1.0f, 1.0f); ; // new Vector3(0.25f, 0.25f, 0.25f);
+            effect.SpecularPower = 5.0f;
+            effect.Alpha = 0.5f;
+
+            //effect.VertexColorEnabled = true;
+            effect.PreferPerPixelLighting = true;
+
+            effect.LightingEnabled = true;
+            if (effect.LightingEnabled)
+            {
+                effect.DirectionalLight0.Enabled = true;
+                if (effect.DirectionalLight0.Enabled)
+                {
+                    effect.DirectionalLight0.DiffuseColor = new Vector3(0.6f, 0.6f, 0.6f); // range is 0 to 1
+                    effect.DirectionalLight0.Direction = Vector3.Normalize(new Vector3(-1, -1, -1));
+                    effect.DirectionalLight0.SpecularColor = Vector3.One;
+
+                    // points from the light to the origin of the scene
+                    //effect.DirectionalLight0.SpecularColor = Vector3.One;
+                }
+
+                effect.DirectionalLight1.Enabled = false;
+                effect.DirectionalLight2.Enabled = false;
+            }
+
+            effect.TextureEnabled = true;
+            effect.Texture = createTileTextureArray(gd, getTiles());
+
+            return effect;
+        }
+
         public static VoxelWaterEffect CreateVoxelWaterEffect(GraphicsDevice gd)
         {
             VoxelWaterEffect effect = new VoxelWaterEffect(gd);
@@ -133,7 +169,7 @@ namespace GameLibrary.Voxel
             // snow
 
             FaceType[] types = (FaceType[])Enum.GetValues(typeof(FaceType));
-            List<string> tiles = new List<string>(types.Length);
+            List<string> tiles = new List<string>(types.Length - 1);
             foreach (FaceType faceType in types)
             {
                 if (faceType != FaceType.None)

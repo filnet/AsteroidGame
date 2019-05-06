@@ -182,7 +182,7 @@ namespace GameLibrary.Voxel
 
                     if ((lx == 2 || lx == 3) && (lz == 2 || lz == 3))
                     {
-                        return ((y % 3) == 2) ? (ushort)VoxelType.Rock : (ushort)VoxelType.Rock;
+                        return (y == 2) ? (ushort)VoxelType.Test : (ushort)VoxelType.Rock;
                     }
                 }
                 /*if (y == 0)
@@ -209,19 +209,19 @@ namespace GameLibrary.Voxel
             {
                 if (y == -1)
                 {
-                    return (ushort)VoxelType.GrassyDirt;
+                    return (ushort)VoxelType.GrassyEarth;
                 }
                 return (ushort)VoxelType.Rock;
             }
             if (n < 0.2f)
             {
-                return (ushort)VoxelType.GrassyDirt;
+                return (ushort)VoxelType.GrassyEarth;
             }
             if (y >= -10)
             {
-                return (n > 0.5f) ? (ushort)VoxelType.Water : (ushort)VoxelType.Dirt;
+                return (n > 0.5f) ? (ushort)VoxelType.Water : (ushort)VoxelType.Earth;
             }
-            return (n > 0.5f) ? (ushort)VoxelType.Water : (ushort)VoxelType.Dirt;
+            return (n > 0.5f) ? (ushort)VoxelType.Water : (ushort)VoxelType.Earth;
         }
 
         /*
