@@ -30,10 +30,10 @@ namespace AsteroidGame.Geometry
 
         protected virtual Mesh generateMesh(GraphicsDevice gd)
         {
-            VertexBufferBuilder<VertexPositionColor> builder = VertexBufferBuilder<VertexPositionColor>.createVertexPositionColorBufferBuilder(gd, vertices.Count(), 0);
+            VertexBufferBuilder<VertexPositionColor> builder = new VertexBufferBuilder<VertexPositionColor>(gd, vertices.Count(), 0);
             foreach (Vector3 vertex in vertices)
             {
-                builder.AddVertex(vertex, Vector3.Zero, Color.LightGray, Vector2.Zero);
+                builder.AddVertex(vertex, Color.LightGray);
             }
             Mesh mesh = new Mesh(PrimitiveType.LineStrip, count);
             builder.SetToMesh(mesh);

@@ -41,16 +41,16 @@ namespace GameLibrary.Geometry
         protected virtual Mesh generateMesh(GraphicsDevice gd)
         {
             int vertexCount = close ? vertices.Count() + 1 : vertices.Count();
-            VertexBufferBuilder<VertexPositionColor> builder = VertexBufferBuilder<VertexPositionColor>.createVertexPositionColorBufferBuilder(gd, vertexCount, 0);
+            VertexBufferBuilder<VertexPositionColor> builder = new VertexBufferBuilder<VertexPositionColor>(gd, vertexCount, 0);
             Color color = Color.Red;
             foreach (Vector3 vertex in vertices)
             {
-                builder.AddVertex(vertex, Vector3.Zero, color, Vector2.Zero);
+                builder.AddVertex(vertex, color);
                 color = Color.White;
             }
             if (close)
             {
-                builder.AddVertex(vertices[0], Vector3.Zero, Color.White, Vector2.Zero);
+                builder.AddVertex(vertices[0], Color.White);
             }
             Mesh mesh = new Mesh(PrimitiveType.LineStrip, vertexCount - 1);
             mesh.BoundingVolume = new GameLibrary.SceneGraph.Bounding.Sphere(new Vector3(0.5f, 0, 0), 0.5f);

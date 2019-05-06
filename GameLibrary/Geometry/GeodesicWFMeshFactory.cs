@@ -31,11 +31,11 @@ namespace GameLibrary.Geometry
         protected override Mesh generateMesh(GraphicsDevice gd, TriangleIndices[] faces)
         {
             edgeCache = new Dictionary<Int64, int>(edgesCount);
-            VertexBufferBuilder<VertexPositionColor> builder = VertexBufferBuilder<VertexPositionColor>.createVertexPositionColorBufferBuilder(gd, vertices.Count(), edgesCount * 2);
+            VertexBufferBuilder<VertexPositionColor> builder = new VertexBufferBuilder<VertexPositionColor>(gd, vertices.Count(), edgesCount * 2);
             foreach (Vector3 vertex in vertices)
             {
                 Vector3 n = Vector3.Normalize(vertex);
-                builder.AddVertex(vertex, Vector3.Zero, Color.White, Vector2.Zero);
+                builder.AddVertex(vertex, Color.White);
             }
             foreach (TriangleIndices tri in faces)
             {

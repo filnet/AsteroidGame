@@ -30,11 +30,11 @@ namespace GameLibrary.Geometry
 
         protected virtual Mesh generateMesh(GraphicsDevice gd)
         {
-            VertexBufferBuilder<VertexPositionColor> builder = VertexBufferBuilder<VertexPositionColor>.createVertexPositionColorBufferBuilder(gd, vertexCount, vertexCount + 1);
+            VertexBufferBuilder<VertexPositionColor> builder = new VertexBufferBuilder<VertexPositionColor>(gd, vertexCount, vertexCount + 1);
             for (short i = 0; i < vertexCount; i++)
             {
                 Vector3 v = new Vector3(poly[i], 0);
-                builder.AddVertex(v, Vector3.Zero, Color.White, Vector2.Zero);
+                builder.AddVertex(v, Color.White);
                 builder.AddIndex(i);
             }
             builder.AddIndex(0);

@@ -29,7 +29,7 @@ namespace GameLibrary.Geometry
             int verticeCount = 8;
             int lineCount = 12;
 
-            VertexBufferBuilder<VertexPositionColor> builder = VertexBufferBuilder<VertexPositionColor>.createVertexPositionColorBufferBuilder(gd, verticeCount, lineCount * 2);
+            VertexBufferBuilder<VertexPositionColor> builder = new VertexBufferBuilder<VertexPositionColor>(gd, verticeCount, lineCount * 2);
 
             float d = size;
 
@@ -46,16 +46,16 @@ namespace GameLibrary.Geometry
             Vector3 bottomRightBack = new Vector3(d, -d, -d);
 
             // front face
-            builder.AddVertex(topLeftFront, Vector3.Zero, Color.White, Vector2.Zero);
-            builder.AddVertex(bottomLeftFront, Vector3.Zero, Color.White, Vector2.Zero);
-            builder.AddVertex(bottomRightFront, Vector3.Zero, Color.White, Vector2.Zero);
-            builder.AddVertex(topRightFront, Vector3.Zero, Color.White, Vector2.Zero);
+            builder.AddVertex(topLeftFront, Color.White);
+            builder.AddVertex(bottomLeftFront, Color.White);
+            builder.AddVertex(bottomRightFront, Color.White);
+            builder.AddVertex(topRightFront, Color.White);
 
             // back face
-            builder.AddVertex(topLeftBack, Vector3.Zero, Color.White, Vector2.Zero);
-            builder.AddVertex(topRightBack, Vector3.Zero, Color.White, Vector2.Zero);
-            builder.AddVertex(bottomRightBack, Vector3.Zero, Color.White, Vector2.Zero);
-            builder.AddVertex(bottomLeftBack, Vector3.Zero, Color.White, Vector2.Zero);
+            builder.AddVertex(topLeftBack, Color.White);
+            builder.AddVertex(topRightBack, Color.White);
+            builder.AddVertex(bottomRightBack, Color.White);
+            builder.AddVertex(bottomLeftBack, Color.White);
 
             // front
             builder.AddIndex(0);

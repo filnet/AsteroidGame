@@ -27,7 +27,7 @@ namespace GameLibrary.Geometry
             //vertices = frustum.GetCorners();
 
             int lineCount = 12;
-            builder = VertexBufferBuilder<VertexPositionColor>.createVertexPositionColorBufferBuilder(gd, vertices.Count(), 2 * lineCount);
+            builder = new VertexBufferBuilder<VertexPositionColor>(gd, vertices.Count(), 2 * lineCount);
 
             generate();
 
@@ -42,7 +42,7 @@ namespace GameLibrary.Geometry
         {
             foreach (Vector3 vertex in vertices)
             {
-                builder.AddVertex(vertex, Vector3.Zero, Color.White, Vector2.Zero);
+                builder.AddVertex(vertex, Color.White);
             }
             // front
             builder.AddIndex(0);

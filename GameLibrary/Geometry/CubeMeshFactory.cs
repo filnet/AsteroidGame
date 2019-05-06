@@ -32,7 +32,7 @@ namespace GameLibrary.Geometry
 
         public Mesh CreateMesh(GraphicsDevice gd)
         {
-            VertexBufferBuilder<VertexPositionNormalTexture> builder = VertexBufferBuilder<VertexPositionNormalTexture>.createVertexPositionNormalTextureBufferBuilder(gd, 36, 0);
+            VertexBufferBuilder<VertexPositionNormalTexture> builder = new VertexBufferBuilder<VertexPositionNormalTexture>(gd, 36, 0);
 
             float d = size;
 
@@ -63,52 +63,52 @@ namespace GameLibrary.Geometry
             Vector3 rightNormal = new Vector3(1.0f, 0.0f, 0.0f);
 
             // front face
-            builder.AddVertex(topLeftFront, frontNormal, Color.White, textureTopLeft);
-            builder.AddVertex(bottomLeftFront, frontNormal, Color.White, textureBottomLeft);
-            builder.AddVertex(topRightFront, frontNormal, Color.White, textureTopRight);
-            builder.AddVertex(bottomLeftFront, frontNormal, Color.White, textureBottomLeft);
-            builder.AddVertex(bottomRightFront, frontNormal, Color.White, textureBottomRight);
-            builder.AddVertex(topRightFront, frontNormal, Color.White, textureTopRight);
+            builder.AddVertex(topLeftFront, frontNormal, textureTopLeft);
+            builder.AddVertex(bottomLeftFront, frontNormal, textureBottomLeft);
+            builder.AddVertex(topRightFront, frontNormal, textureTopRight);
+            builder.AddVertex(bottomLeftFront, frontNormal, textureBottomLeft);
+            builder.AddVertex(bottomRightFront, frontNormal, textureBottomRight);
+            builder.AddVertex(topRightFront, frontNormal, textureTopRight);
 
             // back face
-            builder.AddVertex(topLeftBack, backNormal, Color.White, textureTopRight);
-            builder.AddVertex(topRightBack, backNormal, Color.White, textureTopLeft);
-            builder.AddVertex(bottomLeftBack, backNormal, Color.White, textureBottomRight);
-            builder.AddVertex(bottomLeftBack, backNormal, Color.White, textureBottomRight);
-            builder.AddVertex(topRightBack, backNormal, Color.White, textureTopLeft);
-            builder.AddVertex(bottomRightBack, backNormal, Color.White, textureBottomLeft);
+            builder.AddVertex(topLeftBack, backNormal, textureTopRight);
+            builder.AddVertex(topRightBack, backNormal, textureTopLeft);
+            builder.AddVertex(bottomLeftBack, backNormal, textureBottomRight);
+            builder.AddVertex(bottomLeftBack, backNormal, textureBottomRight);
+            builder.AddVertex(topRightBack, backNormal, textureTopLeft);
+            builder.AddVertex(bottomRightBack, backNormal, textureBottomLeft);
 
             // top face
-            builder.AddVertex(topLeftFront, topNormal, Color.White, textureBottomLeft);
-            builder.AddVertex(topRightBack, topNormal, Color.White, textureTopRight);
-            builder.AddVertex(topLeftBack, topNormal, Color.White, textureTopLeft);
-            builder.AddVertex(topLeftFront, topNormal, Color.White, textureBottomLeft);
-            builder.AddVertex(topRightFront, topNormal, Color.White, textureBottomRight);
-            builder.AddVertex(topRightBack, topNormal, Color.White, textureTopRight);
+            builder.AddVertex(topLeftFront, topNormal, textureBottomLeft);
+            builder.AddVertex(topRightBack, topNormal, textureTopRight);
+            builder.AddVertex(topLeftBack, topNormal, textureTopLeft);
+            builder.AddVertex(topLeftFront, topNormal, textureBottomLeft);
+            builder.AddVertex(topRightFront, topNormal, textureBottomRight);
+            builder.AddVertex(topRightBack, topNormal, textureTopRight);
 
             // bottom face
-            builder.AddVertex(bottomLeftFront, bottomNormal, Color.White, textureTopLeft);
-            builder.AddVertex(bottomLeftBack, bottomNormal, Color.White, textureBottomLeft);
-            builder.AddVertex(bottomRightBack, bottomNormal, Color.White, textureBottomRight);
-            builder.AddVertex(bottomLeftFront, bottomNormal, Color.White, textureTopLeft);
-            builder.AddVertex(bottomRightBack, bottomNormal, Color.White, textureBottomRight);
-            builder.AddVertex(bottomRightFront, bottomNormal, Color.White, textureTopRight);
+            builder.AddVertex(bottomLeftFront, bottomNormal, textureTopLeft);
+            builder.AddVertex(bottomLeftBack, bottomNormal, textureBottomLeft);
+            builder.AddVertex(bottomRightBack, bottomNormal, textureBottomRight);
+            builder.AddVertex(bottomLeftFront, bottomNormal, textureTopLeft);
+            builder.AddVertex(bottomRightBack, bottomNormal, textureBottomRight);
+            builder.AddVertex(bottomRightFront, bottomNormal, textureTopRight);
 
             // left face
-            builder.AddVertex(topLeftFront, leftNormal, Color.White, textureTopRight);
-            builder.AddVertex(bottomLeftBack, leftNormal, Color.White, textureBottomLeft);
-            builder.AddVertex(bottomLeftFront, leftNormal, Color.White, textureBottomRight);
-            builder.AddVertex(topLeftBack, leftNormal, Color.White, textureTopLeft);
-            builder.AddVertex(bottomLeftBack, leftNormal, Color.White, textureBottomLeft);
-            builder.AddVertex(topLeftFront, leftNormal, Color.White, textureTopRight);
+            builder.AddVertex(topLeftFront, leftNormal, textureTopRight);
+            builder.AddVertex(bottomLeftBack, leftNormal, textureBottomLeft);
+            builder.AddVertex(bottomLeftFront, leftNormal, textureBottomRight);
+            builder.AddVertex(topLeftBack, leftNormal, textureTopLeft);
+            builder.AddVertex(bottomLeftBack, leftNormal, textureBottomLeft);
+            builder.AddVertex(topLeftFront, leftNormal, textureTopRight);
 
             // right face
-            builder.AddVertex(topRightFront, rightNormal, Color.White, textureTopLeft);
-            builder.AddVertex(bottomRightFront, rightNormal, Color.White, textureBottomLeft);
-            builder.AddVertex(bottomRightBack, rightNormal, Color.White, textureBottomRight);
-            builder.AddVertex(topRightBack, rightNormal, Color.White, textureTopRight);
-            builder.AddVertex(topRightFront, rightNormal, Color.White, textureTopLeft);
-            builder.AddVertex(bottomRightBack, rightNormal, Color.White, textureBottomRight);
+            builder.AddVertex(topRightFront, rightNormal, textureTopLeft);
+            builder.AddVertex(bottomRightFront, rightNormal, textureBottomLeft);
+            builder.AddVertex(bottomRightBack, rightNormal, textureBottomRight);
+            builder.AddVertex(topRightBack, rightNormal, textureTopRight);
+            builder.AddVertex(topRightFront, rightNormal, textureTopLeft);
+            builder.AddVertex(bottomRightBack, rightNormal, textureBottomRight);
 
             Mesh mesh = new Mesh(PrimitiveType.TriangleList, 2 * 6);
             mesh.BoundingVolume = new GameLibrary.SceneGraph.Bounding.Sphere(Vector3.Zero, 2 * d);

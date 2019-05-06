@@ -1,10 +1,8 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
+﻿using GameLibrary.Geometry.Common;
 using Microsoft.Xna.Framework;
-using GameLibrary.Geometry.Common;
 using Microsoft.Xna.Framework.Graphics;
-using GameLibrary.Component.Util;
+using System;
+using System.Linq;
 
 namespace GameLibrary.Geometry
 {
@@ -30,10 +28,10 @@ namespace GameLibrary.Geometry
 
         protected virtual Mesh generateMesh(GraphicsDevice gd)
         {
-            VertexBufferBuilder<VertexPositionColor> builder = VertexBufferBuilder<VertexPositionColor>.createVertexPositionColorBufferBuilder(gd, vertices.Count(), 0);
+            VertexBufferBuilder<VertexPositionColor> builder = new VertexBufferBuilder<VertexPositionColor>(gd, vertices.Count(), 0);
             foreach (Vector3 vertex in vertices)
             {
-                builder.AddVertex(vertex, Vector3.Zero, Color.White, Vector2.Zero);
+                builder.AddVertex(vertex, Color.White);
             }
             Mesh mesh = new Mesh(PrimitiveType.LineStrip, count);
             mesh.BoundingVolume = new GameLibrary.SceneGraph.Bounding.Sphere(Vector3.Zero, 1.0f);

@@ -27,12 +27,12 @@ namespace GameLibrary.Geometry
         protected virtual Mesh generateMesh(GraphicsDevice gd)
         {
             VertexBufferBuilder<VertexPositionColor> builder =
-                VertexBufferBuilder<VertexPositionColor>.createVertexPositionColorBufferBuilder(gd, vertices.Count(), vertices.Count() + 1);
+                new VertexBufferBuilder<VertexPositionColor>(gd, vertices.Count(), vertices.Count() + 1);
 
             short i = 0;
             foreach (Vector3 vertex in vertices)
             {
-                builder.AddVertex(vertex, Vector3.Zero, Color.White, Vector2.Zero);
+                builder.AddVertex(vertex, Color.White);
                 builder.AddIndex(i++);
             }
             builder.AddIndex(0);

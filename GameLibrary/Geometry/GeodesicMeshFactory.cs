@@ -6,6 +6,7 @@ using GameLibrary.Geometry.Common;
 using Microsoft.Xna.Framework.Graphics;
 using GameLibrary.Component.Util;
 using GameLibrary.Util;
+using GameLibrary.Geometry.Common;
 
 namespace GameLibrary.Geometry
 {
@@ -85,14 +86,14 @@ namespace GameLibrary.Geometry
         protected virtual Mesh generateMesh(GraphicsDevice gd, TriangleIndices[] faces)
         {
             Mesh mesh;
-            VertexBufferBuilder<VertexPositionNormalTexture> builder;
+            VertexBufferBuilder<VertexPositionColorNormalTexture> builder;
             if (!facetted)
             {
-                builder = VertexBufferBuilder<VertexPositionNormalTexture>.createVertexPositionNormalTextureBufferBuilder(gd, vertices.Count(), faces.Count() * 3);
+                builder = new VertexBufferBuilder<VertexPositionColorNormalTexture>(gd, vertices.Count(), faces.Count() * 3);
                 foreach (Vector3 vertex in vertices)
                 {
                     Vector3 n = Vector3.Normalize(vertex);
-                    builder.AddVertex(vertex, n, Color.White, Vector2.Zero);
+                    builder.AddVertex(vertex, Color.White, n, Vector2.Zero);
                 }
                 foreach (TriangleIndices tri in faces)
                 {
@@ -104,16 +105,16 @@ namespace GameLibrary.Geometry
             }
             else
             {
-                builder = VertexBufferBuilder<VertexPositionNormalTexture>.createVertexPositionNormalTextureBufferBuilder(gd, faces.Count() * 3, 0);
+                builder = new VertexBufferBuilder<VertexPositionColorNormalTexture>(gd, faces.Count() * 3, 0);
                 foreach (TriangleIndices tri in faces)
                 {
                     Vector3 v1 = vertices[tri.v1];
                     Vector3 v2 = vertices[tri.v2];
                     Vector3 v3 = vertices[tri.v3];
                     Vector3 n = Vector3.Normalize(Vector3.Cross(v2 - v1, v3 - v1));
-                    builder.AddVertex(v1, n, Color.White, Vector2.Zero);
-                    builder.AddVertex(v2, n, Color.White, Vector2.Zero);
-                    builder.AddVertex(v3, n, Color.White, Vector2.Zero);
+                    builder.AddVertex(v1, Color.White, n, Vector2.Zero);
+                    builder.AddVertex(v2, Color.White, n, Vector2.Zero);
+                    builder.AddVertex(v3, Color.White, n, Vector2.Zero);
                 }
                 mesh = new Mesh(PrimitiveType.TriangleList, faces.Count());
             }

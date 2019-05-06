@@ -22,7 +22,7 @@ namespace GameLibrary.Geometry
 
         public Mesh CreateMesh(GraphicsDevice gd)
         {
-            builder = VertexBufferBuilder<VertexPositionColor>.createVertexPositionColorBufferBuilder(gd, 0, 0);
+            builder = new VertexBufferBuilder<VertexPositionColor>(gd, 0, 0);
 
             generate();
 
@@ -39,7 +39,7 @@ namespace GameLibrary.Geometry
             for (int i = 0; i < region.LineCount; i++)
             {
                 Vector3 vertex = region.lines[i];
-                builder.AddVertex(vertex, Vector3.Zero, Color.White, Vector2.Zero);
+                builder.AddVertex(vertex, Color.White);
             }
         }
 

@@ -23,8 +23,7 @@ namespace GameLibrary.Geometry
 
         public Mesh CreateMesh(GraphicsDevice gd)
         {
-            VertexBufferBuilder<VertexPositionColorNormalTexture> builder = 
-                VertexBufferBuilder<VertexPositionColorNormalTexture>.createVertexPositionColorNormalTextureBufferBuilder(gd, 4, 6);
+            VertexBufferBuilder<VertexPositionColorNormalTexture> builder = new VertexBufferBuilder<VertexPositionColorNormalTexture>(gd, 4, 6);
             //VertexBufferBuilder<VertexPositionColor> builder =
             //    VertexBufferBuilder<VertexPositionColor>.createVertexPositionColorBufferBuilder(gd, 4, 6);
 
@@ -43,10 +42,10 @@ namespace GameLibrary.Geometry
             // normals
             Vector3 frontNormal = new Vector3(0.0f, 0.0f, 1.0f);
             
-            int i = builder.AddVertex(bottomLeft, frontNormal, Color.White, textureBottomLeft);
-            builder.AddVertex(topLeft, frontNormal, Color.White, textureTopLeft);
-            builder.AddVertex(bottomRight, frontNormal, Color.White, textureBottomRight);
-            builder.AddVertex(topRight, frontNormal, Color.White, textureTopRight);
+            int i = builder.AddVertex(bottomLeft, Color.White, frontNormal, textureBottomLeft);
+            builder.AddVertex(topLeft, Color.White, frontNormal, textureTopLeft);
+            builder.AddVertex(bottomRight, Color.White, frontNormal, textureBottomRight);
+            builder.AddVertex(topRight, Color.White, frontNormal, textureTopRight);
 
             builder.AddIndex(i + 1);
             builder.AddIndex(i);

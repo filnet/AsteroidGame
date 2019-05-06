@@ -7,7 +7,70 @@ using Microsoft.Xna.Framework;
 
 namespace GameLibrary.Geometry.Common
 {
-    public abstract class VertexBufferBuilder<T> where T : struct, IVertexType
+    public static class VertexBufferBuilderExtensions
+    {
+        // VertexPositionColor
+
+        public static int AddVertex(this VertexBufferBuilder<VertexPositionColor> builder, Vector3 position, Color color)
+        {
+            return builder.AddVertex(new VertexPositionColor(position, color));
+        }
+
+        public static Vector3 VertexPosition(VertexPositionColor vertex)
+        {
+            return vertex.Position;
+        }
+
+        // VertexPositionNormalTexture
+
+        public static int AddVertex(this VertexBufferBuilder<VertexPositionNormalTexture> builder, Vector3 position, Vector3 normal, Vector2 textureCoordinate)
+        {
+            return builder.AddVertex(new VertexPositionNormalTexture(position, normal, textureCoordinate));
+        }
+
+        public static Vector3 VertexPosition(VertexPositionNormalTexture vertex)
+        {
+            return vertex.Position;
+        }
+
+        // VertexPositionNormalTextureArray
+
+        public static int AddVertex(this VertexBufferBuilder<VertexPositionNormalTextureArray> builder, Vector3 position, Vector3 normal, Vector3 textureCoordinate)
+        {
+            return builder.AddVertex(new VertexPositionNormalTextureArray(position, normal, textureCoordinate));
+        }
+
+        public static Vector3 VertexPosition(VertexPositionNormalTextureArray vertex)
+        {
+            return vertex.Position;
+        }
+
+        // VertexPositionColorNormalTexture
+
+        public static int AddVertex(this VertexBufferBuilder<VertexPositionColorNormalTexture> builder, Vector3 position, Color color, Vector3 normal, Vector2 textureCoordinate)
+        {
+            return builder.AddVertex(new VertexPositionColorNormalTexture(position, color, normal, textureCoordinate));
+        }
+
+        public static Vector3 VertexPosition(VertexPositionColorNormalTexture vertex)
+        {
+            return vertex.Position;
+        }
+
+        // VertexPositionColorNormalTextureArray
+
+        public static int AddVertex(this VertexBufferBuilder<VertexPositionColorNormalTextureArray> builder, Vector3 position, Color color, Vector3 normal, Vector3 textureCoordinate)
+        {
+            return builder.AddVertex(new VertexPositionColorNormalTextureArray(position, color, normal, textureCoordinate));
+        }
+
+        public static Vector3 VertexPosition(VertexPositionColorNormalTextureArray vertex)
+        {
+            return vertex.Position;
+        }
+    }
+
+    public class VertexBufferBuilder<T> where T : struct, IVertexType
     {
         protected GraphicsDevice gd;
 
@@ -46,14 +109,17 @@ namespace GameLibrary.Geometry.Common
             }
         }
 
-        public void ExtractBoundingBox(SceneGraph.Bounding.Box box)
+        public delegate Vector3 VertexPosition(T vertex);
+
+        // TODO move out of here...
+        public void ExtractBoundingBox(SceneGraph.Bounding.Box box, VertexPosition vertexPosition)
         {
             Vector3 min = new Vector3(float.MaxValue);
             Vector3 max = new Vector3(float.MinValue);
             for (int i = 0; i < vertexCount; i++)
             {
                 T vertex = vertices[i];
-                Vector3 position = VertexPosition(vertex);
+                Vector3 position = vertexPosition(vertex);
                 max.X = Math.Max(max.X, position.X);
                 max.Y = Math.Max(max.Y, position.Y);
                 max.Z = Math.Max(max.Z, position.Z);
@@ -64,38 +130,14 @@ namespace GameLibrary.Geometry.Common
             SceneGraph.Bounding.Box.CreateFromMinMax(ref min, ref max, box);
         }
 
-        protected virtual Vector3 VertexPosition(T vertex)
-        {
-            throw new NotImplementedException();
-        }
-        
-        public int AddVertex(Vector3 position, Vector3 normal, Vector2 textureCoordinate)
-        {
-            return AddVertex(position, normal, Color.White, textureCoordinate);
-        }
-
-        public int AddVertex(Vector3 position, Vector3 normal, Color color, Vector2 textureCoordinate)
-        {
-            return AddVertex(position, normal, color, textureCoordinate, 0, 0);
-        }
-
-        public int AddVertex(Vector3 position, Vector3 normal, Color color, Vector2 textureCoordinate, int textureIndex)
-        {
-            return AddVertex(position, normal, color, textureCoordinate, textureIndex, 0);
-        }
-
-        public int AddVertex(Vector3 position, Vector3 normal, Color color, Vector2 textureCoordinate, int textureIndex, int lightTextureIndex)
+        public int AddVertex(T vertex)
         {
             ensureVertexCapacity();
             int index = vertexCount;
-            vertices[index] = createVertex(position, normal, color, textureCoordinate, textureIndex, lightTextureIndex);
+            vertices[index] = vertex;
             vertexCount++;
             return index;
         }
-
-        protected abstract VertexDeclaration getVertexDeclaration();
-
-        protected abstract T createVertex(Vector3 position, Vector3 normal, Color color, Vector2 textureCoordinate, int textureIndex, int lightTextureIndex);
 
         public void AddIndex(int index)
         {
@@ -203,189 +245,5 @@ namespace GameLibrary.Geometry.Common
             return new int[size];
         }
 
-        // VertexPositionNormalTexture
-
-        public static VertexBufferBuilder<VertexPositionNormalTexture> createVertexPositionNormalTextureBufferBuilder(GraphicsDevice gd, int vertexCount, int indexCount)
-        {
-            return new VertexPositionNormalTextureBufferBuilder(gd, vertexCount, indexCount);
-        }
-
-        private class VertexPositionNormalTextureBufferBuilder : VertexBufferBuilder<VertexPositionNormalTexture>
-        {
-            public VertexPositionNormalTextureBufferBuilder(GraphicsDevice gd, int vertexCount, int indexCount)
-                : base(gd, vertexCount, indexCount)
-            {
-            }
-
-            protected override VertexDeclaration getVertexDeclaration()
-            {
-                return VertexPositionNormalTexture.VertexDeclaration;
-            }
-
-            protected override VertexPositionNormalTexture createVertex(Vector3 position, Vector3 normal, Color color, Vector2 textureCoordinate, int textureIndex, int lightTextureIndex)
-            {
-                return new VertexPositionNormalTexture(position, normal, textureCoordinate);
-            }
-
-            protected override Vector3 VertexPosition(VertexPositionNormalTexture vertex)
-            {
-                return vertex.Position;
-            }
-
-        }
-
-        // VertexPositionNormalTextureArray
-
-        public static VertexBufferBuilder<VertexPositionNormalTextureArray> createVertexPositionNormalTextureArrayBufferBuilder(GraphicsDevice gd, int vertexCount, int indexCount)
-        {
-            return new VertexPositionNormalTextureArrayBufferBuilder(gd, vertexCount, indexCount);
-        }
-
-        private class VertexPositionNormalTextureArrayBufferBuilder : VertexBufferBuilder<VertexPositionNormalTextureArray>
-        {
-            public VertexPositionNormalTextureArrayBufferBuilder(GraphicsDevice gd, int vertexCount, int indexCount)
-                : base(gd, vertexCount, indexCount)
-            {
-            }
-
-            protected override VertexDeclaration getVertexDeclaration()
-            {
-                return VertexPositionNormalTextureArray.VertexDeclaration;
-            }
-
-            protected override VertexPositionNormalTextureArray createVertex(Vector3 position, Vector3 normal, Color color, Vector2 textureCoordinate, int textureIndex, int lightTextureIndex)
-            {
-                return new VertexPositionNormalTextureArray(position, normal, new Vector3(textureCoordinate, textureIndex));
-            }
-
-            protected override Vector3 VertexPosition(VertexPositionNormalTextureArray vertex)
-            {
-                return vertex.Position;
-            }
-        }
-
-        // VertexPositionColorNormalTexture
-
-        public static VertexBufferBuilder<VertexPositionColorNormalTexture> createVertexPositionColorNormalTextureBufferBuilder(GraphicsDevice gd, int vertexCount, int indexCount)
-        {
-            return new VertexPositionColorNormalTextureBufferBuilder(gd, vertexCount, indexCount);
-        }
-
-        private class VertexPositionColorNormalTextureBufferBuilder : VertexBufferBuilder<VertexPositionColorNormalTexture>
-        {
-            public VertexPositionColorNormalTextureBufferBuilder(GraphicsDevice gd, int vertexCount, int indexCount)
-                : base(gd, vertexCount, indexCount)
-            {
-            }
-
-            protected override VertexDeclaration getVertexDeclaration()
-            {
-                return VertexPositionColorNormalTexture.VertexDeclaration;
-            }
-
-            protected override VertexPositionColorNormalTexture createVertex(Vector3 position, Vector3 normal, Color color, Vector2 textureCoordinate, int textureIndex, int lightTextureIndex)
-            {
-                return new VertexPositionColorNormalTexture(position, color, normal, textureCoordinate);
-            }
-
-            protected override Vector3 VertexPosition(VertexPositionColorNormalTexture vertex)
-            {
-                return vertex.Position;
-            }
-        }
-
-        // VertexPositionColorNormalTextureArray
-
-        public static VertexBufferBuilder<VertexPositionColorNormalTextureArray> createVertexPositionColorNormalTextureArrayBufferBuilder(GraphicsDevice gd, int vertexCount, int indexCount)
-        {
-            return new VertexPositionColorNormalTextureArrayBufferBuilder(gd, vertexCount, indexCount);
-        }
-
-        private class VertexPositionColorNormalTextureArrayBufferBuilder : VertexBufferBuilder<VertexPositionColorNormalTextureArray>
-        {
-            public VertexPositionColorNormalTextureArrayBufferBuilder(GraphicsDevice gd, int vertexCount, int indexCount)
-                : base(gd, vertexCount, indexCount)
-            {
-            }
-
-            protected override VertexDeclaration getVertexDeclaration()
-            {
-                return VertexPositionColorNormalTextureArray.VertexDeclaration;
-            }
-
-            protected override VertexPositionColorNormalTextureArray createVertex(Vector3 position, Vector3 normal, Color color, Vector2 textureCoordinate, int textureIndex, int lightTextureIndex)
-            {
-                return new VertexPositionColorNormalTextureArray(position, color, normal, new Vector3(textureCoordinate, textureIndex));
-            }
-
-            protected override Vector3 VertexPosition(VertexPositionColorNormalTextureArray vertex)
-            {
-                return vertex.Position;
-            }
-        }
-
-        // VertexPositionColor
-
-        public static VertexBufferBuilder<VertexPositionColor> createVertexPositionColorBufferBuilder(GraphicsDevice gd, int vertexCount, int indexCount)
-        {
-            return new VertexPositionColorBufferBuilder(gd, vertexCount, indexCount);
-        }
-
-        private class VertexPositionColorBufferBuilder : VertexBufferBuilder<VertexPositionColor>
-        {
-            public VertexPositionColorBufferBuilder(GraphicsDevice gd, int vertexCount, int indexCount)
-                : base(gd, vertexCount, indexCount)
-            {
-            }
-
-            protected override VertexDeclaration getVertexDeclaration()
-            {
-                return VertexPositionColor.VertexDeclaration;
-            }
-
-            protected override VertexPositionColor createVertex(Vector3 position, Vector3 normal, Color color, Vector2 textureCoordinate, int textureIndex, int lightTextureIndex)
-            {
-                return new VertexPositionColor(position, color);
-            }
-
-            protected override Vector3 VertexPosition(VertexPositionColor vertex)
-            {
-                return vertex.Position;
-            }
-        }
-
-        // VoxelVertex
-
-        public static VertexBufferBuilder<VoxelVertex> createVoxelVertexBufferBuilder(GraphicsDevice gd)
-        {
-            return new VoxelVertexBufferBuilder(gd);
-        }
-
-        private class VoxelVertexBufferBuilder : VertexBufferBuilder<VoxelVertex>
-        {
-            public VoxelVertexBufferBuilder(GraphicsDevice gd)
-                : base(gd)
-            {
-            }
-
-            protected override VertexDeclaration getVertexDeclaration()
-            {
-                return VoxelVertex.VertexDeclaration;
-            }
-
-            protected override VoxelVertex createVertex(Vector3 position, Vector3 normal, Color color, Vector2 textureCoordinate, int textureIndex, int lightTextureIndex)
-            {
-                return new VoxelVertex(position, normal, textureCoordinate, textureIndex, lightTextureIndex);
-            }
-
-            protected override Vector3 VertexPosition(VoxelVertex vertex)
-            {
-                return vertex.Position;
-            }
-        }
-
     }
 }
-
-
-
