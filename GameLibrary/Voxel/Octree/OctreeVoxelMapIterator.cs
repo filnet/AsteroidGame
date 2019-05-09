@@ -129,7 +129,7 @@ namespace GameLibrary.Voxel.Octree
                     neighbourKeyMap[(int)direction] = map;
                     map = pool.Take(map);
                 }
-                neighbourMap[(int)direction] = EmptyVoxelMap.INSTANCE;
+                neighbourMap[(int)direction] = map;
             }
             return map;
         }
