@@ -93,12 +93,22 @@ float SampleAmbientOcclusionFactors(float4 factors, float2 texCoord)
 	return f;
 }
 
+float ComputeWFTexCoord(float x, int w)
+{
+	int b = 2 * w - 1;
+	return x ? 1 : -b;
+}
+
+
+//	vout.WF1TexCoord = vin.TexCoord.x ? (2 * vin.TextureIndex[2] - 1) : -(2 * vin.TextureIndex[2] - 1); \
+//	vout.WF2TexCoord = vin.TexCoord.y ? (2 * vin.TextureIndex[3] - 1) : -(2 * vin.TextureIndex[3] - 1); \
+
 #define SetVoxelVSOutputParams \
     vout.TexCoord = vin.TexCoord; \
 	vout.TextureIndex = vin.TextureIndex; \
 	vout.AmbientOcclusionFactors = ComputeAmbientOcclusionFactors(vin.TextureIndex[1]); \
-	vout.WF1TexCoord = vin.TexCoord.x ? 1 : -1; \
-	vout.WF2TexCoord = vin.TexCoord.y ? 1 : -1; \
+	vout.WF1TexCoord = ComputeWFTexCoord(vin.TexCoord.x, vin.TextureIndex[2]); \
+	vout.WF2TexCoord = ComputeWFTexCoord(vin.TexCoord.y, vin.TextureIndex[3]); \
 	vout.DepthVS = mul(vin.Position, WorldView).z; \
     vout.PositionWS = mul(vin.Position, World);
 

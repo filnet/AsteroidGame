@@ -92,7 +92,7 @@ namespace GameLibrary.Voxel.Octree
 
             // outside
             Direction nDirection = Octree<VoxelChunk>.DIR_LOOKUP_TABLE[lookupIndex];
-            VoxelMap nMap = getNeighbourMap(nDirection);
+            VoxelMap nMap = GetNeighbourMap(nDirection);
             Debug.Assert(nMap.Contains(nx, ny, nz));
             return nMap.Get(nx, ny, nz);
         }
@@ -105,7 +105,7 @@ namespace GameLibrary.Voxel.Octree
             this.v = v;
         }
 
-        private VoxelMap getNeighbourMap(Direction direction)
+        public override VoxelMap GetNeighbourMap(Direction direction)
         {
             VoxelMap map = neighbourMap[(int)direction];
             if (map == null)

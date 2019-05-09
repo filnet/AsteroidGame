@@ -52,6 +52,8 @@ namespace GameLibrary.Voxel
 
         public abstract int Value();
         public abstract int Value(Direction direction);
+
+        public abstract VoxelMap GetNeighbourMap(Direction direction);
     }
 
     class SimpleVoxelMapIterator : VoxelMapIterator
@@ -80,6 +82,11 @@ namespace GameLibrary.Voxel
             this.y = y;
             this.z = z;
             this.v = v;
+        }
+
+        public override VoxelMap GetNeighbourMap(Direction direction)
+        {
+            return EmptyVoxelMap.INSTANCE;
         }
 
     }

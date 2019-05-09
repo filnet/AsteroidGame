@@ -18,7 +18,7 @@ namespace GameLibrary.Voxel
     public interface EagerVisitor
     {
         bool Begin(int size);
-        bool AddFace(FaceType type, Direction dir, int w, int h, ref Vector3 v1, ref Vector3 v2, ref Vector3 v3, ref Vector3 v4);
+        bool AddFace(FaceType type, Direction dir, Vector3 p, int w, int h);
         bool End();
     }
 
@@ -247,6 +247,8 @@ namespace GameLibrary.Voxel
             }
         }
 
+        public static readonly int FLIP_MASK = 16;
+
         // FIXME ite is not used...
         public void Visit(EagerVisitor visitor, VoxelMapIterator ite)
         {
@@ -256,6 +258,7 @@ namespace GameLibrary.Voxel
                 visitor.End();
                 return;
             }
+            ite.Begin(this);
 
             int totalFaceCount = 0;
             int totalQuadCount = 0;
@@ -265,179 +268,26 @@ namespace GameLibrary.Voxel
             // transparency...
 
             // sweep over 3-axes
-            //var quads = [];
-            int[] dims = { size, size, size };
-            int n = 0;
-            for (int d = 0; d < 3; ++d)
+            // TODO start with Y (the most occluding when there is a ground)
+            //int[] dims = { size, size, size };
+            //int n = 0;
+            /*for (int d = 0; d < 3; ++d)
             {
                 //if (d != 0) continue;
                 int u = (d + 1) % 3;
                 int v = (d + 2) % 3;
-                int[] x = { 0, 0, 0 };
-                int[] q = { 0, 0, 0 };
 
-                // TODO use pool for array
-                int[] mask = new int[dims[u] * dims[v]];
-                Array.Clear(mask, 0, mask.Length);
+                Sweep(visitor, d, u, v);
+            }*/
+            // first sweep along Y axis (the most occluding axis when there is a ground)
+            // TODO should do it from top to bottom
+            Sweep(visitor, ite, 1, 0, 2);
+            // then Z
+            Sweep(visitor, ite, 2, 0, 1);
+            // and X
+            Sweep(visitor, ite, 0, 2, 1);
 
-                Direction dir1 = (Direction)(2 * d + 1);
-                Direction dir2 = (Direction)(2 * d);
-
-                // compute mask for each slice
-                q[d] = 1;
-                for (x[d] = -1; x[d] < dims[d];)
-                {
-                    // compute mask
-                    n = 0;
-                    int faceCount = 0;
-                    // TODO handle first and last "column" in own loop (to avoid bound tests for "internal" cells)
-                    for (x[v] = 0; x[v] < dims[v]; ++x[v])
-                    {
-                        for (x[u] = 0; x[u] < dims[u]; ++x[u])
-                        {
-                            VoxelType voxelType1 = (0 <= x[d]) ? f(x[0], x[1], x[2]) : VoxelType.None;
-                            VoxelType voxelType2 = (x[d] < dims[d] - 1) ? f(x[0] + q[0], x[1] + q[1], x[2] + q[2]) : VoxelType.None;
-                            if (voxelType1 != voxelType2)
-                            {
-                                FaceType faceType1 = VoxelInfo.GetFaceType(voxelType1, dir1);
-                                FaceType faceType2 = VoxelInfo.GetFaceType(voxelType2, dir2);
-                                if (faceType1 != faceType2)
-                                {
-                                    // any and none gives any
-                                    // opaque and opaque gives none
-                                    // transparent and transparent gives none
-                                    // opaque and transparent gives opaque
-                                    //
-                                    //               -------------------------------------------
-                                    //               | none        | opaque      | transparent |
-                                    // ---------------------------------------------------------
-                                    // | none        |             | opaque      | transparent |
-                                    // | opaque      | opaque      |             | opaque      |
-                                    // | transparent | transparent | opaque      |             |
-                                    // ---------------------------------------------------------
-                                    int compare = FaceInfo.Compare(faceType1, faceType2);
-                                    if (compare > 0)
-                                    {
-                                        mask[n] = (int)faceType1 | (1 << 16);
-                                        faceCount++;
-                                    }
-                                    else if (compare < 0)
-                                    {
-                                        mask[n] = (int)faceType2;
-                                        faceCount++;
-                                    }
-                                }
-                            }
-                            ++n;
-                        }
-                    }
-                    // increment x[d] (must be done now as it used later in this loop iteration)
-                    ++x[d];
-
-                    if (faceCount == 0)
-                    {
-                        continue;
-                    }
-
-                    totalFaceCount += faceCount;
-
-                    // generate mesh for mask using lexicographic ordering
-                    n = 0;
-                    int i, j, k;
-                    for (j = 0; j < dims[v]; ++j)
-                    {
-                        for (i = 0; i < dims[u];)
-                        {
-                            int type = mask[n];
-                            if (type != 0)
-                            {
-                                // compute width
-                                int w;
-                                for (w = 1; (i + w < dims[u]) && (mask[n + w] == type); ++w)
-                                {
-                                }
-                                // compute height (this is slightly awkward)
-                                var done = false;
-                                int h;
-                                for (h = 1; j + h < dims[v]; ++h)
-                                {
-                                    for (k = 0; k < w; ++k)
-                                    {
-                                        if (mask[n + k + h * dims[u]] != type)
-                                        {
-                                            done = true;
-                                            break;
-                                        }
-                                    }
-                                    if (done)
-                                    {
-                                        break;
-                                    }
-                                }
-                                // add quad
-                                x[u] = i;
-                                x[v] = j;
-                                int[] du = { 0, 0, 0 };
-                                du[u] = w;
-                                int[] dv = { 0, 0, 0 };
-                                dv[v] = h;
-                            
-                                Vector3 v1, v2, v3, v4;
-                                v1.X = x0 + x[0];
-                                v1.Y = y0 + x[1];
-                                v1.Z = z0 + x[2];
-                                v2.X = v1.X + du[0];
-                                v2.Y = v1.Y + du[1];
-                                v2.Z = v1.Z + du[2];
-                                v3.X = v1.X + dv[0];
-                                v3.Y = v1.Y + dv[1];
-                                v3.Z = v1.Z + dv[2];
-                                v4.X = v1.X + du[0] + dv[0];
-                                v4.Y = v1.Y + du[1] + dv[1];
-                                v4.Z = v1.Z + du[2] + dv[2];
-
-                                bool flip = ((type & (1 << 16)) != 0);
-                                type &= ushort.MaxValue;
-
-                                Direction dir = (Direction)(2 * d + (flip ? 1 : 0));
-
-                                if (flip)
-                                {
-                                    abort = !visitor.AddFace((FaceType)type, dir, h, w, ref v2, ref v1, ref v4, ref v3);
-                                }
-                                else
-                                {
-                                    abort = !visitor.AddFace((FaceType)type, dir, h, w, ref v1, ref v2, ref v3, ref v4);
-                                }
-                                totalQuadCount++;
-
-                                // FIXME abort will not exit both loops...
-                                if (abort) break;
-
-                                // zero-out mask
-                                k = n;
-                                for (int l = 0; l < h; ++l)
-                                {
-                                    Array.Clear(mask, k, w);
-                                    k += dims[u];
-                                    /*for (int k = 0; k < w; ++k)
-                                    {
-                                        mask[n + k + l * dims[u]] = 0;
-                                    }*/
-                                }
-                                // increment counters and continue
-                                i += w;
-                                n += w;
-                            }
-                            else
-                            {
-                                ++i;
-                                ++n;
-                            }
-                        }
-                    }
-                }
-            }
+            ite.End();
             visitor.End();
 
             Console.WriteLine("Faces {0} / {1}", totalFaceCount, totalQuadCount);
@@ -451,11 +301,179 @@ namespace GameLibrary.Voxel
             }*/
         }
 
+        public bool Sweep(EagerVisitor visitor, VoxelMapIterator ite, int d, int u, int v)
+        {
+            int[] dims = { size, size, size };
+
+            int[] x = { 0, 0, 0 };
+            int[] q = { 0, 0, 0 };
+
+            // TODO use pool for array
+            int[] mask = new int[dims[u] * dims[v]];
+            Array.Clear(mask, 0, mask.Length);
+
+            Direction dir1 = (Direction)(2 * d + 1);
+            Direction dir2 = (Direction)(2 * d);
+
+            // compute mask for each slice
+            q[d] = 1;
+            for (x[d] = -1; x[d] < dims[d];)
+            {
+                // compute mask
+                int n = 0;
+                int faceCount = 0;
+                // TODO handle first and last "column" in own loop
+                // this makes it easier to handle border cases
+                // and avoids bound tests for "internal" cells
+                for (x[v] = 0; x[v] < dims[v]; ++x[v])
+                {
+                    for (x[u] = 0; x[u] < dims[u]; ++x[u])
+                    {
+                        VoxelType voxelType1 = (x[d] >= 0) ? f(x[0], x[1], x[2]) : f2(ite, dir2, x[0], x[1], x[2]);
+                        VoxelType voxelType2 = (x[d] < dims[d] - 1) ? f(x[0] + q[0], x[1] + q[1], x[2] + q[2]) : f2(ite, dir1, x[0] + q[0], x[1] + q[1], x[2] + q[2]);
+                        if (voxelType1 != voxelType2)
+                        {
+                            FaceType faceType1 = VoxelInfo.GetFaceType(voxelType1, dir1);
+                            FaceType faceType2 = VoxelInfo.GetFaceType(voxelType2, dir2);
+                            if (faceType1 != faceType2)
+                            {
+                                // any and none gives any
+                                // opaque and opaque gives none
+                                // transparent and transparent gives none
+                                // opaque and transparent gives opaque
+                                //
+                                //               -------------------------------------------
+                                //               | none        | opaque      | transparent |
+                                // ---------------------------------------------------------
+                                // | none        |             | opaque      | transparent |
+                                // | opaque      | opaque      |             | opaque      |
+                                // | transparent | transparent | opaque      |             |
+                                // ---------------------------------------------------------
+                                int compare = FaceInfo.Compare(faceType1, faceType2);
+                                // Handle faces that belong to another chunk...
+                                if ((compare > 0) && (x[d] >= 0))
+                                {
+                                    mask[n] = (int)faceType1;
+                                    faceCount++;
+                                }
+                                else if ((compare < 0) && (x[d] < dims[d] - 1))
+                                {
+                                    mask[n] = (int)faceType2 | (1 << FLIP_MASK);
+                                    faceCount++;
+                                }
+                            }
+                        }
+                        ++n;
+                    }
+                }
+                // increment x[d] (must be done now as it used later in this loop iteration)
+                ++x[d];
+
+                /*if (x[d] < dims[d] - 1)
+                {
+                    Array.Clear(mask, 0, mask.Length);
+                    continue;
+                }*/
+
+                if (faceCount == 0)
+                {
+                    continue;
+                }
+
+                //totalFaceCount += faceCount;
+
+                // generate mesh for mask using lexicographic ordering
+                n = 0;
+                int i, j, k;
+                for (j = 0; j < dims[v]; ++j)
+                {
+                    for (i = 0; i < dims[u];)
+                    {
+                        int type = mask[n];
+                        if (type != 0)
+                        {
+                            // compute width
+                            int w;
+                            for (w = 1; (i + w < dims[u]) && (mask[n + w] == type); ++w)
+                            {
+                            }
+                            // compute height (this is slightly awkward)
+                            var done = false;
+                            int h;
+                            for (h = 1; j + h < dims[v]; ++h)
+                            {
+                                for (k = 0; k < w; ++k)
+                                {
+                                    if (mask[n + k + h * dims[u]] != type)
+                                    {
+                                        done = true;
+                                        break;
+                                    }
+                                }
+                                if (done)
+                                {
+                                    break;
+                                }
+                            }
+                            // add quad
+                            x[u] = i;
+                            x[v] = j;
+
+                            Vector3 p;
+                            p.X = x0 + x[0];
+                            p.Y = y0 + x[1];
+                            p.Z = z0 + x[2];
+
+                            bool flip = ((type & (1 << FLIP_MASK)) != 0);
+                            type &= ushort.MaxValue;
+
+                            Direction dir = flip ? dir2 : dir1; //  (Direction)(2 * d + (flip ? 0 : 1));
+
+                            if (!visitor.AddFace((FaceType)type, dir, p, w, h))
+                            {
+                                return false;
+                            }
+
+                            //totalQuadCount++;
+
+                            // zero-out mask
+                            k = n;
+                            for (int l = 0; l < h; ++l)
+                            {
+                                Array.Clear(mask, k, w);
+                                k += dims[u];
+                                /*for (int k = 0; k < w; ++k)
+                                {
+                                    mask[n + k + l * dims[u]] = 0;
+                                }*/
+                            }
+                            // increment counters and continue
+                            i += w;
+                            n += w;
+                        }
+                        else
+                        {
+                            ++i;
+                            ++n;
+                        }
+                    }
+                }
+            }
+            return true;
+        }
+
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        private VoxelType f(int i, int j, int k)
+        private VoxelType f(int x, int y, int z)
         {
             // FIXME adding x0 and then substract it...
-            return (VoxelType)Get(x0 + i, y0 + j, z0 + k);
+            return (VoxelType)Get(x0 + x, y0 + y, z0 + z);
+        }
+
+        private VoxelType f2(VoxelMapIterator ite, Direction dir, int x, int y, int z)
+        {
+            // FIXME adding x0 and then substract it...
+            VoxelMap map = ite.GetNeighbourMap(dir);
+            return (VoxelType)map.Get(x0 + x, y0 + y, z0 + z);
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]

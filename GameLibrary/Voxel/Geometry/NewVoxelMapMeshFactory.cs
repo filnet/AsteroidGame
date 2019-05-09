@@ -80,42 +80,19 @@ namespace GameLibrary.Voxel.Geometry
             public VertexBufferBuilder<VoxelVertex> opaqueBuilder;
             public VertexBufferBuilder<VoxelVertex> transparentBuilder;
 
-            //private readonly float d = 0.5f;
-
-            // FIXME texture coordinates can be computed from xyz and surface normals
-            // see https://0fps.net/2013/07/09/texture-atlases-wrapping-and-mip-mapping/
-            // vec2 tileUV = vec2(dot(normal.zxy, position), 
-            // dot(normal.yzx, position))
-            // vec2 texCoord = tileOffset + tileSize * fract(tileUV)
-            // textures
-
-            // BottomLeft   (0,0)
-            // TopLeft      (0,1)
-            // BottomRight  (1,0)
-            // TopRight     (1,1)
-            // Note that in the texture coordinates below the Y axis is inversed (for bitmaps...)
-            Vector2 tex00 = new Vector2(0.0f, 1.0f);
-            Vector2 tex01 = new Vector2(0.0f, 0.0f);
-            Vector2 tex10 = new Vector2(1.0f, 1.0f);
-            Vector2 tex11 = new Vector2(1.0f, 0.0f);
+            private readonly float d = 0.5f;
 
             // normals
-
-            Vector3 frontNormal = new Vector3(0.0f, 0.0f, 1.0f);
-            Vector3 backNormal = new Vector3(0.0f, 0.0f, -1.0f);
-            Vector3 topNormal = new Vector3(0.0f, 1.0f, 0.0f);
-            Vector3 bottomNormal = new Vector3(0.0f, -1.0f, 0.0f);
-            Vector3 leftNormal = new Vector3(-1.0f, 0.0f, 0.0f);
-            Vector3 rightNormal = new Vector3(1.0f, 0.0f, 0.0f);
+            static readonly Vector3 frontNormal = new Vector3(0.0f, 0.0f, 1.0f);
+            static readonly Vector3 backNormal = new Vector3(0.0f, 0.0f, -1.0f);
+            static readonly Vector3 topNormal = new Vector3(0.0f, 1.0f, 0.0f);
+            static readonly Vector3 bottomNormal = new Vector3(0.0f, -1.0f, 0.0f);
+            static readonly Vector3 leftNormal = new Vector3(-1.0f, 0.0f, 0.0f);
+            static readonly Vector3 rightNormal = new Vector3(1.0f, 0.0f, 0.0f);
 
             private static readonly Vector3[] NORMALS =
             {
-                new Vector3(-1.0f, 0.0f, 0.0f), // Left
-                new Vector3(1.0f, 0.0f, 0.0f), // Right
-                new Vector3(0.0f, -1.0f, 0.0f), // Bottom
-                new Vector3(0.0f, 1.0f, 0.0f), // Top
-                new Vector3(0.0f, 0.0f, -1.0f), // Back
-                new Vector3(0.0f, 0.0f, 1.0f), // Front
+                leftNormal, rightNormal, bottomNormal, topNormal, backNormal, frontNormal
             };
 
             public DrawVisitor()
@@ -127,32 +104,26 @@ namespace GameLibrary.Voxel.Geometry
                 return true;
             }
 
-            public bool AddFace(FaceType type, Direction dir, int w, int h, ref Vector3 v1, ref Vector3 v2, ref Vector3 v3, ref Vector3 v4)
+            public bool AddFace(FaceType type, Direction dir, Vector3 p, int w, int h)
             {
-                // !!!
-                VertexBufferBuilder<VoxelVertex> builder;
                 FaceInfo faceInfo = FaceInfo.Get(type);
-                if (faceInfo.IsOpaque)
-                {
-                    builder = opaqueBuilder;
-                }
-                else
-                {
-                    builder = transparentBuilder;
-                }
                 int textureIndex = faceInfo.TextureIndex();
 
+                VertexBufferBuilder<VoxelVertex> builder = (faceInfo.IsOpaque) ? opaqueBuilder : transparentBuilder;
+
+                // initialize 
+                Vector3 t;
+                t.X = 2 * d * p.X;// + d;
+                t.Y = 2 * d * p.Y;// + d;
+                t.Z = 2 * d * p.Z;// + d;
+
+                // FIXME hack
                 if (type == FaceType.Water)
                 {
-                    float dy = -0.33f;
-                    v1.Y += dy;
-                    v2.Y += dy;
-                    v3.Y += dy;
-                    v4.Y += dy;
+                    t.Y -= 0.33f;
                 }
 
-                // TODO use precomputed normals...
-                Vector3 n = NORMALS[(int)dir];
+                //Vector3 n = NORMALS[(int)dir];
 
                 Vector2 tex00 = new Vector2(0, 0);
                 Vector2 tex01 = new Vector2(0, h);
@@ -161,10 +132,158 @@ namespace GameLibrary.Voxel.Geometry
 
                 int ao = 0b11111111;
 
-                int i = builder.AddVertex(v1, n, Color.White, tex00, textureIndex, ao);
-                builder.AddVertex(v2, n, Color.White, tex01, textureIndex, ao);
-                builder.AddVertex(v3, n, Color.White, tex10, textureIndex, ao);
-                builder.AddVertex(v4, n, Color.White, tex11, textureIndex, ao);
+                switch (dir)
+                {
+                    case Direction.Front:
+                        {
+                            Vector3 right = new Vector3(w, 0, 0);
+                            Vector3 top = new Vector3(0, h, 0);
+
+                            Vector3 bottomLeft = t;
+                            Vector3 topLeft = t + top;
+                            Vector3 bottomRight = t + right;
+                            Vector3 topRight = t + top + right;
+
+                            int i = builder.AddVertex(bottomLeft, frontNormal, Color.White, tex00, w, h, textureIndex, ao);
+                            builder.AddVertex(topLeft, frontNormal, Color.White, tex01, w, h, textureIndex, ao);
+                            builder.AddVertex(bottomRight, frontNormal, Color.White, tex10, w, h, textureIndex, ao);
+                            builder.AddVertex(topRight, frontNormal, Color.White, tex11, w, h, textureIndex, ao);
+
+                            builder.AddIndex(i + 1);
+                            builder.AddIndex(i);
+                            builder.AddIndex(i + 3);
+
+                            builder.AddIndex(i + 2);
+                            builder.AddIndex(i + 3);
+                            builder.AddIndex(i);
+                        }
+                        break;
+                    case Direction.Back:
+                        {
+                            Vector3 right = new Vector3(w, 0, 0);
+                            Vector3 top = new Vector3(0, h, 0);
+
+                            Vector3 bottomLeft = t;
+                            Vector3 topLeft = t + top;
+                            Vector3 bottomRight = t + right;
+                            Vector3 topRight = t + top + right;
+
+                            int i = builder.AddVertex(bottomRight, backNormal, Color.White, tex00, w, h, textureIndex, ao);
+                            builder.AddVertex(topRight, backNormal, Color.White, tex01, w, h, textureIndex, ao);
+                            builder.AddVertex(bottomLeft, backNormal, Color.White, tex10, w, h, textureIndex, ao);
+                            builder.AddVertex(topLeft, backNormal, Color.White, tex11, w, h, textureIndex, ao);
+
+                            builder.AddIndex(i + 1);
+                            builder.AddIndex(i);
+                            builder.AddIndex(i + 3);
+
+                            builder.AddIndex(i + 2);
+                            builder.AddIndex(i + 3);
+                            builder.AddIndex(i);
+                        }
+                        break;
+                    case Direction.Top:
+                        {
+                            Vector3 right = new Vector3(w, 0, 0);
+                            Vector3 front = new Vector3(0, 0, h);
+
+                            Vector3 leftBack = t;
+                            Vector3 leftFront = t + front;
+                            Vector3 rightBack = t + right;
+                            Vector3 rightFront = t + front + right;
+
+                            int i = builder.AddVertex(leftFront, topNormal, Color.White, tex00, w, h, textureIndex, ao);
+                            builder.AddVertex(leftBack, topNormal, Color.White, tex01, w, h, textureIndex, ao);
+                            builder.AddVertex(rightFront, topNormal, Color.White, tex10, w, h, textureIndex, ao);
+                            builder.AddVertex(rightBack, topNormal, Color.White, tex11, w, h, textureIndex, ao);
+
+                            builder.AddIndex(i + 1);
+                            builder.AddIndex(i);
+                            builder.AddIndex(i + 3);
+
+                            builder.AddIndex(i + 2);
+                            builder.AddIndex(i + 3);
+                            builder.AddIndex(i);
+                        }
+                        break;
+                    case Direction.Bottom:
+                        {
+                            Vector3 right = new Vector3(w, 0, 0);
+                            Vector3 front = new Vector3(0, 0, h);
+
+                            Vector3 leftBack = t;
+                            Vector3 leftFront = t + front;
+                            Vector3 rightBack = t + right;
+                            Vector3 rightFront = t + front + right;
+
+                            int i = builder.AddVertex(rightFront, bottomNormal, Color.White, tex00, w, h, textureIndex, ao);
+                            builder.AddVertex(rightBack, bottomNormal, Color.White, tex01, w, h, textureIndex, ao);
+                            builder.AddVertex(leftFront, bottomNormal, Color.White, tex10, w, h, textureIndex, ao);
+                            builder.AddVertex(leftBack, bottomNormal, Color.White, tex11, w, h, textureIndex, ao);
+
+                            builder.AddIndex(i + 1);
+                            builder.AddIndex(i);
+                            builder.AddIndex(i + 3);
+
+                            builder.AddIndex(i + 2);
+                            builder.AddIndex(i + 3);
+                            builder.AddIndex(i);
+                        }
+                        break;
+                    case Direction.Right:
+                        {
+                            Vector3 top = new Vector3(0, h, 0);
+                            Vector3 front = new Vector3(0, 0, w);
+
+                            Vector3 bottomBack = t;
+                            Vector3 topBack = t + top;
+                            Vector3 bottomFront = t + front;
+                            Vector3 topFront = t + top + front;
+
+                            int i = builder.AddVertex(bottomFront, rightNormal, Color.White, tex00, w, h, textureIndex, ao);
+                            builder.AddVertex(topFront, rightNormal, Color.White, tex01, w, h, textureIndex, ao);
+                            builder.AddVertex(bottomBack, rightNormal, Color.White, tex10, w, h, textureIndex, ao);
+                            builder.AddVertex(topBack, rightNormal, Color.White, tex11, w, h, textureIndex, ao);
+
+                            builder.AddIndex(i + 1);
+                            builder.AddIndex(i);
+                            builder.AddIndex(i + 3);
+
+                            builder.AddIndex(i + 2);
+                            builder.AddIndex(i + 3);
+                            builder.AddIndex(i);
+                        }
+                        break;
+                    case Direction.Left:
+                        {
+                            Vector3 top = new Vector3(0, h, 0);
+                            Vector3 front = new Vector3(0, 0, w);
+
+                            Vector3 bottomBack = t;
+                            Vector3 topBack = t + top;
+                            Vector3 bottomFront = t + front;
+                            Vector3 topFront = t + top + front;
+
+                            int i = builder.AddVertex(bottomBack, leftNormal, Color.White, tex00, w, h, textureIndex, ao);
+                            builder.AddVertex(topBack, leftNormal, Color.White, tex01, w, h, textureIndex, ao);
+                            builder.AddVertex(bottomFront, leftNormal, Color.White, tex10, w, h, textureIndex, ao);
+                            builder.AddVertex(topFront, leftNormal, Color.White, tex11, w, h, textureIndex, ao);
+
+                            builder.AddIndex(i + 1);
+                            builder.AddIndex(i);
+                            builder.AddIndex(i + 3);
+
+                            builder.AddIndex(i + 2);
+                            builder.AddIndex(i + 3);
+                            builder.AddIndex(i);
+                        }
+                        break;
+                }
+                /*
+                int i = builder.AddVertex(v1, n, Color.White, tex00, w, h, textureIndex, ao);
+                builder.AddVertex(v2, n, Color.White, tex01, w, h, textureIndex, ao);
+                builder.AddVertex(v3, n, Color.White, tex10, w, h, textureIndex, ao);
+                builder.AddVertex(v4, n, Color.White, tex11, w, h, textureIndex, ao);
 
                 builder.AddIndex(i + 1);
                 builder.AddIndex(i);
@@ -173,7 +292,7 @@ namespace GameLibrary.Voxel.Geometry
                 builder.AddIndex(i + 2);
                 builder.AddIndex(i + 3);
                 builder.AddIndex(i);
-
+                */
                 return true;
             }
 

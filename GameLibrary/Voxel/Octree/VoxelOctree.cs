@@ -1,4 +1,4 @@
-﻿//#define NEW_FACTORY
+﻿#define NEW_FACTORY
 //#define DEBUG_VOXEL_OCTREE
 
 using GameLibrary.Geometry.Common;
@@ -34,7 +34,7 @@ namespace GameLibrary.Voxel.Octree
 #endif
 
         private bool CompressAtInitialization = true;
-        private bool LoadFromDisk = false;
+        private bool LoadFromDisk = true;
         private bool WriteToDisk = true;
         private bool LoadAtInitialization = false;
         //private bool CreateMeshOnInitialization = false;

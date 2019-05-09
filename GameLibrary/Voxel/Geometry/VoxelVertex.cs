@@ -18,15 +18,15 @@ namespace GameLibrary.Voxel.Geometry
 
         public static readonly VertexDeclaration VertexDeclaration;
 
-        public VoxelVertex(Vector3 position, Vector3 normal, Vector2 textureCoordinate, int textureIndex, int lightTextureIndex)
+        public VoxelVertex(Vector3 position, Vector3 normal, Vector2 textureCoordinate, int w, int h, int textureIndex, int lightTextureIndex)
         {
             this.Position = position;
             this.Normal = normal;
             this.TextureCoordinate = textureCoordinate;
             this.TextureIndex = (byte)textureIndex;
             this.TextureIndex1 = (byte)lightTextureIndex;
-            this.TextureIndex2 = 0;
-            this.TextureIndex3 = 0;
+            this.TextureIndex2 = (byte)w;
+            this.TextureIndex3 = (byte)h;
             //this.TextureIndex = new Byte4(textureIndex, 0, 0, 0);// textureIndex;
         }
 
@@ -56,7 +56,8 @@ namespace GameLibrary.Voxel.Geometry
         public override string ToString()
         {
             return "{{Position:" + this.Position + " Color:" + " Normal:" + this.Normal + " TextureCoordinate:" + this.TextureCoordinate +
-                " TextureIndex:" + this.TextureIndex + " TextureIndex1:" + this.TextureIndex1 + "}}";
+                " TextureIndex:" + this.TextureIndex + " TextureIndex1:" + this.TextureIndex1 +
+                " TextureIndex2:" + this.TextureIndex2 + " TextureIndex3:" + this.TextureIndex3 + "}}";
         }
 
         public static bool operator ==(VoxelVertex left, VoxelVertex right)

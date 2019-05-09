@@ -83,7 +83,6 @@ namespace GameLibrary.Voxel.Geometry
             public VertexBufferBuilder<VoxelVertex> transparentBuilder;
 
             private readonly float d = 0.5f;
-            private int size;
 
             private bool scale = false;
             private Vector3 s = new Vector3(0.75f, 0.75f, 0.75f);
@@ -94,17 +93,16 @@ namespace GameLibrary.Voxel.Geometry
             Vector3 bottomRightFront;
             Vector3 topRightFront;
 
-            Vector3 _bottomLeftFront;
-            Vector3 _topLeftFront;
-            Vector3 _bottomRightFront;
-            Vector3 _topRightFront;
-
-
             // back face vertices
             Vector3 bottomRightBack;
             Vector3 topRightBack;
             Vector3 bottomLeftBack;
             Vector3 topLeftBack;
+
+            Vector3 _bottomLeftFront;
+            Vector3 _topLeftFront;
+            Vector3 _bottomRightFront;
+            Vector3 _topRightFront;
 
             Vector3 _bottomRightBack;
             Vector3 _topRightBack;
@@ -126,7 +124,8 @@ namespace GameLibrary.Voxel.Geometry
             // TopLeft      (0,1)
             // BottomRight  (1,0)
             // TopRight     (1,1)
-            // Note that in the texture coordinates below the Y axis is inversed (for bitmaps...)
+            // [NOT TRUE ANYMORE] Note that in the texture coordinates below the Y axis is inversed (for bitmaps...)
+            // The above is not true anymore and Y flipping is done in the shader (not good...)
             Vector2 tex00 = new Vector2(0.0f, 0.0f);
             Vector2 tex01 = new Vector2(0.0f, 1.0f);
             Vector2 tex10 = new Vector2(1.0f, 0.0f);
@@ -161,7 +160,7 @@ namespace GameLibrary.Voxel.Geometry
 
             public bool Begin(int size)
             {
-                this.size = size;
+                //this.size = size;
                 return true;
             }
 
@@ -176,26 +175,18 @@ namespace GameLibrary.Voxel.Geometry
 
                 VoxelInfo voxelInfo = VoxelInfo.Get(v);
 
+                VertexBufferBuilder<VoxelVertex> builder = (voxelInfo.IsOpaque) ? opaqueBuilder : transparentBuilder;
+
                 // initialize 
                 Vector3 t;
                 t.X = 2 * d * ite.X + d;
                 t.Y = 2 * d * ite.Y + d;
                 t.Z = 2 * d * ite.Z + d;
 
-                VertexBufferBuilder<VoxelVertex> builder;
-                if (voxelInfo.IsOpaque)
+                // FIXME hack
+                if (voxelInfo.Type == VoxelType.Water)
                 {
-                    builder = opaqueBuilder;
-                }
-                else
-                {
-                    builder = transparentBuilder;
-
-                    // FIXME hack
-                    if (voxelInfo.Type == VoxelType.Water)
-                    {
-                        t.Y -= 0.33f;
-                    }
+                    t.Y -= 0.33f;
                 }
 
                 if (!scale)
@@ -385,49 +376,6 @@ namespace GameLibrary.Voxel.Geometry
 
                     faceCount++;
                 }
-                // Left
-                if (ShowFace(ite, voxelInfo, Direction.Left, Direction.Right))
-                {
-                    if (scale)
-                    {
-                        Vector3.Multiply(ref bottomLeftBack, ref scaleYZ, out _bottomLeftBack);
-                        Vector3.Multiply(ref topLeftFront, ref scaleYZ, out _topLeftFront);
-                        Vector3.Multiply(ref bottomLeftFront, ref scaleYZ, out _bottomLeftFront);
-                        Vector3.Multiply(ref topLeftBack, ref scaleYZ, out _topLeftBack);
-
-                        Vector3.Add(ref _topLeftFront, ref t, out _topLeftFront);
-                        Vector3.Add(ref _bottomLeftBack, ref t, out _bottomLeftBack);
-                        Vector3.Add(ref _bottomLeftFront, ref t, out _bottomLeftFront);
-                        Vector3.Add(ref _topLeftBack, ref t, out _topLeftBack);
-                    }
-
-                    int textureIndex = voxelInfo.TextureIndex(Direction.Left);
-
-                    int ao = 0b11111111;
-                    if (!voxelInfo.IsTransparent)
-                    {
-                        int a00 = VertexAmbientOcclusion(ite, Direction.BottomLeft, Direction.LeftBack, Direction.BottomLeftBack);
-                        int a01 = VertexAmbientOcclusion(ite, Direction.TopLeft, Direction.LeftBack, Direction.TopLeftBack);
-                        int a10 = VertexAmbientOcclusion(ite, Direction.BottomLeft, Direction.LeftFront, Direction.BottomLeftFront);
-                        int a11 = VertexAmbientOcclusion(ite, Direction.TopLeft, Direction.LeftFront, Direction.TopLeftFront);
-                        ao = VoxelUtil.CombineVertexAmbientOcclusion(a00, a01, a10, a11);
-                    }
-
-                    int i = builder.AddVertex(_bottomLeftBack, leftNormal, Color.White, tex00, textureIndex, ao);
-                    builder.AddVertex(_topLeftBack, leftNormal, Color.White, tex01, textureIndex, ao);
-                    builder.AddVertex(_bottomLeftFront, leftNormal, Color.White, tex10, textureIndex, ao);
-                    builder.AddVertex(_topLeftFront, leftNormal, Color.White, tex11, textureIndex, ao);
-
-                    builder.AddIndex(i + 1);
-                    builder.AddIndex(i);
-                    builder.AddIndex(i + 3);
-
-                    builder.AddIndex(i + 2);
-                    builder.AddIndex(i + 3);
-                    builder.AddIndex(i);
-
-                    faceCount++;
-                }
                 // Right
                 if (ShowFace(ite, voxelInfo, Direction.Right, Direction.Left))
                 {
@@ -460,6 +408,49 @@ namespace GameLibrary.Voxel.Geometry
                     builder.AddVertex(_topRightFront, rightNormal, Color.White, tex01, textureIndex, ao);
                     builder.AddVertex(_bottomRightBack, rightNormal, Color.White, tex10, textureIndex, ao);
                     builder.AddVertex(_topRightBack, rightNormal, Color.White, tex11, textureIndex, ao);
+
+                    builder.AddIndex(i + 1);
+                    builder.AddIndex(i);
+                    builder.AddIndex(i + 3);
+
+                    builder.AddIndex(i + 2);
+                    builder.AddIndex(i + 3);
+                    builder.AddIndex(i);
+
+                    faceCount++;
+                }
+                // Left
+                if (ShowFace(ite, voxelInfo, Direction.Left, Direction.Right))
+                {
+                    if (scale)
+                    {
+                        Vector3.Multiply(ref bottomLeftBack, ref scaleYZ, out _bottomLeftBack);
+                        Vector3.Multiply(ref topLeftFront, ref scaleYZ, out _topLeftFront);
+                        Vector3.Multiply(ref bottomLeftFront, ref scaleYZ, out _bottomLeftFront);
+                        Vector3.Multiply(ref topLeftBack, ref scaleYZ, out _topLeftBack);
+
+                        Vector3.Add(ref _topLeftFront, ref t, out _topLeftFront);
+                        Vector3.Add(ref _bottomLeftBack, ref t, out _bottomLeftBack);
+                        Vector3.Add(ref _bottomLeftFront, ref t, out _bottomLeftFront);
+                        Vector3.Add(ref _topLeftBack, ref t, out _topLeftBack);
+                    }
+
+                    int textureIndex = voxelInfo.TextureIndex(Direction.Left);
+
+                    int ao = 0b11111111;
+                    if (!voxelInfo.IsTransparent)
+                    {
+                        int a00 = VertexAmbientOcclusion(ite, Direction.BottomLeft, Direction.LeftBack, Direction.BottomLeftBack);
+                        int a01 = VertexAmbientOcclusion(ite, Direction.TopLeft, Direction.LeftBack, Direction.TopLeftBack);
+                        int a10 = VertexAmbientOcclusion(ite, Direction.BottomLeft, Direction.LeftFront, Direction.BottomLeftFront);
+                        int a11 = VertexAmbientOcclusion(ite, Direction.TopLeft, Direction.LeftFront, Direction.TopLeftFront);
+                        ao = VoxelUtil.CombineVertexAmbientOcclusion(a00, a01, a10, a11);
+                    }
+
+                    int i = builder.AddVertex(_bottomLeftBack, leftNormal, Color.White, tex00, textureIndex, ao);
+                    builder.AddVertex(_topLeftBack, leftNormal, Color.White, tex01, textureIndex, ao);
+                    builder.AddVertex(_bottomLeftFront, leftNormal, Color.White, tex10, textureIndex, ao);
+                    builder.AddVertex(_topLeftFront, leftNormal, Color.White, tex11, textureIndex, ao);
 
                     builder.AddIndex(i + 1);
                     builder.AddIndex(i);
