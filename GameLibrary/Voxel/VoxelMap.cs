@@ -2,6 +2,7 @@
 using Microsoft.Xna.Framework;
 using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.IO;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
@@ -17,8 +18,9 @@ namespace GameLibrary.Voxel
 
     public interface EagerVisitor
     {
-        bool Begin(int size);
-        bool AddFace(FaceType type, Direction dir, Vector3 p, int w, int h);
+        bool Begin();
+        bool AddFace(FaceType type, Direction dir, int x, int y, int z, int w, int h, byte ao);
+        byte ComputeAmbientOcclusion(VoxelMapIterator ite, FaceType type, Direction dir, int x, int y, int z);
         bool End();
     }
 
@@ -247,12 +249,23 @@ namespace GameLibrary.Voxel
             }
         }
 
-        public static readonly int FLIP_MASK = 16;
+        struct Quad
+        {
+            public bool Flipped;
+            public uint Type;
+            public byte AmbientOcclusion;
+
+            public bool Equals(Quad quad)
+            {
+                return ((Flipped == quad.Flipped) && (Type == quad.Type) && (AmbientOcclusion == quad.AmbientOcclusion));
+            }
+        }
 
         // FIXME ite is not used...
+        // TODO keep an array of where each slice starts (size of array is 96 = 32 slices per sweep time 3 sweeps)
         public void Visit(EagerVisitor visitor, VoxelMapIterator ite)
         {
-            bool abort = !visitor.Begin(size);
+            bool abort = !visitor.Begin();
             if (abort)
             {
                 visitor.End();
@@ -309,7 +322,7 @@ namespace GameLibrary.Voxel
             int[] q = { 0, 0, 0 };
 
             // TODO use pool for array
-            int[] mask = new int[dims[u] * dims[v]];
+            Quad[] mask = new Quad[dims[u] * dims[v]];
             Array.Clear(mask, 0, mask.Length);
 
             Direction dir1 = (Direction)(2 * d + 1);
@@ -353,12 +366,16 @@ namespace GameLibrary.Voxel
                                 // Handle faces that belong to another chunk...
                                 if ((compare > 0) && (x[d] >= 0))
                                 {
-                                    mask[n] = (int)faceType1;
+                                    mask[n].Flipped = false;
+                                    mask[n].Type = (uint)faceType1;
+                                    mask[n].AmbientOcclusion = visitor.ComputeAmbientOcclusion(ite, faceType1, dir1, x0 + x[0], y0 + x[1], z0 + x[2]);
                                     faceCount++;
                                 }
                                 else if ((compare < 0) && (x[d] < dims[d] - 1))
                                 {
-                                    mask[n] = (int)faceType2 | (1 << FLIP_MASK);
+                                    mask[n].Flipped = true;
+                                    mask[n].Type = (uint)faceType2;
+                                    mask[n].AmbientOcclusion = visitor.ComputeAmbientOcclusion(ite, faceType2, dir2, x0 + x[0] + q[0], y0 + x[1] + q[1], z0 + x[2] + q[2]);
                                     faceCount++;
                                 }
                             }
@@ -366,7 +383,8 @@ namespace GameLibrary.Voxel
                         ++n;
                     }
                 }
-                // increment x[d] (must be done now as it used later in this loop iteration)
+                // increment x[d]
+                // must be done now as it used later in this loop iteration
                 ++x[d];
 
                 /*if (x[d] < dims[d] - 1)
@@ -389,12 +407,12 @@ namespace GameLibrary.Voxel
                 {
                     for (i = 0; i < dims[u];)
                     {
-                        int type = mask[n];
-                        if (type != 0)
+                        Quad quad = mask[n];
+                        if (quad.Type != 0)
                         {
                             // compute width
                             int w;
-                            for (w = 1; (i + w < dims[u]) && (mask[n + w] == type); ++w)
+                            for (w = 1; (i + w < dims[u]) && (mask[n + w].Equals(quad)); ++w)
                             {
                             }
                             // compute height (this is slightly awkward)
@@ -404,7 +422,7 @@ namespace GameLibrary.Voxel
                             {
                                 for (k = 0; k < w; ++k)
                                 {
-                                    if (mask[n + k + h * dims[u]] != type)
+                                    if (!mask[n + k + h * dims[u]].Equals(quad))
                                     {
                                         done = true;
                                         break;
@@ -419,17 +437,9 @@ namespace GameLibrary.Voxel
                             x[u] = i;
                             x[v] = j;
 
-                            Vector3 p;
-                            p.X = x0 + x[0];
-                            p.Y = y0 + x[1];
-                            p.Z = z0 + x[2];
+                            Direction dir = quad.Flipped ? dir2 : dir1;
 
-                            bool flip = ((type & (1 << FLIP_MASK)) != 0);
-                            type &= ushort.MaxValue;
-
-                            Direction dir = flip ? dir2 : dir1; //  (Direction)(2 * d + (flip ? 0 : 1));
-
-                            if (!visitor.AddFace((FaceType)type, dir, p, w, h))
+                            if (!visitor.AddFace((FaceType)quad.Type, dir, x0 + x[0], y0 + x[1], z0 + x[2], w, h, quad.AmbientOcclusion))
                             {
                                 return false;
                             }
@@ -469,10 +479,12 @@ namespace GameLibrary.Voxel
             return (VoxelType)Get(x0 + x, y0 + y, z0 + z);
         }
 
+        // TODO get rid of VoxelMapIterator ite : it used only to get access to neighbours (the ite part is not used anymore)
         private VoxelType f2(VoxelMapIterator ite, Direction dir, int x, int y, int z)
         {
-            // FIXME adding x0 and then substract it...
             VoxelMap map = ite.GetNeighbourMap(dir);
+            Debug.Assert(map.Contains(x0 + x, y0 + y, z0 + z));
+            // FIXME adding x0 and then substract it...
             return (VoxelType)map.Get(x0 + x, y0 + y, z0 + z);
         }
 

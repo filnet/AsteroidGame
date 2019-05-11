@@ -1,9 +1,10 @@
-﻿using GameLibrary.Geometry.Common;
-using Microsoft.Xna.Framework;
-using Microsoft.Xna.Framework.Graphics;
-using System;
+﻿using System;
 using System.Collections.Generic;
+using System.Linq;
 using System.Text;
+using Microsoft.Xna.Framework.Graphics;
+using Microsoft.Xna.Framework;
+using GameLibrary.Geometry.Common;
 
 namespace GameLibrary.Voxel.Geometry
 {
@@ -27,4 +28,15 @@ namespace GameLibrary.Voxel.Geometry
         }
     }
 
+    public class VoxelVertexBufferBuilder : VertexBufferBuilder<VoxelVertex>
+    {
+        public VoxelVertexBufferBuilder(GraphicsDevice gd) : base(gd)
+        {
+        }
+
+        public VoxelVertexBufferBuilder(GraphicsDevice gd, int expectedVertexCount, int expectedIndexCount) : base(gd, expectedVertexCount, expectedIndexCount)
+        {
+        }
+
+    }
 }

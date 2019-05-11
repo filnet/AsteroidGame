@@ -51,9 +51,11 @@ namespace GameLibrary.Voxel
         public abstract void Set(int x, int y, int z, ushort v);
 
         public abstract int Value();
-        public abstract int Value(Direction direction);
+        public abstract int Value(Direction dir);
 
-        public abstract VoxelMap GetNeighbourMap(Direction direction);
+        public abstract int Value(int x, int y, int z, Direction dir);
+
+        public abstract VoxelMap GetNeighbourMap(Direction dir);
     }
 
     class SimpleVoxelMapIterator : VoxelMapIterator
@@ -67,9 +69,14 @@ namespace GameLibrary.Voxel
             return map.Get(x, y, z);
         }
 
-        public override int Value(Direction direction)
+        public override int Value(Direction dir)
         {
-            VoxelOctree.DirData dirData = VoxelOctree.DIR_DATA[(int)direction];
+            return Value(x, y, z, dir);
+        }
+
+        public override int Value(int x, int y, int z, Direction dir)
+        {
+            VoxelOctree.DirData dirData = VoxelOctree.DIR_DATA[(int)dir];
             int nx = x + dirData.dX;
             int ny = y + dirData.dY;
             int nz = z + dirData.dZ;
@@ -84,7 +91,7 @@ namespace GameLibrary.Voxel
             this.v = v;
         }
 
-        public override VoxelMap GetNeighbourMap(Direction direction)
+        public override VoxelMap GetNeighbourMap(Direction dir)
         {
             return EmptyVoxelMap.INSTANCE;
         }

@@ -87,6 +87,11 @@ namespace GameLibrary.Geometry.Common
             get { return vertexCount; }
         }
 
+        public int IndexCount
+        {
+            get { return indexCount; }
+        }
+
         public VertexBufferBuilder(GraphicsDevice gd) : this(gd, 0, 0)
         {
             fixedSize = false;
@@ -145,7 +150,7 @@ namespace GameLibrary.Geometry.Common
             indices[indexCount++] = index;
         }
 
-        public void Reset()
+        public virtual void Reset()
         {
             vertexCount = 0;
             indexCount = 0;

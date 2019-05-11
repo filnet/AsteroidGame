@@ -20,8 +20,8 @@ namespace GameLibrary.Voxel.Geometry
             this.graphicsDevice = graphicsDevice;
 
             drawVisitor = new DrawVisitor();
-            drawVisitor.opaqueBuilder = new VertexBufferBuilder<VoxelVertex>(graphicsDevice);
-            drawVisitor.transparentBuilder = new VertexBufferBuilder<VoxelVertex>(graphicsDevice);
+            drawVisitor.opaqueBuilder = new VoxelVertexBufferBuilder(graphicsDevice);
+            drawVisitor.transparentBuilder = new VoxelVertexBufferBuilder(graphicsDevice);
 
             this.pool = pool;
         }
@@ -34,8 +34,7 @@ namespace GameLibrary.Voxel.Geometry
 
         public void CreateMeshes(VoxelChunk voxelChunk, VoxelMapIterator ite)
         {
-            drawVisitor.opaqueBuilder.Reset();
-            drawVisitor.transparentBuilder.Reset();
+            drawVisitor.Reset();
 
             ArrayVoxelMap arrayVoxelMap = pool.Take(voxelChunk.VoxelMap);
             Debug.Assert(arrayVoxelMap != null);
@@ -77,8 +76,8 @@ namespace GameLibrary.Voxel.Geometry
 
         class DrawVisitor : Voxel.EagerVisitor
         {
-            public VertexBufferBuilder<VoxelVertex> opaqueBuilder;
-            public VertexBufferBuilder<VoxelVertex> transparentBuilder;
+            public VoxelVertexBufferBuilder opaqueBuilder;
+            public VoxelVertexBufferBuilder transparentBuilder;
 
             private readonly float d = 0.5f;
 
@@ -99,23 +98,29 @@ namespace GameLibrary.Voxel.Geometry
             {
             }
 
-            public bool Begin(int size)
+            public void Reset()
+            {
+                opaqueBuilder.Reset();
+                transparentBuilder.Reset();
+            }
+
+            public bool Begin()
             {
                 return true;
             }
 
-            public bool AddFace(FaceType type, Direction dir, Vector3 p, int w, int h)
+            public bool AddFace(FaceType type, Direction dir, int x, int y, int z, int w, int h, byte ao)
             {
                 FaceInfo faceInfo = FaceInfo.Get(type);
                 int textureIndex = faceInfo.TextureIndex();
 
-                VertexBufferBuilder<VoxelVertex> builder = (faceInfo.IsOpaque) ? opaqueBuilder : transparentBuilder;
+                VoxelVertexBufferBuilder builder = (faceInfo.IsOpaque) ? opaqueBuilder : transparentBuilder;
 
                 // initialize 
                 Vector3 t;
-                t.X = 2 * d * p.X;// + d;
-                t.Y = 2 * d * p.Y;// + d;
-                t.Z = 2 * d * p.Z;// + d;
+                t.X = 2 * d * x;// + d;
+                t.Y = 2 * d * y;// + d;
+                t.Z = 2 * d * z;// + d;
 
                 // FIXME hack
                 if (type == FaceType.Water)
@@ -129,8 +134,6 @@ namespace GameLibrary.Voxel.Geometry
                 Vector2 tex01 = new Vector2(0, h);
                 Vector2 tex10 = new Vector2(w, 0);
                 Vector2 tex11 = new Vector2(w, h);
-
-                int ao = 0b11111111;
 
                 switch (dir)
                 {
@@ -279,22 +282,98 @@ namespace GameLibrary.Voxel.Geometry
                         }
                         break;
                 }
-                /*
-                int i = builder.AddVertex(v1, n, Color.White, tex00, w, h, textureIndex, ao);
-                builder.AddVertex(v2, n, Color.White, tex01, w, h, textureIndex, ao);
-                builder.AddVertex(v3, n, Color.White, tex10, w, h, textureIndex, ao);
-                builder.AddVertex(v4, n, Color.White, tex11, w, h, textureIndex, ao);
-
-                builder.AddIndex(i + 1);
-                builder.AddIndex(i);
-                builder.AddIndex(i + 3);
-
-                builder.AddIndex(i + 2);
-                builder.AddIndex(i + 3);
-                builder.AddIndex(i);
-                */
                 return true;
             }
+
+            bool AmbientOcclusion = true;
+
+            public byte ComputeAmbientOcclusion(VoxelMapIterator ite, FaceType type, Direction dir, int x, int y, int z)
+            {
+                byte ao = 0b11111111;
+                if (!AmbientOcclusion || !FaceInfo.Get(type).IsOpaque)
+                {
+                    return ao;
+                }
+                switch (dir)
+                {
+                    case Direction.Front:
+                        {
+                            byte a00 = ComputeAmbientOcclusion(ite, x, y, z, Direction.LeftFront, Direction.BottomFront, Direction.BottomLeftFront);
+                            byte a01 = ComputeAmbientOcclusion(ite, x, y, z, Direction.LeftFront, Direction.TopFront, Direction.TopLeftFront);
+                            byte a10 = ComputeAmbientOcclusion(ite, x, y, z, Direction.RightFront, Direction.BottomFront, Direction.BottomRightFront);
+                            byte a11 = ComputeAmbientOcclusion(ite, x, y, z, Direction.RightFront, Direction.TopFront, Direction.TopRightFront);
+                            ao = CombineAmbientOcclusion(a00, a01, a10, a11);
+                        }
+                        break;
+                    case Direction.Back:
+                        {
+                            byte a00 = ComputeAmbientOcclusion(ite, x, y, z, Direction.RightBack, Direction.BottomBack, Direction.BottomRightBack);
+                            byte a01 = ComputeAmbientOcclusion(ite, x, y, z, Direction.RightBack, Direction.TopBack, Direction.TopRightBack);
+                            byte a10 = ComputeAmbientOcclusion(ite, x, y, z, Direction.LeftBack, Direction.BottomBack, Direction.BottomLeftBack);
+                            byte a11 = ComputeAmbientOcclusion(ite, x, y, z, Direction.LeftBack, Direction.TopBack, Direction.TopLeftBack);
+                            ao = CombineAmbientOcclusion(a00, a01, a10, a11);
+                        }
+                        break;
+                    case Direction.Top:
+                        {
+                            byte a00 = ComputeAmbientOcclusion(ite, x, y, z, Direction.TopLeft, Direction.TopFront, Direction.TopLeftFront);
+                            byte a01 = ComputeAmbientOcclusion(ite, x, y, z, Direction.TopLeft, Direction.TopBack, Direction.TopLeftBack);
+                            byte a10 = ComputeAmbientOcclusion(ite, x, y, z, Direction.TopRight, Direction.TopFront, Direction.TopRightFront);
+                            byte a11 = ComputeAmbientOcclusion(ite, x, y, z, Direction.TopRight, Direction.TopBack, Direction.TopRightBack);
+                            ao = CombineAmbientOcclusion(a00, a01, a10, a11);
+                        }
+                        break;
+                    case Direction.Bottom:
+                        {
+                            byte a00 = ComputeAmbientOcclusion(ite, x, y, z, Direction.BottomRight, Direction.BottomFront, Direction.BottomRightFront);
+                            byte a01 = ComputeAmbientOcclusion(ite, x, y, z, Direction.BottomRight, Direction.BottomBack, Direction.BottomRightBack);
+                            byte a10 = ComputeAmbientOcclusion(ite, x, y, z, Direction.BottomLeft, Direction.BottomFront, Direction.BottomLeftFront);
+                            byte a11 = ComputeAmbientOcclusion(ite, x, y, z, Direction.BottomLeft, Direction.BottomBack, Direction.BottomLeftBack);
+                            ao = CombineAmbientOcclusion(a00, a01, a10, a11);
+                        }
+                        break;
+                    case Direction.Right:
+                        {
+                            byte a00 = ComputeAmbientOcclusion(ite, x, y, z, Direction.BottomRight, Direction.RightFront, Direction.BottomRightFront);
+                            byte a01 = ComputeAmbientOcclusion(ite, x, y, z, Direction.TopRight, Direction.RightFront, Direction.TopRightFront);
+                            byte a10 = ComputeAmbientOcclusion(ite, x, y, z, Direction.BottomRight, Direction.RightBack, Direction.BottomRightBack);
+                            byte a11 = ComputeAmbientOcclusion(ite, x, y, z, Direction.TopRight, Direction.RightBack, Direction.TopRightBack);
+                            ao = CombineAmbientOcclusion(a00, a01, a10, a11);
+                        }
+                        break;
+                    case Direction.Left:
+                        {
+                            byte a00 = ComputeAmbientOcclusion(ite, x, y, z, Direction.BottomLeft, Direction.LeftBack, Direction.BottomLeftBack);
+                            byte a01 = ComputeAmbientOcclusion(ite, x, y, z, Direction.TopLeft, Direction.LeftBack, Direction.TopLeftBack);
+                            byte a10 = ComputeAmbientOcclusion(ite, x, y, z, Direction.BottomLeft, Direction.LeftFront, Direction.BottomLeftFront);
+                            byte a11 = ComputeAmbientOcclusion(ite, x, y, z, Direction.TopLeft, Direction.LeftFront, Direction.TopLeftFront);
+                            ao = CombineAmbientOcclusion(a00, a01, a10, a11);
+                        }
+                        break;
+                }
+                return ao;
+            }
+
+            // TODO get rid of VoxelMapIterator ite : it used only to get access to neighbours (the ite part is not used anymore)
+            private byte ComputeAmbientOcclusion(VoxelMapIterator ite, int x, int y, int z, Direction dir1, Direction dir2, Direction dirCorner)
+            {
+                // TODO cache values...
+                // TODO use FaceInfo not VoxelType
+                bool side1 = !VoxelInfo.Get(ite.Value(x, y, z, dir1)).IsTransparent;
+                bool side2 = !VoxelInfo.Get(ite.Value(x, y, z, dir2)).IsTransparent;
+                if (side1 && side2)
+                {
+                    return 0;
+                }
+                bool corner = !VoxelInfo.Get(ite.Value(x, y, z, dirCorner)).IsTransparent;
+                return (byte)(3 - (Convert.ToByte(side1) + Convert.ToByte(side2) + Convert.ToByte(corner)));
+            }
+
+            public static byte CombineAmbientOcclusion(byte a00, byte a01, byte a10, byte a11)
+            {
+                return (byte)(a00 | (a01 << 2) | (a10 << 4) | (a11 << 6));
+            }
+
 
             public bool End()
             {

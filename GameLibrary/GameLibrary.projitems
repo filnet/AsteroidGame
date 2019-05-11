@@ -53,7 +53,7 @@
     <Compile Include="$(MSBuildThisFileDirectory)Util\Stats.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Voxel\Effect\VoxelSimpleEffect.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Voxel\Geometry\NewVoxelMapMeshFactory.cs" />
-    <Compile Include="$(MSBuildThisFileDirectory)Voxel\Geometry\VoxelVertexBufferBuilderExtensions.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)Voxel\Geometry\VoxelVertexBufferBuilder.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Voxel\Octree\OctreeVoxelMapIterator.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Voxel\Octree\VoxelOctree.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Voxel\VoxelChunk.cs" />

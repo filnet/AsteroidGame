@@ -222,14 +222,14 @@ namespace GameLibrary.Voxel.Geometry
 
                     int textureIndex = voxelInfo.TextureIndex(Direction.Front);
 
-                    int ao = 0b11111111;
+                    byte ao = 0b11111111;
                     if (!voxelInfo.IsTransparent)
                     {
-                        int a00 = VertexAmbientOcclusion(ite, Direction.LeftFront, Direction.BottomFront, Direction.BottomLeftFront);
-                        int a01 = VertexAmbientOcclusion(ite, Direction.LeftFront, Direction.TopFront, Direction.TopLeftFront);
-                        int a10 = VertexAmbientOcclusion(ite, Direction.RightFront, Direction.BottomFront, Direction.BottomRightFront);
-                        int a11 = VertexAmbientOcclusion(ite, Direction.RightFront, Direction.TopFront, Direction.TopRightFront);
-                        ao = VoxelUtil.CombineVertexAmbientOcclusion(a00, a01, a10, a11);
+                        byte a00 = ComputeAmbientOcclusion(ite, Direction.LeftFront, Direction.BottomFront, Direction.BottomLeftFront);
+                        byte a01 = ComputeAmbientOcclusion(ite, Direction.LeftFront, Direction.TopFront, Direction.TopLeftFront);
+                        byte a10 = ComputeAmbientOcclusion(ite, Direction.RightFront, Direction.BottomFront, Direction.BottomRightFront);
+                        byte a11 = ComputeAmbientOcclusion(ite, Direction.RightFront, Direction.TopFront, Direction.TopRightFront);
+                        ao = CombineAmbientOcclusion(a00, a01, a10, a11);
                     }
 
                     int i = builder.AddVertex(_bottomLeftFront, frontNormal, Color.White, tex00, textureIndex, ao);
@@ -265,14 +265,14 @@ namespace GameLibrary.Voxel.Geometry
 
                     int textureIndex = voxelInfo.TextureIndex(Direction.Back);
 
-                    int ao = 0b11111111;
+                    byte ao = 0b11111111;
                     if (!voxelInfo.IsTransparent)
                     {
-                        int a00 = VertexAmbientOcclusion(ite, Direction.RightBack, Direction.BottomBack, Direction.BottomRightBack);
-                        int a01 = VertexAmbientOcclusion(ite, Direction.RightBack, Direction.TopBack, Direction.TopRightBack);
-                        int a10 = VertexAmbientOcclusion(ite, Direction.LeftBack, Direction.BottomBack, Direction.BottomLeftBack);
-                        int a11 = VertexAmbientOcclusion(ite, Direction.LeftBack, Direction.TopBack, Direction.TopLeftBack);
-                        ao = VoxelUtil.CombineVertexAmbientOcclusion(a00, a01, a10, a11);
+                        byte a00 = ComputeAmbientOcclusion(ite, Direction.RightBack, Direction.BottomBack, Direction.BottomRightBack);
+                        byte a01 = ComputeAmbientOcclusion(ite, Direction.RightBack, Direction.TopBack, Direction.TopRightBack);
+                        byte a10 = ComputeAmbientOcclusion(ite, Direction.LeftBack, Direction.BottomBack, Direction.BottomLeftBack);
+                        byte a11 = ComputeAmbientOcclusion(ite, Direction.LeftBack, Direction.TopBack, Direction.TopLeftBack);
+                        ao = CombineAmbientOcclusion(a00, a01, a10, a11);
                     }
 
                     int i = builder.AddVertex(_bottomRightBack, backNormal, Color.White, tex00, textureIndex, ao);
@@ -308,14 +308,14 @@ namespace GameLibrary.Voxel.Geometry
 
                     int textureIndex = voxelInfo.TextureIndex(Direction.Top);
 
-                    int ao = 0b11111111;
+                    byte ao = 0b11111111;
                     if (!voxelInfo.IsTransparent)
                     {
-                        int a00 = VertexAmbientOcclusion(ite, Direction.TopLeft, Direction.TopFront, Direction.TopLeftFront);
-                        int a01 = VertexAmbientOcclusion(ite, Direction.TopLeft, Direction.TopBack, Direction.TopLeftBack);
-                        int a10 = VertexAmbientOcclusion(ite, Direction.TopRight, Direction.TopFront, Direction.TopRightFront);
-                        int a11 = VertexAmbientOcclusion(ite, Direction.TopRight, Direction.TopBack, Direction.TopRightBack);
-                        ao = VoxelUtil.CombineVertexAmbientOcclusion(a00, a01, a10, a11);
+                        byte a00 = ComputeAmbientOcclusion(ite, Direction.TopLeft, Direction.TopFront, Direction.TopLeftFront);
+                        byte a01 = ComputeAmbientOcclusion(ite, Direction.TopLeft, Direction.TopBack, Direction.TopLeftBack);
+                        byte a10 = ComputeAmbientOcclusion(ite, Direction.TopRight, Direction.TopFront, Direction.TopRightFront);
+                        byte a11 = ComputeAmbientOcclusion(ite, Direction.TopRight, Direction.TopBack, Direction.TopRightBack);
+                        ao = CombineAmbientOcclusion(a00, a01, a10, a11);
                     }
 
                     int i = builder.AddVertex(_topLeftFront, topNormal, Color.White, tex00, textureIndex, ao);
@@ -351,14 +351,14 @@ namespace GameLibrary.Voxel.Geometry
 
                     int textureIndex = voxelInfo.TextureIndex(Direction.Bottom);
 
-                    int ao = 0b11111111;
+                    byte ao = 0b11111111;
                     if (!voxelInfo.IsTransparent)
                     {
-                        int a00 = VertexAmbientOcclusion(ite, Direction.BottomRight, Direction.BottomFront, Direction.BottomRightFront);
-                        int a01 = VertexAmbientOcclusion(ite, Direction.BottomRight, Direction.BottomBack, Direction.BottomRightBack);
-                        int a10 = VertexAmbientOcclusion(ite, Direction.BottomLeft, Direction.BottomFront, Direction.BottomLeftFront);
-                        int a11 = VertexAmbientOcclusion(ite, Direction.BottomLeft, Direction.BottomBack, Direction.BottomLeftBack);
-                        ao = VoxelUtil.CombineVertexAmbientOcclusion(a00, a01, a10, a11);
+                        byte a00 = ComputeAmbientOcclusion(ite, Direction.BottomRight, Direction.BottomFront, Direction.BottomRightFront);
+                        byte a01 = ComputeAmbientOcclusion(ite, Direction.BottomRight, Direction.BottomBack, Direction.BottomRightBack);
+                        byte a10 = ComputeAmbientOcclusion(ite, Direction.BottomLeft, Direction.BottomFront, Direction.BottomLeftFront);
+                        byte a11 = ComputeAmbientOcclusion(ite, Direction.BottomLeft, Direction.BottomBack, Direction.BottomLeftBack);
+                        ao = CombineAmbientOcclusion(a00, a01, a10, a11);
                     }
 
                     int i = builder.AddVertex(_bottomRightFront, bottomNormal, Color.White, tex00, textureIndex, ao);
@@ -394,14 +394,14 @@ namespace GameLibrary.Voxel.Geometry
 
                     int textureIndex = voxelInfo.TextureIndex(Direction.Right);
 
-                    int ao = 0b11111111;
+                    byte ao = 0b11111111;
                     if (!voxelInfo.IsTransparent)
                     {
-                        int a00 = VertexAmbientOcclusion(ite, Direction.BottomRight, Direction.RightFront, Direction.BottomRightFront);
-                        int a01 = VertexAmbientOcclusion(ite, Direction.TopRight, Direction.RightFront, Direction.TopRightFront);
-                        int a10 = VertexAmbientOcclusion(ite, Direction.BottomRight, Direction.RightBack, Direction.BottomRightBack);
-                        int a11 = VertexAmbientOcclusion(ite, Direction.TopRight, Direction.RightBack, Direction.TopRightBack);
-                        ao = VoxelUtil.CombineVertexAmbientOcclusion(a00, a01, a10, a11);
+                        byte a00 = ComputeAmbientOcclusion(ite, Direction.BottomRight, Direction.RightFront, Direction.BottomRightFront);
+                        byte a01 = ComputeAmbientOcclusion(ite, Direction.TopRight, Direction.RightFront, Direction.TopRightFront);
+                        byte a10 = ComputeAmbientOcclusion(ite, Direction.BottomRight, Direction.RightBack, Direction.BottomRightBack);
+                        byte a11 = ComputeAmbientOcclusion(ite, Direction.TopRight, Direction.RightBack, Direction.TopRightBack);
+                        ao = CombineAmbientOcclusion(a00, a01, a10, a11);
                     }
 
                     int i = builder.AddVertex(_bottomRightFront, rightNormal, Color.White, tex00, textureIndex, ao);
@@ -437,14 +437,14 @@ namespace GameLibrary.Voxel.Geometry
 
                     int textureIndex = voxelInfo.TextureIndex(Direction.Left);
 
-                    int ao = 0b11111111;
+                    byte ao = 0b11111111;
                     if (!voxelInfo.IsTransparent)
                     {
-                        int a00 = VertexAmbientOcclusion(ite, Direction.BottomLeft, Direction.LeftBack, Direction.BottomLeftBack);
-                        int a01 = VertexAmbientOcclusion(ite, Direction.TopLeft, Direction.LeftBack, Direction.TopLeftBack);
-                        int a10 = VertexAmbientOcclusion(ite, Direction.BottomLeft, Direction.LeftFront, Direction.BottomLeftFront);
-                        int a11 = VertexAmbientOcclusion(ite, Direction.TopLeft, Direction.LeftFront, Direction.TopLeftFront);
-                        ao = VoxelUtil.CombineVertexAmbientOcclusion(a00, a01, a10, a11);
+                        byte a00 = ComputeAmbientOcclusion(ite, Direction.BottomLeft, Direction.LeftBack, Direction.BottomLeftBack);
+                        byte a01 = ComputeAmbientOcclusion(ite, Direction.TopLeft, Direction.LeftBack, Direction.TopLeftBack);
+                        byte a10 = ComputeAmbientOcclusion(ite, Direction.BottomLeft, Direction.LeftFront, Direction.BottomLeftFront);
+                        byte a11 = ComputeAmbientOcclusion(ite, Direction.TopLeft, Direction.LeftFront, Direction.TopLeftFront);
+                        ao = CombineAmbientOcclusion(a00, a01, a10, a11);
                     }
 
                     int i = builder.AddVertex(_bottomLeftBack, leftNormal, Color.White, tex00, textureIndex, ao);
@@ -479,13 +479,24 @@ namespace GameLibrary.Voxel.Geometry
                 return show;
             }
 
-            public int VertexAmbientOcclusion(VoxelMapIterator ite, Direction dir1, Direction dir2, Direction dirCorner)
+            // TODO remove (should be handled by VoxelMap)
+            public byte ComputeAmbientOcclusion(VoxelMapIterator ite, Direction dir1, Direction dir2, Direction dirCorner)
             {
                 // TODO cache values...
                 bool side1 = !VoxelInfo.Get(ite.Value(dir1)).IsTransparent;
                 bool side2 = !VoxelInfo.Get(ite.Value(dir2)).IsTransparent;
+                if (side1 && side2)
+                {
+                    return 0;
+                }
                 bool corner = !VoxelInfo.Get(ite.Value(dirCorner)).IsTransparent;
-                return VoxelUtil.VertexAmbientOcclusion(side1, side2, corner);
+                return (byte)(3 - (Convert.ToByte(side1) + Convert.ToByte(side2) + Convert.ToByte(corner)));
+            }
+
+            // TODO remove (should be handled by VoxelMap)
+            public static byte CombineAmbientOcclusion(byte a00, byte a01, byte a10, byte a11)
+            {
+                return (byte)(a00 | (a01 << 2) | (a10 << 4) | (a11 << 6));
             }
 
             public bool End()
