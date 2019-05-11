@@ -15,6 +15,8 @@ using StockEffects;
 
 namespace Voxel
 {
+    public enum WireframeMode { None, Quads, Faces }
+
     /// <summary>
     /// Built-in effect that supports optional texturing, vertex coloring, fog, and lighting.
     /// </summary>
@@ -47,6 +49,7 @@ namespace Voxel
         EffectParameter shadowMapTextureParam;
 
         EffectParameter visualizeSplitsParam;
+        EffectParameter wireframeModeParam;
 
         #endregion
 
@@ -73,6 +76,7 @@ namespace Voxel
         Vector4[] splitScales;
 
         bool visualizeSplits;
+        WireframeMode wireframeMode;
 
         Vector3 ambientColor = Vector3.Zero;
         Vector3 diffuseColor = Vector3.One;
@@ -441,6 +445,12 @@ namespace Voxel
             set { visualizeSplits = value; }
         }
 
+        public WireframeMode WireframeMode
+        {
+            get { return wireframeMode; }
+            set { wireframeMode = value; }
+        }
+
         #endregion
 
         #region Methods
@@ -456,6 +466,8 @@ namespace Voxel
             DirectionalLight0.Enabled = true;
             SpecularColor = Vector3.One;
             SpecularPower = 16;
+
+            wireframeMode = WireframeMode.Faces;
         }
 
         /// <summary>
@@ -492,6 +504,7 @@ namespace Voxel
             splitOffsets = cloneSource.splitOffsets;
 
             visualizeSplits = cloneSource.visualizeSplits;
+            wireframeMode = cloneSource.wireframeMode;
         }
 
 
@@ -557,6 +570,7 @@ namespace Voxel
             shadowMapTextureParam = Parameters["ShadowMapTexture"];
 
             visualizeSplitsParam = Parameters["VisualizeSplits"];
+            wireframeModeParam = Parameters["WireframeMode"];
         }
 
 
@@ -639,6 +653,7 @@ namespace Voxel
             splitOffsetsParam.SetValue(splitOffsets);
 
             visualizeSplitsParam.SetValue(visualizeSplits);
+            wireframeModeParam.SetValue((int)wireframeMode);
         }
 
         #endregion

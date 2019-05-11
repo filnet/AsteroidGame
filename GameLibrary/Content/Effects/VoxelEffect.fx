@@ -53,6 +53,7 @@ BEGIN_CONSTANTS
     float4 SplitOffsets[8];
     float4 SplitScales[8];
 
+	int WireframeMode;
 	bool VisualizeSplits;
 
 
@@ -95,13 +96,17 @@ float SampleAmbientOcclusionFactors(float4 factors, float2 texCoord)
 
 float ComputeWFTexCoord(float x, int w)
 {
-	int b = 2 * w - 1;
-	return x ? 1 : -b;
+	switch(WireframeMode)
+	{
+    case 1: // QUAD
+		return x ? 1 : -1;
+    case 2: // FACE
+		int b = 2 * w - 1;
+		return x ? 1 : -b;
+    default:
+        return 0;
+	}
 }
-
-
-//	vout.WF1TexCoord = vin.TexCoord.x ? (2 * vin.TextureIndex[2] - 1) : -(2 * vin.TextureIndex[2] - 1); \
-//	vout.WF2TexCoord = vin.TexCoord.y ? (2 * vin.TextureIndex[3] - 1) : -(2 * vin.TextureIndex[3] - 1); \
 
 #define SetVoxelVSOutputParams \
     vout.TexCoord = vin.TexCoord; \
@@ -126,6 +131,7 @@ static const float4 SplitColors[8] =
     float4 ( 0.0f, 1.0f, 5.5f, 1.0f ),
     float4 ( 0.5f, 3.5f, 0.75f, 1.0f )
 };
+
 // Vertex shader: basic.
 VSOutput VSBasic(VSInput vin)
 {
@@ -551,14 +557,16 @@ float4 PSBasicVertexLightingTxNoFog(VSOutputTx pin) : SV_Target0
 
     //float4 color = float4(1,1,1,1);
     float4 color = SAMPLE_TEXTURE_ARRAY(Texture, float3(pin.TexCoord.x, -pin.TexCoord.y, pin.TextureIndex[0])); //* pin.Diffuse;
-    
-    color *= SampleAmbientOcclusionFactors(pin.AmbientOcclusionFactors, pin.TexCoord);
 
-	// wireframe
-    float4 wfColor1 = SAMPLE_TEXTURE(WireframeTexture, pin.WF1TexCoord);
-    color = blendWF(wfColor1, color);
-    float4 wfColor2 = SAMPLE_TEXTURE(WireframeTexture, pin.WF2TexCoord);
-    color = blendWF(wfColor2, color);
+	// FIXME do we need to handle ambient occlusion when in the shadow or facing away from light ?
+	color *= SampleAmbientOcclusionFactors(pin.AmbientOcclusionFactors, pin.TexCoord);
+
+	if (WireframeMode != 0) {
+		float4 wfColor1 = SAMPLE_TEXTURE(WireframeTexture, pin.WF1TexCoord);
+		color = blendWF(wfColor1, color);
+		float4 wfColor2 = SAMPLE_TEXTURE(WireframeTexture, pin.WF2TexCoord);
+		color = blendWF(wfColor2, color);
+	}
 
 	// shadow cascade
 	

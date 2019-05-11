@@ -409,9 +409,18 @@ namespace GameLibrary.SceneGraph
             set { updateRasterizerState(value, CullMode); }
         }
 
+        [Category("General")]
+        public WireframeMode WireframeMode
+        {
+            get { return wireframeMode; }
+            set { wireframeMode = value; }
+        }
+
         private readonly SamplerState wireframeSamplerState = new SamplerState();
 
         private readonly SamplerState shadowSamplerState = new SamplerState();
+
+        private WireframeMode wireframeMode;
 
         public VoxelRenderer(VoxelEffect effect) : base(effect)
         {
@@ -434,6 +443,8 @@ namespace GameLibrary.SceneGraph
             shadowSamplerState.ComparisonFunction = CompareFunction.LessEqual;
             shadowSamplerState.FilterMode = TextureFilterMode.Comparison;
             shadowSamplerState.BorderColor = Color.White;
+
+            wireframeMode = WireframeMode.Faces;
         }
 
         // TODO move to parent class
@@ -494,6 +505,8 @@ namespace GameLibrary.SceneGraph
             }
             // HACK to properly see splits when CullCamera is frozen...
             effect.DepthWorldView = rc.CullCamera.ViewMatrix;
+
+            effect.WireframeMode = wireframeMode;
 
             foreach (EffectPass pass in effect.CurrentTechnique.Passes)
             {
