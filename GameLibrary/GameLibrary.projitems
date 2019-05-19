@@ -142,10 +142,11 @@
   </ItemGroup>
   <ItemGroup>
     <Content Include="$(MSBuildThisFileDirectory)Content\Fonts\Arial-Bold-12pt-OuterGlow-3px.png" />
-    <Content Include="$(MSBuildThisFileDirectory)Doc\arbitrary-shadow-frustum-and-shadow-frustum-fit-to-scene.jpg" />
-    <Content Include="$(MSBuildThisFileDirectory)Doc\Clipping Shader.txt" />
+    <Content Include="$(MSBuildThisFileDirectory)Doc\Doc\Images\arbitrary-shadow-frustum-and-shadow-frustum-fit-to-scene.jpg" />
+    <Content Include="$(MSBuildThisFileDirectory)Doc\Doc\Clipping Shader.txt" />
+    <Content Include="$(MSBuildThisFileDirectory)Doc\Doc\Building.txt" />
     <Content Include="$(MSBuildThisFileDirectory)Doc\DX\DXGI_FORMAT.txt" />
-    <Content Include="$(MSBuildThisFileDirectory)Doc\frustrum_minimum_bs.png" />
+    <Content Include="$(MSBuildThisFileDirectory)Doc\Doc\Images\frustrum_minimum_bs.png" />
     <Content Include="$(MSBuildThisFileDirectory)Doc\GPU Gems 3\Chapter 10 - Parallel-Split Shadow Maps on Programmable GPUs\GPU Gems   NVIDIA Developer.html" />
     <Content Include="$(MSBuildThisFileDirectory)Doc\GPU Gems 3\Chapter 10 - Parallel-Split Shadow Maps on Programmable GPUs\GPU Gems   NVIDIA Developer_fichiers\0207equ01.jpg" />
     <Content Include="$(MSBuildThisFileDirectory)Doc\GPU Gems 3\Chapter 10 - Parallel-Split Shadow Maps on Programmable GPUs\GPU Gems   NVIDIA Developer_fichiers\0207equ02.jpg" />
@@ -195,29 +196,29 @@
     <Content Include="$(MSBuildThisFileDirectory)Doc\GPU Gems 3\Chapter 10 - Parallel-Split Shadow Maps on Programmable GPUs\GPU Gems   NVIDIA Developer_fichiers\out_008.gif" />
     <Content Include="$(MSBuildThisFileDirectory)Doc\GPU Gems 3\Chapter 10 - Parallel-Split Shadow Maps on Programmable GPUs\GPU Gems   NVIDIA Developer_fichiers\U2248.GIF" />
     <Content Include="$(MSBuildThisFileDirectory)Doc\GPU Gems 3\Chapter 10 - Parallel-Split Shadow Maps on Programmable GPUs\GPU Gems   NVIDIA Developer_fichiers\U2264.GIF" />
-    <Content Include="$(MSBuildThisFileDirectory)Doc\near-far- planes-based-on-scene-aabb.jpg" />
-    <Content Include="$(MSBuildThisFileDirectory)Doc\near-far-plane-based-on-intersection-of-four.jpg" />
-    <Content Include="$(MSBuildThisFileDirectory)Doc\near-far-planes-based-solely-on-view-frustum.jpg" />
-    <Content Include="$(MSBuildThisFileDirectory)Doc\Resources.txt" />
-    <Content Include="$(MSBuildThisFileDirectory)Doc\Architecture.txt" />
+    <Content Include="$(MSBuildThisFileDirectory)Doc\Doc\Images\near-far- planes-based-on-scene-aabb.jpg" />
+    <Content Include="$(MSBuildThisFileDirectory)Doc\Doc\Images\near-far-plane-based-on-intersection-of-four.jpg" />
+    <Content Include="$(MSBuildThisFileDirectory)Doc\Doc\Images\near-far-planes-based-solely-on-view-frustum.jpg" />
+    <Content Include="$(MSBuildThisFileDirectory)Doc\Doc\Resources.txt" />
+    <Content Include="$(MSBuildThisFileDirectory)Doc\Doc\Architecture.txt" />
     <Content Include="$(MSBuildThisFileDirectory)Doc\Screenshots\256x32.png" />
     <Content Include="$(MSBuildThisFileDirectory)Doc\Screenshots\ao_bug.png" />
     <Content Include="$(MSBuildThisFileDirectory)Doc\Screenshots\ao_bug2.png" />
     <Content Include="$(MSBuildThisFileDirectory)Doc\Screenshots\debug_camera.png" />
-    <Content Include="$(MSBuildThisFileDirectory)Doc\octree_locational_code.png" />
+    <Content Include="$(MSBuildThisFileDirectory)Doc\Doc\Images\octree_locational_code.png" />
     <Content Include="$(MSBuildThisFileDirectory)Doc\Screenshots\perlin1.png" />
     <Content Include="$(MSBuildThisFileDirectory)Doc\Screenshots\simplex.png" />
     <Content Include="$(MSBuildThisFileDirectory)Doc\Screenshots\simplex2.png" />
     <Content Include="$(MSBuildThisFileDirectory)Doc\Screenshots\wireframe.png" />
-    <Content Include="$(MSBuildThisFileDirectory)Doc\Screenshot_2019-01-09 Calculate Minimal Bounding Sphere of Frustum.png" />
-    <Content Include="$(MSBuildThisFileDirectory)Doc\shadow-projection-fit-to-view-frustum.jpg" />
-    <Content Include="$(MSBuildThisFileDirectory)Doc\shadow_map_rendering.jpg" />
-    <Content Include="$(MSBuildThisFileDirectory)Doc\slope-scaled-depth-bias-compared-to-unbiased-depth.png" />
-    <Content Include="$(MSBuildThisFileDirectory)Doc\trap_circum_circle.gif" />
-    <Content Include="$(MSBuildThisFileDirectory)Doc\view frustum + bs + light frustum (light view).png" />
-    <Content Include="$(MSBuildThisFileDirectory)Doc\view frustum + bs + light frustum (side view).png" />
-    <Content Include="$(MSBuildThisFileDirectory)Doc\wireframe_texture_coordinates.png" />
-    <Content Include="$(MSBuildThisFileDirectory)Doc\TODO.txt" />
+    <Content Include="$(MSBuildThisFileDirectory)Doc\Doc\Images\Screenshot_2019-01-09 Calculate Minimal Bounding Sphere of Frustum.png" />
+    <Content Include="$(MSBuildThisFileDirectory)Doc\Doc\Images\shadow-projection-fit-to-view-frustum.jpg" />
+    <Content Include="$(MSBuildThisFileDirectory)Doc\Doc\Images\shadow_map_rendering.jpg" />
+    <Content Include="$(MSBuildThisFileDirectory)Doc\Doc\Images\slope-scaled-depth-bias-compared-to-unbiased-depth.png" />
+    <Content Include="$(MSBuildThisFileDirectory)Doc\Doc\Images\trap_circum_circle.gif" />
+    <Content Include="$(MSBuildThisFileDirectory)Doc\Doc\Images\view frustum + bs + light frustum %28light view%29.png" />
+    <Content Include="$(MSBuildThisFileDirectory)Doc\Doc\Images\view frustum + bs + light frustum %28side view%29.png" />
+    <Content Include="$(MSBuildThisFileDirectory)Doc\Doc\Images\wireframe_texture_coordinates.png" />
+    <Content Include="$(MSBuildThisFileDirectory)Doc\Doc\TODO.txt" />
     <Content Include="$(MSBuildThisFileDirectory)StockEffects\HLSL\AlphaTestEffect.fx" />
     <Content Include="$(MSBuildThisFileDirectory)StockEffects\HLSL\BasicEffect.fx" />
     <Content Include="$(MSBuildThisFileDirectory)StockEffects\HLSL\DualTextureEffect.fx" />
@@ -275,6 +276,7 @@
     <None Include="$(MSBuildThisFileDirectory)StockEffects\HLSL\Structures.fxh" />
   </ItemGroup>
   <ItemGroup>
+    <Folder Include="$(MSBuildThisFileDirectory)Doc\Doc\Images\" />
     <Folder Include="$(MSBuildThisFileDirectory)Util\Octree\" />
   </ItemGroup>
 </Project>

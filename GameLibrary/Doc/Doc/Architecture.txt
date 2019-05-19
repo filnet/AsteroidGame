@@ -1,0 +1,126 @@
+﻿
+--------------------------------------------------------------------------------
+Rendering
+--------------------------------------------------------------------------------
+
+Octree culling
+- tree is traversed in front to back order
+   
+
+Octree Frustum culling, three cases:
+- bb is disjoint, stop at this level
+- bb instersects, continue down with culling
+- bb is contained, continue down without culling (there is no need to cull children...)
+
+Small feature culling
+- as we traverse front to back we can stop when encountering the 1st culled small feature
+
+LOD
+- not so simple...
+- how to interpolate down
+- adjacent chunks with different LODs
+
+Octree rendering
+- when culling two bins are filled with chunk meshes: solid bin and translucent bin
+- each chunk can generate one or both types of meshes
+- both are front to back ordered in the bins as a result of the cull pass
+- solid bin is rendered front to back (in order...) to benefit from GPU depth culling (cheap occlusion culling)
+- translucent bin is rendered in back to front (reverse order) for proper translucency.
+- translucent: must build meshes for all 48 camera orientations ! It is then possible to cull hidden faces
+- solid: could build meshes for all 48 camera orientations but it is not mandatory
+  if done we get more GPU depth culling (and it is possible to further cull hidden faces)
+
+--------------------------------------------------------------------------------
+Scene Graph
+--------------------------------------------------------------------------------
+
+
+10 node types
+    Geometry
+    Transform
+    Light
+    Camera
+    Particle System
+    Switch
+    LOD (Level Of Detail)
+    Sound
+    Marker
+    Tracker
+ 
+Defines the scene graph tree starting from its root node
+Strict hierarchy
+Only these nodes can have children
+    - Geometry
+    - Transform
+    - Switch
+    - LOD
+    - Marker
+    - Tracker
+ 
+ Used by
+    - Camera
+    - Physics Engine
+    - Network Server & Client
+    - Rendering
+    - ...
+ 
+ 
+Geometry Node
+
+Defines geometric model, material, and physical properties for physical simulation
+Geometric Model
+    - Model mesh
+    - Shader for rendering the model
+    - Bounding box
+    - ...
+Material
+    - Diffuse color
+    - Specular color
+    - Specular power
+    - Emissive color
+    - Transparency
+    - Texture
+Physical Properties
+    - Mass, Shape, ...
+    - Pickable, Interactable, Collidable, IsVehicle,…
+    - Linear/Angular Damping, Restitution, Friction,…
+    - Initial Linear/Angular Velocity
+
+Transform Node
+Defines transformation of nodes with transform property
+(Camera Node, Geometry Node, Light Node, Particle Node, Sound Node, LOD Node)
+    - Scaling
+    - Rotation
+    - Translation
+Transform nodes can be cascaded to compose transformations
+
+Camera Node
+Defines Eyepoint and View Frustum
+Eyepoint
+- Translation
+- Rotation
+View Frustum
+- Near plane
+- Far plane
+- Aspect ratio
+- Field of View [vertical]
+ 
+Light Node
+Defines illumination
+Directional lights:
+- Direction
+- Diffuse color
+- Specular color
+- ...
+
+lightmaterial.exe tutor: www.xmission.com/~nate/tutors.html
+Demonstrates the more complex model of light and material properties used in OpenGL
+
+Shadows
+
+Shadow Map:
+- near and far plane are kept tight around view frustrum as seen from light viewpoint
+- occluders outside of near/far are "panckaked" (RasterizerState.DepthClipEnable is set to false)
+- depth bias (absolute and slope scaled) are handled when rendering the shadow map (slope scaled need normals)
+
+Stable Shadow Map

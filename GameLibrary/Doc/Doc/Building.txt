@@ -1,0 +1,8 @@
+﻿
+bepuphysics
+
+needs .NET Framework 4.7
+
+https://dotnet.microsoft.com/download
+https://dotnet.microsoft.com/download/visual-studio-sdks?utm_source=getdotnetsdk&utm_medium=referral
+
