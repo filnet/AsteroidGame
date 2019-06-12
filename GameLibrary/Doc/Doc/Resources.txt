@@ -1,4 +1,9 @@
-﻿https://www.opengl.org/archives/resources/code/samples/sig99/advanced99/notes/notes.html
+﻿Occlusion cullin with Grid
+
+Contains three papers : http://www.dca.fee.unicamp.br/projects/mtk/batageloM/
+
+
+https://www.opengl.org/archives/resources/code/samples/sig99/advanced99/notes/notes.html
 
 
 Asteroid

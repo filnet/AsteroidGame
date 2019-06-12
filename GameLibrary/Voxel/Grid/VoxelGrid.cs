@@ -1,234 +1,89 @@
-﻿using GameLibrary.Geometry.Common;
-using GameLibrary.SceneGraph;
-using GameLibrary.SceneGraph.Common;
+﻿#define DEBUG_VOXEL_GRID
+
+using GameLibrary.Util;
 using GameLibrary.Util.Grid;
-using GameLibrary.Voxel.Geometry;
+using GameLibrary.Util.Octree;
 using Microsoft.Xna.Framework.Graphics;
 using System;
-using System.Collections.Concurrent;
 using System.Diagnostics;
-using System.IO;
-using System.Threading;
-using System.Threading.Tasks;
+using static GameLibrary.Voxel.VoxelManager;
 
 namespace GameLibrary.Voxel.Grid
 {
     public class VoxelGrid : Grid<VoxelChunk>
     {
-        private readonly int chunkSize;
-
-        private GraphicsDevice graphicsDevice;
-
-        private VoxelMapIterator mapIterator;
-        private VoxelMapMeshFactory meshFactory;
-
-        //private bool CompressAtInitialization = true;
-        //private bool LoadAtInitialization = false;
-        //private bool CreateMeshOnInitialization = false;
-        //private bool ExitAfterLoad = false;
-
-        private Task loadTask;
-        private CancellationTokenSource cts = new CancellationTokenSource();
-        private readonly int queueSize = 10;
-        private ConcurrentQueue<GridItem<VoxelChunk>> queue = new ConcurrentQueue<GridItem<VoxelChunk>>();
-        private BlockingCollection<GridItem<VoxelChunk>> loadQueue;
-
-        public delegate void ObjectLoadedCallback();
-
         public ObjectLoadedCallback objectLoadedCallback;
 
-        public VoxelGrid(int chunkSize)
+        private VoxelManager voxelManager;
+
+        public VoxelGrid(int chunkSize, ObjectLoadedCallback objectLoadedCallback) : base(chunkSize)
         {
-            this.chunkSize = chunkSize;
-            //objectFactory = createObject;
+            this.objectLoadedCallback = objectLoadedCallback;
         }
 
         public void Initialize(GraphicsDevice graphicsDevice)
         {
-            this.graphicsDevice = graphicsDevice;
-
-            mapIterator = null;
-            meshFactory = new VoxelMapMeshFactory(graphicsDevice, null);
+            voxelManager = new VoxelManager(graphicsDevice, objectLoadedCallback, GetNeighbourMap);
 
             Stopwatch sw = new Stopwatch();
             sw.Start();
-            //RootItem.obj = createObject(this, RootItem);
-            sw.Stop();
-            Console.WriteLine("Creating VoxelGrid took {0}", sw.Elapsed);
 
-            StartLoadQueue();
-        }
+            int m = 20;
+            Point3 p1 = new Point3(-m, -2, -m);
+            Point3 p2 = new Point3(m, 1, m);
 
-        private bool loadVisitor(Grid<VoxelChunk> grid, GridItem<VoxelChunk> item, ref Object arg)
-        {
-            item.obj.State = VoxelChunkState.Queued;
-            load(item);
-            return true;
-        }
-
-        public void Dispose()
-        {
-            DisposeLoadQueue();
-        }
-
-        // TODO this should be done asynchronously
-        private VoxelChunk createObject(Grid<VoxelChunk> grid, GridItem<VoxelChunk> item)
-        {
-            VoxelChunk voxelChunk = null;
-            return voxelChunk;
-        }
-
-        public bool ReadVoxelMap(String name, VoxelMap map)
-        {
-            String path = "C:\\Projects\\XNA\\Save\\" + name;
-
-            try
+            int p = 0;
+            int c = (p2.X - p1.X) * (p2.Y - p1.Y) * (p2.Z - p1.Z);
+            for (int y = p1.Y; y <= p2.Y; y++)
             {
-                using (var reader = new BinaryReader(File.Open(path, FileMode.Open)))
+                for (int z = p1.Z; z <= p2.Z; z++)
                 {
-                    map.Read(reader);
+                    for (int x = p1.X; x <= p2.X; x++)
+                    {
+                        VoxelChunk voxelChunk = voxelManager.CreateObject(x, y, z, chunkSize);
+                        if (voxelChunk != null)
+                        {
+                            GridItem<VoxelChunk> item = new GridItem<VoxelChunk>
+                            {
+                                key = new Point3(x, y, z),
+                                obj = voxelChunk
+                            };
+                            AddItem(item);
+                        }
+                        p++;
+                    }
+                    Console.WriteLine("{0}/{1} : {2}", p, c, ((100.0f * p) / c));
                 }
             }
-            catch (IOException ex)
-            {
-                //Console.WriteLine(ex.Message);
-                return false;
-            }
-            return true;
+            sw.Stop();
+            Console.WriteLine("Creating VoxelGrid took {0}", sw.Elapsed);
         }
 
-        public bool WriteVoxelMap(String name, VoxelMap map)
+        private VoxelMap GetNeighbourMap(VoxelMap map, Direction dir)
         {
-            String path = "C:\\Projects\\XNA\\Save\\" + name;
-            using (var writer = new BinaryWriter(File.Open(path, FileMode.OpenOrCreate)))
-            {
-                map.Write(writer);
-            }
-            return true;
+            Point3 key = new Point3(map.X0(), map.Y0(), map.Z0());
+            // find neighbourg node if any
+            Octree<VoxelChunk>.DirData dirData = Octree<VoxelChunk>.DIR_DATA[(int)dir];
+            int nx = key.X / map.Size() + dirData.dX;
+            int ny = key.Y / map.Size() + dirData.dY;
+            int nz = key.Z / map.Size() + dirData.dZ;
+            GridItem<VoxelChunk> neighbourNode = GetItem(new Point3(nx, ny, nz));
+            return neighbourNode?.obj.VoxelMap;
         }
 
         public override bool LoadItem(GridItem<VoxelChunk> item, ref Object arg)
         {
-            item.obj.State = VoxelChunkState.Queued;
-            //Console.WriteLine("Queuing " + item.locCode);
-            loadQueue.Add(item);
-            return true;
+            return voxelManager.LoadItem(item, ref arg);
         }
 
-        public override void ClearLoadQueue()
+        public void ClearLoadQueue()
         {
-            // FIXME emptying the queue will cause the consumer thread to take "newer" items early
-            // should pause the thread
-            // TODO don't clear on each redraw...
-            // TODO should be able to add a new batch "in front"...
-            // so that the consumer loads "older" chunks if it gets a chance to do so...
-            // and there is no need to clear the queue anymore
-            //queue.Clear();
-            while (loadQueue.Count > 0)
-            {
-                GridItem<VoxelChunk> item;
-                bool success = loadQueue.TryTake(out item);
-                if (success)
-                {
-                    if (item.obj.State == VoxelChunkState.Queued)
-                    {
-                        item.obj.State = VoxelChunkState.Null;
-                    }
-                    //obj.Dispose();
-                }
-            }
+            voxelManager.ClearLoadQueue();
         }
 
-        private void StartLoadQueue()
+        public void Dispose()
         {
-            loadQueue = new BlockingCollection<GridItem<VoxelChunk>>(queue/*, queueSize*/);
-            // A simple blocking consumer with cancellation.
-            loadTask = Task.Run(() =>
-            {
-                while (!loadQueue.IsCompleted)
-                {
-
-                    GridItem<VoxelChunk> item = null;
-                    // Blocks if number.Count == 0
-                    // IOE means that Take() was called on a completed collection.
-                    // Some other thread can call CompleteAdding after we pass the
-                    // IsCompleted check but before we call Take. 
-                    // In this example, we can simply catch the exception since the 
-                    // loop will break on the next iteration.
-                    try
-                    {
-                        item = loadQueue.Take(cts.Token);
-                    }
-                    catch (InvalidOperationException)
-                    {
-                        break;
-                    }
-                    catch (OperationCanceledException)
-                    {
-                        break;
-                    }
-
-                    load(item);
-
-                    if (objectLoadedCallback != null)
-                    {
-                        objectLoadedCallback();
-                    }
-                    //Console.WriteLine("Loaded " + item.locCode);
-                }
-                Console.WriteLine("No more items to take.");
-            });
-        }
-
-        private void DisposeLoadQueue()
-        {
-            if (loadTask != null)
-            {
-                // complete adding and empty queue
-                loadQueue.CompleteAdding();
-                ClearLoadQueue();
-                // cancel load task
-                cts.Cancel();
-                // wait for load task to end
-                Task.WaitAll(loadTask);
-            }
-            loadTask.Dispose();
-            loadQueue.Dispose();
-            cts.Dispose();
-        }
-
-        private void load(GridItem<VoxelChunk> item)
-        {
-            VoxelChunk voxelChunk = item.obj;
-            // FIXME works because there is a single loader thread
-            if (voxelChunk.State == VoxelChunkState.Queued)
-            {
-                voxelChunk.State = VoxelChunkState.Loading;
-                //Console.WriteLine("Loading item " + item.locCode);
-                createMeshes(voxelChunk);
-                voxelChunk.State = VoxelChunkState.Ready;
-            }
-        }
-
-        private void createMeshes(VoxelChunk voxelChunk)
-        {
-            if (voxelChunk.VoxelMap != null)
-            {
-                meshFactory.CreateMeshes(voxelChunk, mapIterator);
-
-                Mesh opaqueMesh = meshFactory.CreateOpaqueMesh();
-                if (opaqueMesh != null)
-                {
-                    voxelChunk.Drawable = new MeshDrawable(Scene.VOXEL, opaqueMesh);
-                }
-
-                // FIXME meshFactory API is bad...
-                Mesh transparentMesh = meshFactory.CreateTransparentMesh();
-                if (transparentMesh != null)
-                {
-                    voxelChunk.TransparentDrawable = new MeshDrawable(Scene.VOXEL_TRANSPARENT, transparentMesh);
-                }
-            }
+            voxelManager.Dispose();
         }
 
     }

@@ -9,6 +9,11 @@
     <Import_RootNamespace>GameLibrary</Import_RootNamespace>
   </PropertyGroup>
   <ItemGroup>
+    <Compile Include="$(MSBuildThisFileDirectory)Physics\Bepu\QuaternionExtentions.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)Physics\Bepu\Vector3Extentions.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)Physics\Bepu\BepuHelper.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)Physics\Bepu\Callbacks.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)Physics\Bepu\SimpleThreadDispatcher.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Component\2D\Circle2D.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Component\2D\Grid2D.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Component\2D\Line2D.cs" />
@@ -37,6 +42,7 @@
     <Compile Include="$(MSBuildThisFileDirectory)SceneGraph\Bounding\VolumeUtil.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)SceneGraph\Bounding\Volume.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)SceneGraph\Common\AbstractDrawable.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)SceneGraph\Common\SkyDomeNode.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)SceneGraph\Context\LightRenderContext.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)SceneGraph\Context\RefractionRenderContext.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)SceneGraph\Context\SceneRenderContext.cs" />
@@ -54,6 +60,8 @@
     <Compile Include="$(MSBuildThisFileDirectory)Voxel\Effect\VoxelSimpleEffect.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Voxel\Geometry\NewVoxelMapMeshFactory.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Voxel\Geometry\VoxelVertexBufferBuilder.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)Voxel\Grid\GridVoxelMapIterator.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)Voxel\VoxelManager.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Voxel\Octree\OctreeVoxelMapIterator.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Voxel\Octree\VoxelOctree.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Voxel\VoxelChunk.cs" />
@@ -73,7 +81,7 @@
     <Compile Include="$(MSBuildThisFileDirectory)SceneGraph\LightCamera.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)SceneGraph\Context\RenderContext.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)StockEffects\C#\ShadowMapEffect.cs" />
-    <Compile Include="$(MSBuildThisFileDirectory)System\UI\KeyboardInput.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)Component\UI\KeyboardInput.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Util\Noise\FastNoise.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Util\Noise\NoiseGen.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Util\Noise\Perlin.cs" />
@@ -81,12 +89,12 @@
     <Compile Include="$(MSBuildThisFileDirectory)Util\Noise\SimplexNoise.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Voxel\Effect\VoxelShadowEffect.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Voxel\Effect\VoxelEffect.cs" />
-    <Compile Include="$(MSBuildThisFileDirectory)System\DebugManager.cs" />
-    <Compile Include="$(MSBuildThisFileDirectory)System\DebugSystem.cs" />
-    <Compile Include="$(MSBuildThisFileDirectory)System\IDebugCommandHost.cs" />
-    <Compile Include="$(MSBuildThisFileDirectory)System\UI\ConsoleUI.cs" />
-    <Compile Include="$(MSBuildThisFileDirectory)System\UI\FPSCounterUI.cs" />
-    <Compile Include="$(MSBuildThisFileDirectory)System\UI\TimeRulerUI.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)Component\Debug\DebugManager.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)Component\Debug\DebugSystem.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)Component\Debug\IDebugCommandHost.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)Component\Debug\UI\ConsoleUI.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)Component\Debug\UI\FPSCounterUI.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)Component\Debug\UI\TimeRulerUI.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)FPSComponent.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Geometry\CircleMeshFactory.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Geometry\Common\IMeshFactory.cs" />
@@ -227,6 +235,7 @@
   </ItemGroup>
   <ItemGroup>
     <None Include="$(MSBuildThisFileDirectory)Content\Content.mgcb" />
+    <None Include="$(MSBuildThisFileDirectory)Content\DemoFont12pt.xnb" />
     <None Include="$(MSBuildThisFileDirectory)Content\Effects\ShadowCascadeGS.hlsl" />
     <None Include="$(MSBuildThisFileDirectory)Content\Effects\ShadowCascadeEffect.fx" />
     <None Include="$(MSBuildThisFileDirectory)Content\Effects\ShadowMapEffect.fx" />
@@ -276,6 +285,8 @@
     <None Include="$(MSBuildThisFileDirectory)StockEffects\HLSL\Structures.fxh" />
   </ItemGroup>
   <ItemGroup>
+    <Folder Include="$(MSBuildThisFileDirectory)Component\UI\" />
+    <Folder Include="$(MSBuildThisFileDirectory)Content\Test\" />
     <Folder Include="$(MSBuildThisFileDirectory)Doc\Doc\Images\" />
     <Folder Include="$(MSBuildThisFileDirectory)Util\Octree\" />
   </ItemGroup>

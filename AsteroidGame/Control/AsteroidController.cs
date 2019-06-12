@@ -1,8 +1,8 @@
-﻿using System;
-using GameLibrary;
-using Microsoft.Xna.Framework;
-using GameLibrary.Control;
+﻿using GameLibrary.Control;
+using GameLibrary.Physics;
 using GameLibrary.SceneGraph.Common;
+using Microsoft.Xna.Framework;
+using System;
 
 namespace AsteroidGame.Control
 {
@@ -10,8 +10,7 @@ namespace AsteroidGame.Control
     {
         private MyIntegrator integrator;
 
-        public AsteroidController(GeometryNode node, Vector3 velocity, Vector3 angularVelocity)
-            : base(node)
+        public AsteroidController(GeometryNode node, Vector3 velocity, Vector3 angularVelocity) : base(node)
         {
             integrator = new MyIntegrator();
             integrator.Position = Node.Translation;
@@ -31,8 +30,6 @@ namespace AsteroidGame.Control
 
         public override void Update(GameTime gameTime)
         {
-            base.Update(gameTime);
-
             //integrator.Position = Node.Translation;
             //integrator.Orientation = Node.Rotation;
             integrator.Update(gameTime.ElapsedGameTime);

@@ -1,9 +1,9 @@
 ﻿
 using GameLibrary.Component;
 using GameLibrary.Component.Camera;
+using GameLibrary.Component.Debug;
 using GameLibrary.Control;
 using GameLibrary.SceneGraph;
-using GameLibrary.System;
 using Microsoft.Xna.Framework;
 using Microsoft.Xna.Framework.Graphics;
 using Microsoft.Xna.Framework.Input;
@@ -71,7 +71,7 @@ namespace GameLibrary
             Exiting += new EventHandler<EventArgs>(GameExiting);
 
             // Initialize the keyboard-event handler.
-            System.KeyboardInput.Initialize(this, 500f, 20);
+            GameLibrary.Component.UI.KeyboardInput.Initialize(this, 500f, 20);
         }
 
         protected virtual void createScene(int mode)
@@ -155,10 +155,10 @@ namespace GameLibrary
             InitCamera();
 
             // Initialize the DebugSystem
-            System.DebugSystem.Initialize(this, debugFont: FontAssetName);
-            System.DebugSystem.Instance.FpsCounter.Visible = true;
-            System.DebugSystem.Instance.TimeRuler.Visible = true;
-            System.DebugSystem.Instance.TimeRuler.ShowLog = false;
+            DebugSystem.Initialize(this, debugFont: FontAssetName);
+            DebugSystem.Instance.FpsCounter.Visible = true;
+            DebugSystem.Instance.TimeRuler.Visible = true;
+            DebugSystem.Instance.TimeRuler.ShowLog = false;
 
             // Add "tr" command if DebugCommandHost is registered.
             IDebugCommandHost host = Services.GetService(typeof(IDebugCommandHost)) as IDebugCommandHost;
@@ -228,10 +228,10 @@ namespace GameLibrary
         protected sealed override void Update(GameTime gameTime)
         {
             // call StartFrame at the begining of Update to indicate that new frame has started.
-            System.DebugSystem.Instance.TimeRuler.StartFrame();
+            DebugSystem.Instance.TimeRuler.StartFrame();
 
             // begin measuring the Update method
-            System.DebugSystem.Instance.TimeRuler.BeginMark("Update", Color.Yellow);
+            DebugSystem.Instance.TimeRuler.BeginMark("Update", Color.Yellow);
 
             // start update stopwatch
             fpsComponent.UpdateStopwatch.Start();
@@ -246,7 +246,10 @@ namespace GameLibrary
             fpsComponent.Update(gameTime);
 
             // end measuring the Update method
-            System.DebugSystem.Instance.TimeRuler.EndMark("Update");
+            DebugSystem.Instance.TimeRuler.EndMark("Update");
+
+            // TODO show GC and stuff 
+            // see https://github.com/willmotil/MonoGameUtilityClasses
         }
 
         protected virtual void UpdateScene(GameTime gameTime)
@@ -261,7 +264,7 @@ namespace GameLibrary
         protected sealed override void Draw(GameTime gameTime)
         {
             // Begin measuring our Draw method
-            System.DebugSystem.Instance.TimeRuler.BeginMark("Draw", Color.Red);
+            DebugSystem.Instance.TimeRuler.BeginMark("Draw", Color.Red);
 
             fpsComponent.DrawStopwatch.Start();
 
@@ -273,7 +276,7 @@ namespace GameLibrary
             fpsComponent.Draw(gameTime);
 
             // End measuring our Draw method
-            System.DebugSystem.Instance.TimeRuler.EndMark("Draw");
+            DebugSystem.Instance.TimeRuler.EndMark("Draw");
         }
 
         protected void DrawScene(GameTime gameTime)
@@ -336,7 +339,7 @@ namespace GameLibrary
                 switch (subargs[0])
                 {
                     case "d":
-                        Scene.Debug = !Scene.Debug;
+                        //Scene.Debug = !Scene.Debug;
                         break;
                     case "bv":
                         Scene.RenderContext.ShowBoundingVolumes = !Scene.RenderContext.ShowBoundingVolumes;

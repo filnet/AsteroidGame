@@ -81,6 +81,12 @@ namespace GameLibrary.SceneGraph.Bounding
             return store;
         }
 
+        public void MinMax(out Vector3 min, out Vector3 max)
+        {
+            min = center - halfSize;
+            max = center + halfSize;
+        }
+
         #region Contains
 
         public override ContainmentType Contains(Box box, ContainmentHint hint)

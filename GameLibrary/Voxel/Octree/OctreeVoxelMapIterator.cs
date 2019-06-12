@@ -1,9 +1,7 @@
 ﻿using GameLibrary.Util;
 using GameLibrary.Util.Octree;
 using System;
-using System.Collections.Generic;
 using System.Diagnostics;
-using System.Text;
 
 namespace GameLibrary.Voxel.Octree
 {

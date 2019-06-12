@@ -8,6 +8,7 @@ using System.ComponentModel;
 using GameLibrary.Geometry;
 using System.Collections.Generic;
 using GameLibrary.Component.Util;
+using System.Diagnostics;
 
 namespace GameLibrary.SceneGraph
 {
@@ -32,7 +33,7 @@ namespace GameLibrary.SceneGraph
         private readonly int[] splitDrawCount;
         private readonly int[] splitVertexCount;
 
-        public CascadeRenderBin(long id, int cascadeCount) : base(id)
+        public CascadeRenderBin(int id, int cascadeCount) : base(id)
         {
             this.cascadeCount = cascadeCount;
             cascadeSplitInfoList = new List<CascadeSplitInfo>();
@@ -296,12 +297,23 @@ namespace GameLibrary.SceneGraph
             ShadowRenderTarget.Dispose();
         }
 
-        protected override RenderBin CreateRenderBin(long id)
+        protected override RenderBin CreateRenderBin(int id)
         {
             return new CascadeRenderBin(id, cascadeCount);
         }
 
-        public void AddShadowReceiver(RenderBin renderBin, Drawable drawable)
+        public void AddShadowReceivers(RenderBin renderBin)
+        {
+            foreach(var drawabable in renderBin.DrawableList)
+            {
+                AddShadowReceiver(drawabable);
+            }
+        }
+
+        // TODO
+        // TODO should add drawables to light context (shadow receivers are also shadow casters)
+        // TODO
+        private void AddShadowReceiver(Drawable drawable)
         {
             int start = -1;
             int end = -1;
@@ -340,7 +352,7 @@ namespace GameLibrary.SceneGraph
             }
             // should not be necessary to test but the view frustum culling
             // sends some false positives that get caught here
-            // TOOD could provide this information back to the view culling...
+            // TODO could provide this information back to the view culling...
             if (start != -1 && end != -1)
             {
                 for (int i = start; i <= end; i++)
@@ -373,7 +385,7 @@ namespace GameLibrary.SceneGraph
                     activeSplitEnd = splitIndex;
                 }
             }
-            //Console.WriteLine(activeSplitStart + " - " + activeSplitEnd)
+            //Console.WriteLine(activeSplitStart + " - " + activeSplitEnd);
         }
 
         public override void CullEnd()
@@ -384,9 +396,9 @@ namespace GameLibrary.SceneGraph
         protected override void AddToRenderBin(RenderBin renderBin, Drawable drawable)
         {
             // HACK
-            if (renderBin.Id >= Scene.DEBUG)
+            if (renderBin.Id >= Scene.DEBUG || renderBin.Id == Scene.VOXEL_TRANSPARENT || renderBin.Id == Scene.VOXEL_WATER || renderBin.Id == Scene.BOX)
             {
-                base.AddToRenderBin(renderBin, drawable);
+                //base.AddToRenderBin(renderBin, drawable);
                 return;
             }
 
@@ -402,6 +414,7 @@ namespace GameLibrary.SceneGraph
                     {
                         continue;
                     }
+                    Debug.Assert(shadowReceiverCount[splitIndex] != 0);
                     Bounding.ContainmentHint hint = Bounding.ContainmentHint.Precise;
                     ContainmentType containmentType = splitLightCullRegions[splitIndex].Contains(drawable.WorldBoundingVolume, hint);
                     switch (containmentType)
@@ -590,7 +603,7 @@ namespace GameLibrary.SceneGraph
 
                 // compute actual bounding sphere center
                 Vector3 center;
-                frustum.NearFaceCenter((float)dz - lastSplitDistance, out center);
+                frustum.NearFaceCenterOffset((float)dz - lastSplitDistance, out center);
 
                 if (Stable)
                 {
@@ -682,7 +695,7 @@ namespace GameLibrary.SceneGraph
                     // compute derived values
                     Matrix.Invert(ref lightRenderCamera.viewProjectionMatrix, out lightRenderCamera.inverseViewProjectionMatrix);
                     lightRenderCamera.boundingFrustum.Matrix = lightRenderCamera.viewProjectionMatrix;
-                    lightRenderCamera.visitOrder = VectorUtil.visitOrder(lightRenderCamera.ViewDirection);
+                    lightRenderCamera.visitOrder = VectorUtil.VisitOrder(lightRenderCamera.ViewDirection);
 
                     // cull camera
                     LightCamera lightCullCamera = CullCamera as LightCamera;
@@ -693,7 +706,7 @@ namespace GameLibrary.SceneGraph
                     // compute derived values
                     Matrix.Invert(ref lightCullCamera.viewProjectionMatrix, out lightCullCamera.inverseViewProjectionMatrix);
                     lightCullCamera.boundingFrustum.Matrix = lightCullCamera.viewProjectionMatrix;
-                    lightCullCamera.visitOrder = VectorUtil.visitOrder(lightCullCamera.ViewDirection);
+                    lightCullCamera.visitOrder = VectorUtil.VisitOrder(lightCullCamera.ViewDirection);
 
                     if (ScissorEnabled)
                     {

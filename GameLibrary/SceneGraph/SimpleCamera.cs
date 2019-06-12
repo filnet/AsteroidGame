@@ -24,6 +24,8 @@ namespace GameLibrary.SceneGraph
 
         public override Bounding.Frustum Frustum { get { return frustum; } }
 
+        public override Bounding.Box BoundingBox { get { return boundingBox; } }
+
         public Vector3 position;
         public Vector3 viewDirection;
 
@@ -42,7 +44,7 @@ namespace GameLibrary.SceneGraph
         public SimpleCamera() : base()
         {
             frustum = new Bounding.Frustum();
-            //cullRegion = new Bounding.Region();
+            boundingBox = new Bounding.Box();
         }
 
         public SimpleCamera(Camera camera) : this()
@@ -58,6 +60,7 @@ namespace GameLibrary.SceneGraph
             visitOrder = camera.VisitOrder;
 
             frustum.Matrix = viewProjectionMatrix;
+            boundingBox = camera.BoundingBox;
             //boundingBox = camera.BoundingBox.Clone() as Bounding.Box;
             //boundingSphere = camera.BoundingSphere.Clone() as Bounding.Sphere;
         }
@@ -89,7 +92,7 @@ namespace GameLibrary.SceneGraph
             Matrix.Multiply(ref viewMatrix, ref projectionMatrix, out viewProjectionMatrix);
             inverseViewProjectionMatrix = Matrix.Invert(viewProjectionMatrix);
 
-            visitOrder = VectorUtil.visitOrder(viewDirection);
+            visitOrder = VectorUtil.VisitOrder(viewDirection);
 
             frustum.Matrix = viewProjectionMatrix;
             //boundingBox = camera.BoundingBox.Clone() as Bounding.Box;

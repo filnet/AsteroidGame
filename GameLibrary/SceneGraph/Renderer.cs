@@ -51,28 +51,28 @@ namespace GameLibrary.SceneGraph
         internal abstract void Render(RenderContext rc, List<Drawable> drawableList);
     }
 
-    public class ShowTimeRenderer : Renderer
+    public class ShowTimeRenderer<E> : EffectRenderer<E> where E : Effect
     {
-        protected readonly Renderer renderer;
+        public readonly EffectRenderer<E> effectRenderer;
 
         private int index;
         private double lastTime;
 
         public bool Enabled;
 
-        public ShowTimeRenderer(Renderer renderer)
+        public ShowTimeRenderer(EffectRenderer<E> effectRenderer) : base(effectRenderer.effect)
         {
-            this.renderer = renderer;
+            this.effectRenderer = effectRenderer;
             index = 0;
             lastTime = -1;
-            //Enabled = true;
+            Enabled = true;
         }
 
         internal override void Render(RenderContext rc, List<Drawable> drawableList)
         {
             if (!Enabled)
             {
-                renderer.Render(rc, drawableList);
+                effectRenderer.Render(rc, drawableList);
                 return;
             }
             double currentTime = rc.GameTime.TotalGameTime.TotalMilliseconds;
@@ -84,7 +84,7 @@ namespace GameLibrary.SceneGraph
             index %= drawableList.Count;
             if (index != 0)
             {
-                renderer.Render(rc, drawableList.GetRange(0, index));
+                effectRenderer.Render(rc, drawableList.GetRange(0, index));
             }
         }
     }

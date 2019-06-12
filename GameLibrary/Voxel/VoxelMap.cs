@@ -1,4 +1,6 @@
-﻿using GameLibrary.Util;
+﻿using GameLibrary.SceneGraph.Bounding;
+using GameLibrary.Util;
+using GameLibrary.Util.Grid;
 using Microsoft.Xna.Framework;
 using System;
 using System.Collections.Generic;
@@ -9,6 +11,13 @@ using System.Runtime.InteropServices;
 
 namespace GameLibrary.Voxel
 {
+    /*public interface Callbacks
+    {
+        int Value(int x, int y, int z, Direction dir);
+
+        VoxelMap GetNeighbourMap(Direction dir);
+    }*/
+
     public interface Visitor
     {
         bool Begin(int size);
@@ -19,8 +28,10 @@ namespace GameLibrary.Voxel
     public interface EagerVisitor
     {
         bool Begin();
-        bool AddFace(FaceType type, Direction dir, int x, int y, int z, int w, int h, byte ao);
+        VoxelMap GetNeighbourMap(VoxelMap map, Direction dir);
         byte ComputeAmbientOcclusion(VoxelMapIterator ite, FaceType type, Direction dir, int x, int y, int z);
+        byte ComputeAmbientOcclusion(VoxelMap map, FaceType type, Direction dir, int x, int y, int z);
+        bool AddFace(FaceType type, Direction dir, int x, int y, int z, int w, int h, byte ao);
         bool End();
     }
 
@@ -217,9 +228,8 @@ namespace GameLibrary.Voxel
             int z = 0;
 
             MapIterator iterator = new MapIterator(this);
-            ushort value;
             ite.Begin(this);
-            while (iterator.Next(out value))
+            while (iterator.Next(out ushort value))
             {
                 ite.Set(x0 + x, y0 + y, z0 + z, value);
                 abort = !visitor.Visit(ite);
@@ -249,6 +259,155 @@ namespace GameLibrary.Voxel
             }
         }
 
+        public void VisitCulled(EagerVisitor visitor, VoxelMapIterator ite)
+        {
+            bool abort = !visitor.Begin();
+            if (abort)
+            {
+                visitor.End();
+                return;
+            }
+
+            // TODO do front to back (to benefit from depth culling)
+            // do back face culling
+            // transparency...
+
+            for (int y = -1; y < size; y++)
+            {
+                for (int z = -1; z < size; z++)
+                {
+                    for (int x = -1; x < size; x++)
+                    {
+
+                    }
+                }
+
+            }
+        }
+
+        public List<Box> ExtractBoundingBoxes()
+        {
+            /*int c = 0;
+            for (int y = 0; y < size; y++)
+            {
+                for (int x = 0; x < size; x++)
+                {
+                    for (int z = 0; z < size; z++)
+                    {
+                        VoxelType voxelType = f(x, y, z);
+                        if (VoxelInfo.Get(voxelType).IsSolid)
+                        {
+                            c++;
+                        }
+                    }
+                }
+            }
+            Console.WriteLine(c);*/
+            Console.WriteLine(this);
+            List<Box> boxes = new List<Box>();
+            for (int y = 0; y < size; y++)
+            {
+                for (int x = 0; x < size; x++)
+                {
+                    for (int z = 0; z < size; z++)
+                    {
+                        VoxelType voxelType = F(x, y, z);
+                        if (VoxelInfo.Get(voxelType).IsPhysical)
+                        {
+                            // compute depth
+                            int d;
+                            for (d = 1; (z + d) < size; ++d)
+                            {
+                                VoxelType type = F(x, y, z + d);
+                                if (!VoxelInfo.Get(type).IsPhysical)
+                                {
+                                    break;
+                                }
+                            }
+                            // compute width (this is slightly awkward)
+                            var done = false;
+                            int w;
+                            for (w = 1; (x + w) < size; ++w)
+                            {
+                                for (int i = 0; i < d; ++i)
+                                {
+                                    VoxelType type = F(x + w, y, z + i);
+                                    if (!VoxelInfo.Get(type).IsPhysical)
+                                    {
+                                        done = true;
+                                        break;
+                                    }
+                                }
+                                if (done)
+                                {
+                                    break;
+                                }
+                            }
+                            // compute height (this is slightly awkward)
+                            done = false;
+                            int h;
+                            for (h = 1; (y + h) < size; ++h)
+                            {
+                                for (int j = 0; j < w; ++j)
+                                {
+                                    for (int i = 0; i < d; ++i)
+                                    {
+                                        VoxelType type = F(x + j, y + h, z + i);
+                                        if (!VoxelInfo.Get(type).IsPhysical)
+                                        {
+                                            done = true;
+                                            break;
+                                        }
+                                    }
+                                    if (done)
+                                    {
+                                        break;
+                                    }
+                                }
+                                if (done)
+                                {
+                                    break;
+                                }
+                            }
+
+                            // add bounding box
+                            Box box = Box.CreateFromMinMax(new Vector3(x, y, z), new Vector3(x + w, y + h, z + d));
+                            boxes.Add(box);
+
+                            // clear
+                            Point3 min = new Point3(x, y, z);
+                            Point3 max = new Point3(x + w, y + h, z + d);
+                            Point3 dim = new Point3(w, h, d);
+                            //Console.WriteLine("{0} + {1} = {2}", min, dim, max);
+
+                            Clear(min, max);
+                        }
+                    }
+                }
+            }
+            Console.WriteLine(boxes.Count);
+            c += boxes.Count;
+            Console.WriteLine(c);
+            return boxes;
+        }
+
+        static int c = 0;
+
+
+        public void Clear(Point3 min, Point3 max)
+        {
+            for (int x = min.X; x < max.X; x++)
+            {
+                for (int y = min.Y; y < max.Y; y++)
+                {
+                    for (int z = min.Z; z < max.Z; z++)
+                    {
+                        Set(x0 + x, y0 + y, z0 + z, 0);
+                    }
+                }
+            }
+        }
+
         struct Quad
         {
             public bool Flipped;
@@ -263,7 +422,7 @@ namespace GameLibrary.Voxel
 
         // FIXME ite is not used...
         // TODO keep an array of where each slice starts (size of array is 96 = 32 slices per sweep time 3 sweeps)
-        public void Visit(EagerVisitor visitor, VoxelMapIterator ite)
+        public void VisitEager(EagerVisitor visitor)
         {
             bool abort = !visitor.Begin();
             if (abort)
@@ -271,10 +430,9 @@ namespace GameLibrary.Voxel
                 visitor.End();
                 return;
             }
-            ite.Begin(this);
 
-            int totalFaceCount = 0;
-            int totalQuadCount = 0;
+            //int totalFaceCount = 0;
+            //int totalQuadCount = 0;
 
             // TODO do front to back (to benefit from depth culling)
             // do back face culling
@@ -294,16 +452,18 @@ namespace GameLibrary.Voxel
             }*/
             // first sweep along Y axis (the most occluding axis when there is a ground)
             // TODO should do it from top to bottom
-            Sweep(visitor, ite, 1, 0, 2);
+            Sweep(visitor, 1, 0, 2);
             // then Z
-            Sweep(visitor, ite, 2, 0, 1);
+            Sweep(visitor, 2, 0, 1);
             // and X
-            Sweep(visitor, ite, 0, 2, 1);
+            Sweep(visitor, 0, 2, 1);
 
-            ite.End();
+
             visitor.End();
 
-            Console.WriteLine("Faces {0} / {1}", totalFaceCount, totalQuadCount);
+            //ExtractBoundingBoxes();
+
+            //Console.WriteLine("Faces {0} / {1}", totalFaceCount, totalQuadCount);
             /*if (false)
             {
                 int voxelsCount = size * size * size;
@@ -314,8 +474,9 @@ namespace GameLibrary.Voxel
             }*/
         }
 
-        public bool Sweep(EagerVisitor visitor, VoxelMapIterator ite, int d, int u, int v)
+        private bool Sweep(EagerVisitor visitor, int d, int u, int v)
         {
+            // FIXME array related garbage (dims, x, q, mask)
             int[] dims = { size, size, size };
 
             int[] x = { 0, 0, 0 };
@@ -330,7 +491,8 @@ namespace GameLibrary.Voxel
 
             // compute mask for each slice
             q[d] = 1;
-            for (x[d] = -1; x[d] < dims[d];)
+            //for (x[d] = -1; x[d] < dims[d]; ++x[d])
+            for (x[d] = dims[d] - 1; x[d] >= -1; --x[d])
             {
                 // compute mask
                 int n = 0;
@@ -342,40 +504,28 @@ namespace GameLibrary.Voxel
                 {
                     for (x[u] = 0; x[u] < dims[u]; ++x[u])
                     {
-                        VoxelType voxelType1 = (x[d] >= 0) ? f(x[0], x[1], x[2]) : f2(ite, dir2, x[0], x[1], x[2]);
-                        VoxelType voxelType2 = (x[d] < dims[d] - 1) ? f(x[0] + q[0], x[1] + q[1], x[2] + q[2]) : f2(ite, dir1, x[0] + q[0], x[1] + q[1], x[2] + q[2]);
+                        VoxelType voxelType1 = (x[d] >= 0) ? F(x[0], x[1], x[2]) : F2(visitor, dir2, x[0], x[1], x[2]);
+                        VoxelType voxelType2 = (x[d] < dims[d] - 1) ? F(x[0] + q[0], x[1] + q[1], x[2] + q[2]) : F2(visitor, dir1, x[0] + q[0], x[1] + q[1], x[2] + q[2]);
                         if (voxelType1 != voxelType2)
                         {
                             FaceType faceType1 = VoxelInfo.GetFaceType(voxelType1, dir1);
                             FaceType faceType2 = VoxelInfo.GetFaceType(voxelType2, dir2);
                             if (faceType1 != faceType2)
                             {
-                                // any and none gives any
-                                // opaque and opaque gives none
-                                // transparent and transparent gives none
-                                // opaque and transparent gives opaque
-                                //
-                                //               -------------------------------------------
-                                //               | none        | opaque      | transparent |
-                                // ---------------------------------------------------------
-                                // | none        |             | opaque      | transparent |
-                                // | opaque      | opaque      |             | opaque      |
-                                // | transparent | transparent | opaque      |             |
-                                // ---------------------------------------------------------
                                 int compare = FaceInfo.Compare(faceType1, faceType2);
                                 // Handle faces that belong to another chunk...
                                 if ((compare > 0) && (x[d] >= 0))
                                 {
                                     mask[n].Flipped = false;
                                     mask[n].Type = (uint)faceType1;
-                                    mask[n].AmbientOcclusion = visitor.ComputeAmbientOcclusion(ite, faceType1, dir1, x0 + x[0], y0 + x[1], z0 + x[2]);
+                                    mask[n].AmbientOcclusion = visitor.ComputeAmbientOcclusion(this, faceType1, dir1, x0 + x[0], y0 + x[1], z0 + x[2]);
                                     faceCount++;
                                 }
                                 else if ((compare < 0) && (x[d] < dims[d] - 1))
                                 {
                                     mask[n].Flipped = true;
                                     mask[n].Type = (uint)faceType2;
-                                    mask[n].AmbientOcclusion = visitor.ComputeAmbientOcclusion(ite, faceType2, dir2, x0 + x[0] + q[0], y0 + x[1] + q[1], z0 + x[2] + q[2]);
+                                    mask[n].AmbientOcclusion = visitor.ComputeAmbientOcclusion(this, faceType2, dir2, x0 + x[0] + q[0], y0 + x[1] + q[1], z0 + x[2] + q[2]);
                                     faceCount++;
                                 }
                             }
@@ -383,15 +533,6 @@ namespace GameLibrary.Voxel
                         ++n;
                     }
                 }
-                // increment x[d]
-                // must be done now as it used later in this loop iteration
-                ++x[d];
-
-                /*if (x[d] < dims[d] - 1)
-                {
-                    Array.Clear(mask, 0, mask.Length);
-                    continue;
-                }*/
 
                 if (faceCount == 0)
                 {
@@ -439,7 +580,7 @@ namespace GameLibrary.Voxel
 
                             Direction dir = quad.Flipped ? dir2 : dir1;
 
-                            if (!visitor.AddFace((FaceType)quad.Type, dir, x0 + x[0], y0 + x[1], z0 + x[2], w, h, quad.AmbientOcclusion))
+                            if (!visitor.AddFace((FaceType)quad.Type, dir, x0 + x[0] + q[0], y0 + x[1] + q[1], z0 + x[2] + q[2], w, h, quad.AmbientOcclusion))
                             {
                                 return false;
                             }
@@ -472,24 +613,55 @@ namespace GameLibrary.Voxel
             return true;
         }
 
+        /*private bool GetQuad(ref Quad quad)
+        {
+            VoxelType voxelType1 = (x[d] >= 0) ? f(x[0], x[1], x[2]) : f2(ite, dir2, x[0], x[1], x[2]);
+            VoxelType voxelType2 = (x[d] < dims[d] - 1) ? f(x[0] + q[0], x[1] + q[1], x[2] + q[2]) : f2(ite, dir1, x[0] + q[0], x[1] + q[1], x[2] + q[2]);
+            if (voxelType1 != voxelType2)
+            {
+                FaceType faceType1 = VoxelInfo.GetFaceType(voxelType1, dir1);
+                FaceType faceType2 = VoxelInfo.GetFaceType(voxelType2, dir2);
+                if (faceType1 != faceType2)
+                {
+                    int compare = FaceInfo.Compare(faceType1, faceType2);
+                    // Handle faces that belong to another chunk...
+                    if ((compare > 0) && (x[d] >= 0))
+                    {
+                        quad.Flipped = false;
+                        quad.Type = (uint)faceType1;
+                        quad.AmbientOcclusion = visitor.ComputeAmbientOcclusion(ite, faceType1, dir1, x0 + x[0], y0 + x[1], z0 + x[2]);
+                        return true;
+                    }
+                    else if ((compare < 0) && (x[d] < dims[d] - 1))
+                    {
+                        quad.Flipped = true;
+                        quad.Type = (uint)faceType2;
+                        quad.AmbientOcclusion = visitor.ComputeAmbientOcclusion(ite, faceType2, dir2, x0 + x[0] + q[0], y0 + x[1] + q[1], z0 + x[2] + q[2]);
+                        return true;
+                    }
+                }
+            }
+            return false;
+        }*/
+
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        private VoxelType f(int x, int y, int z)
+        private VoxelType F(int x, int y, int z)
         {
             // FIXME adding x0 and then substract it...
             return (VoxelType)Get(x0 + x, y0 + y, z0 + z);
         }
 
         // TODO get rid of VoxelMapIterator ite : it used only to get access to neighbours (the ite part is not used anymore)
-        private VoxelType f2(VoxelMapIterator ite, Direction dir, int x, int y, int z)
+        private VoxelType F2(EagerVisitor visitor, Direction dir, int x, int y, int z)
         {
-            VoxelMap map = ite.GetNeighbourMap(dir);
+            VoxelMap map = visitor.GetNeighbourMap(this, dir);
             Debug.Assert(map.Contains(x0 + x, y0 + y, z0 + z));
             // FIXME adding x0 and then substract it...
             return (VoxelType)map.Get(x0 + x, y0 + y, z0 + z);
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        protected int toIndex(int x, int y, int z)
+        protected int ToIndex(int x, int y, int z)
         {
             return (x - x0) + (y - y0) * size + (z - z0) * size2;
         }
@@ -505,7 +677,7 @@ namespace GameLibrary.Voxel
 
     public class ArrayVoxelMap : AbstractVoxelMap
     {
-        private ushort[] data;
+        private readonly ushort[] data;
 
         public ArrayVoxelMap(int size, int x0, int y0, int z0) : base(size, x0, y0, z0)
         {
@@ -533,8 +705,7 @@ namespace GameLibrary.Voxel
 
             int index = 0;
             MapIterator iterator = new MapIterator(map);
-            ushort value;
-            while (iterator.Next(out value))
+            while (iterator.Next(out ushort value))
             {
                 data[index++] = value;
             }
@@ -543,13 +714,13 @@ namespace GameLibrary.Voxel
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public override ushort Get(int x, int y, int z)
         {
-            return data[toIndex(x, y, z)];
+            return data[ToIndex(x, y, z)];
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public override void Set(int x, int y, int z, ushort v)
         {
-            data[toIndex(x, y, z)] = v;
+            data[ToIndex(x, y, z)] = v;
         }
 
         public override bool Next(ref MapIterator ite, out ushort value)
@@ -609,13 +780,11 @@ namespace GameLibrary.Voxel
 #endif
 
             MapIterator iterator = new MapIterator(map);
-            ushort lastValue;
-            if (iterator.Next(out lastValue))
+            if (iterator.Next(out ushort lastValue))
             {
                 ushort count = 1;
                 ushort pos = 0;
-                ushort value;
-                while (iterator.Next(out value))
+                while (iterator.Next(out ushort value))
                 {
                     if (lastValue == value)
                     {
@@ -698,7 +867,7 @@ namespace GameLibrary.Voxel
 
         public override ushort Get(int x, int y, int z)
         {
-            int p2 = toIndex(x, y, z);
+            int p2 = ToIndex(x, y, z);
 
             int index = 0;
             int p = data[index];

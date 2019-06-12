@@ -477,17 +477,6 @@ float4 PSBasicVertexLightingNoFog(VSOutput pin) : SV_Target0
 }
 
 
-// Pixel shader: vertex lighting + texture.
-float4 PSBasicVertexLightingTx(VSOutputTx pin) : SV_Target0
-{
-    float4 color = SAMPLE_TEXTURE_ARRAY(Texture, float3(pin.TexCoord, pin.TextureIndex[0])) * pin.Diffuse;
-
-    AddSpecular(color, pin.Specular.rgb);
-    ApplyFog(color, pin.Specular.w);
-    
-    return color;
-}
-
 // see https://en.wikipedia.org/wiki/Alpha_compositing;
 float4 blend(float4 src, float4 dst)
 {
@@ -614,6 +603,15 @@ float4 PSBasicVertexLightingTxNoFog(VSOutputTx pin) : SV_Target0
     return cout;
 }
 
+// Pixel shader: vertex lighting + texture.
+float4 PSBasicVertexLightingTx(VSOutputTx pin) : SV_Target0
+{
+    float4 color = PSBasicVertexLightingTxNoFog(pin);
+
+    ApplyFog(color, pin.Specular.w);
+    
+    return color;
+}
 
 // Pixel shader: pixel lighting.
 float4 PSBasicPixelLighting(VSOutputPixelLighting pin) : SV_Target0

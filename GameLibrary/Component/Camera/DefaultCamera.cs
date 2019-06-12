@@ -29,6 +29,7 @@ namespace GameLibrary.Component.Camera
         public const float DEFAULT_FOVX = MathHelper.Pi / 3.0f;
         public const float DEFAULT_ZNEAR = 0.1f;
         public const float DEFAULT_ZFAR = 1000;
+        //public const float DEFAULT_ZFAR = 200;
         //public const float DEFAULT_ZFAR = 500;
         //public const float DEFAULT_ZFAR = 55.7965f;
         //public const float DEFAULT_ZFAR = 50;
@@ -1031,7 +1032,12 @@ namespace GameLibrary.Component.Camera
             ComputeBoundingSphere();
 
             // compute visit order based on view direction
-            visitOrder = VectorUtil.visitOrder(ViewDirection);
+            visitOrder = VectorUtil.VisitOrder(ViewDirection);
+
+            int perm = visitOrder >> 3;
+            int signs = (visitOrder & 0b111);
+            //Console.WriteLine("{0}", ViewDirection);
+            //Console.WriteLine("{0} {1}", perm, Convert.ToString(signs, 2));
 
             frustumDirty = false;
         }
@@ -1047,7 +1053,7 @@ namespace GameLibrary.Component.Camera
 
             // compute actual bounding sphere center
             Vector3 center;
-            frustum.NearFaceCenter((float)dz, out center);
+            frustum.NearFaceCenterOffset((float)dz, out center);
 
             boundingSphere.Center = center;
             boundingSphere.Radius = (float)radius;

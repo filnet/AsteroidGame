@@ -25,12 +25,12 @@
 // For more information, please refer to <http://unlicense.org>
 // ***************************************************************************
 
-using System;
-using System.Linq;
 using Microsoft.Xna.Framework;
 using Microsoft.Xna.Framework.Input;
+using System;
+using System.Linq;
 
-namespace GameLibrary.System
+namespace GameLibrary.Component.UI
 {
     /// <summary>
     ///     All printable characters are returned using the CharPressed event and captured using the Game.Window.TextInput

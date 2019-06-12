@@ -24,6 +24,8 @@ namespace GameLibrary.SceneGraph
 
         public override Bounding.Frustum Frustum { get { return boundingFrustum; } }
 
+        public override Bounding.Box BoundingBox { get { return boundingBox; } }
+
         public Vector3 lightDirection;
         public Vector3 lightPosition;
 
@@ -37,6 +39,7 @@ namespace GameLibrary.SceneGraph
 
         public Bounding.Frustum boundingFrustum;
         public Bounding.Region cullRegion;
+        public Bounding.Box boundingBox;
 
         public Rectangle ScissorRectangle;
 
@@ -45,6 +48,7 @@ namespace GameLibrary.SceneGraph
             lightDirection = direction;
             boundingFrustum = new Bounding.Frustum();
             cullRegion = new Bounding.Region();
+            boundingBox = new Bounding.Box();
         }
 
         public LightCamera(LightCamera camera) : base()
@@ -52,6 +56,7 @@ namespace GameLibrary.SceneGraph
             lightDirection = camera.lightDirection;
             boundingFrustum = new Bounding.Frustum();
             cullRegion = new Bounding.Region();
+            boundingBox = new Bounding.Box();
         }
 
     }

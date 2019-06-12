@@ -1,13 +1,9 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using GameLibrary;
-using Microsoft.Xna.Framework;
-using GameLibrary.SceneGraph;
-using GameLibrary.Control;
-using Microsoft.Xna.Framework.Input;
+﻿using GameLibrary.Control;
+using GameLibrary.Physics;
 using GameLibrary.SceneGraph.Common;
+using Microsoft.Xna.Framework;
+using Microsoft.Xna.Framework.Input;
+using System;
 
 namespace AsteroidGame.Control
 {
@@ -33,8 +29,7 @@ namespace AsteroidGame.Control
         //    set { integrator.Velocity = value; }
         //}
 
-        public PlayerController(GeometryNode node)
-            : base(node)
+        public PlayerController(GeometryNode node) : base(node)
         {
             integrator = new MyIntegrator();
             integrator.Position = Node.Translation;

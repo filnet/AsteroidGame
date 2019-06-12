@@ -713,12 +713,18 @@ namespace GameLibrary.SceneGraph.Bounding
             box.ComputeFromPoints(corners);
         }
 
-        public void NearFaceCenter(float dz, out Vector3 center)
+        public void NearFaceCenterOffset(float dz, out Vector3 point)
         {
             Vector3 nearFaceCenter = (corners[0] + corners[2]) / 2;
             Vector3 farFaceCenter = (corners[4] + corners[6]) / 2;
             Vector3 dir = Vector3.Normalize(farFaceCenter - nearFaceCenter);
-            center = nearFaceCenter + dir * (float)dz;
+            point = nearFaceCenter + dir * (float)dz;
+        }
+
+        public void NearFarFaceCenters(out Vector3 nearFaceCenter, out Vector3 farFaceCenter)
+        {
+            nearFaceCenter = (corners[0] + corners[2]) / 2;
+            farFaceCenter = (corners[4] + corners[6]) / 2;
         }
 
         /// <summary>

@@ -1,4 +1,5 @@
 ﻿using GameLibrary.Util;
+using System;
 
 namespace GameLibrary.Voxel
 {
@@ -113,6 +114,61 @@ namespace GameLibrary.Voxel
             float scale = 0.50f;
             float n = fn.GetSimplex(x / scale, y / scale, z / scale);
             return (n > 0.5f) ? (ushort)2 : (ushort)0;
+        }
+    }
+
+    class XXXVoxelMap : FunctionVoxelMap
+    {
+        public XXXVoxelMap(int size, int x0, int y0, int z0) : base(size, x0, y0, z0)
+        {
+        }
+
+        protected override ushort F(int x, int y, int z)
+        {
+            if (y < 1)
+            {
+                return (ushort)VoxelType.None;
+            }
+            return (((x + y + z) % 7) != 0) ? (ushort)VoxelType.None : (ushort)VoxelType.Snow;
+        }
+    }
+
+    class SierpinskiCarpetVoxelMap : FunctionVoxelMap
+    {
+        public SierpinskiCarpetVoxelMap(int size, int x0, int y0, int z0) : base(size, x0, y0, z0)
+        {
+        }
+
+        protected override ushort F(int x, int y, int z)
+        {
+            // 3, 9, 27, 81
+            int s = 81;
+            if (x < 0 || y < 0 || z < 0 || x >= s || y >= s || z >= s)
+            {
+                return (ushort)VoxelType.None;
+            }
+            //Console.WriteLine(x + " " + y + " " + z);
+            //x++; y++; z++;
+            // when either of these reaches zero the pixel is determined to be on the edge 
+            // at that square level and must be filled
+            while (x > 0 || y > 0 || z > 0)
+            {
+                // checks if the pixel is in the center for the current square level
+                int c = (x % 3 == 1) ? 1 : 0;
+                c += (y % 3 == 1) ? 1 : 0;
+                c += (z % 3 == 1) ? 1 : 0;
+                if (c > 1)
+                {
+                    return (ushort)VoxelType.None;
+                }
+                // x and y are decremented to check the next larger square level
+                x /= 3;
+                y /= 3;
+                z /= 3;
+            }
+            // if all possible square levels are checked and the pixel is not determined 
+            // to be open it must be filled        
+            return (ushort)VoxelType.Rock;
         }
     }
 

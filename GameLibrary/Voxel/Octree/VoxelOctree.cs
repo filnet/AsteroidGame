@@ -33,17 +33,17 @@ namespace GameLibrary.Voxel.Octree
         private VoxelMapMeshFactory meshFactory;
 #endif
 
-        private bool CompressAtInitialization = true;
-        private bool LoadFromDisk = true;
-        private bool WriteToDisk = true;
-        private bool LoadAtInitialization = false;
+        private readonly bool CompressAtInitialization = true;
+        public bool LoadFromDisk = true;
+        public bool WriteToDisk = true;
+        private readonly bool LoadAtInitialization = false;
         //private bool CreateMeshOnInitialization = false;
-        private bool ExitAfterLoad = false;
+        private readonly bool ExitAfterLoad = false;
 
         private Task loadTask;
         private CancellationTokenSource cts = new CancellationTokenSource();
         //private readonly int queueSize = 10;
-        private ConcurrentQueue<OctreeNode<VoxelChunk>> queue = new ConcurrentQueue<OctreeNode<VoxelChunk>>();
+        private readonly ConcurrentQueue<OctreeNode<VoxelChunk>> queue = new ConcurrentQueue<OctreeNode<VoxelChunk>>();
         private BlockingCollection<OctreeNode<VoxelChunk>> loadQueue;
 
         public delegate void ObjectLoadedCallback();
@@ -58,7 +58,7 @@ namespace GameLibrary.Voxel.Octree
             this.chunkSize = chunkSize;
             depth = BitUtil.Log2(size / chunkSize);
 
-            objectFactory = createObject;
+            objectFactory = CreateObject;
         }
 
         public void Initialize(GraphicsDevice graphicsDevice)
@@ -69,14 +69,14 @@ namespace GameLibrary.Voxel.Octree
 
             mapIterator = new OctreeVoxelMapIterator(this, pool);
 #if NEW_FACTORY
-            meshFactory = new NewVoxelMapMeshFactory(graphicsDevice, pool);
+            meshFactory = new NewVoxelMapMeshFactory(graphicsDevice, null);
 #else
             meshFactory = new VoxelMapMeshFactory(graphicsDevice, pool);
 #endif
 
             using (Stats.Use("VoxelOctree.Create"))
             {
-                RootNode.obj = createObject(this, RootNode);
+                RootNode.obj = CreateObject(this, RootNode);
             }
 
             //fill();
@@ -85,7 +85,7 @@ namespace GameLibrary.Voxel.Octree
                 Object d = Vector3.Zero;
                 using (Stats.Use("VoxelOctree.Load"))
                 {
-                    Visit(0, loadVisitor, ref d);
+                    Visit(0, LoadVisitor, d);
                 }
             }
             if (ExitAfterLoad)
@@ -108,10 +108,10 @@ namespace GameLibrary.Voxel.Octree
             return arrayMap;
         }
 
-        private bool loadVisitor(Octree<VoxelChunk> octree, OctreeNode<VoxelChunk> node, ref Object arg)
+        private bool LoadVisitor(Octree<VoxelChunk> octree, OctreeNode<VoxelChunk> node, Object arg)
         {
             node.obj.State = VoxelChunkState.Queued;
-            load(node);
+            Load(node);
             return true;
         }
 
@@ -119,6 +119,7 @@ namespace GameLibrary.Voxel.Octree
         {
             DisposeLoadQueue();
         }
+
         /*
         private void fill()
         {
@@ -145,7 +146,7 @@ namespace GameLibrary.Voxel.Octree
 
         // NOTE this method is called recursvily (via Octree.AddChild() calls)
         // TODO this should be done asynchronously
-        private VoxelChunk createObject(Octree<VoxelChunk> octree, OctreeNode<VoxelChunk> node)
+        private VoxelChunk CreateObject(Octree<VoxelChunk> octree, OctreeNode<VoxelChunk> node)
         {
             VoxelChunk voxelChunk = null;
 
@@ -163,15 +164,16 @@ namespace GameLibrary.Voxel.Octree
 
                 if (Octree<VoxelChunk>.HasChildren(node))
                 {
-                    voxelChunk = new VoxelChunk();
-                    // no need to load this internal node
-                    voxelChunk.State = VoxelChunkState.Ready;
+                    voxelChunk = new VoxelChunk
+                    {
+                        // no need to load this internal node
+                        State = VoxelChunkState.Ready
+                    };
                 }
             }
             else
             {
-                int x, y, z;
-                octree.GetNodeCoordinates(node, out x, out y, out z);
+                octree.GetNodeCoordinates(node, out int x, out int y, out int z);
                 String name = Octree<VoxelChunk>.LocCodeToString(node.locCode);
                 VoxelMap map = EmptyVoxelMap.INSTANCE;
                 bool loaded = false;
@@ -179,6 +181,7 @@ namespace GameLibrary.Voxel.Octree
                 {
                     using (Stats.Use("VoxelOctree.ReadMap"))
                     {
+                        // FIXME get RLEVoxelMap from pool
                         RLEVoxelMap rleMap = new RLEVoxelMap(chunkSize, x, y, z);
                         if (ReadVoxelMap(name, rleMap))
                         {
@@ -196,9 +199,9 @@ namespace GameLibrary.Voxel.Octree
                     {
                         //VoxelMap map = new AOTestVoxelMap(chunkSize, x, y, z);
                         //VoxelMap map = new SpongeVoxelMap(chunkSize, x, y, z);
-                        VoxelMap perlinNoiseMap = new PerlinNoiseVoxelMap(chunkSize, x, y, z);
-
-                        map = perlinNoiseMap;
+                        //VoxelMap perlinNoiseMap = new PerlinNoiseVoxelMap(chunkSize, x, y, z);
+                        
+                        map = new SierpinskiCarpetVoxelMap(chunkSize, x, y, z); 
 
                         if (CompressAtInitialization)
                         {
@@ -222,8 +225,10 @@ namespace GameLibrary.Voxel.Octree
                 }
                 if (!map.IsEmpty())
                 {
-                    voxelChunk = new VoxelChunk();
-                    voxelChunk.VoxelMap = map;
+                    voxelChunk = new VoxelChunk
+                    {
+                        VoxelMap = map
+                    };
 
                     /*Vector3 center;
                     Vector3 halfSize;
@@ -243,9 +248,7 @@ namespace GameLibrary.Voxel.Octree
             {
                 // voxel chunk bounding box (indenpendant of content)
                 // FIXME should be merge of opaque+transparent...
-                Vector3 center;
-                Vector3 halfSize;
-                GetNodeBoundingBox(node, out center, out halfSize);
+                GetNodeBoundingBox(node, out Vector3 center, out Vector3 halfSize);
                 voxelChunk.BoundingBox = new SceneGraph.Bounding.Box(center, halfSize);
 
                 // FIXME performance
@@ -259,7 +262,7 @@ namespace GameLibrary.Voxel.Octree
                     // - no mesh
                     // - no physics
                     // - no child, etc...
-                    voxelChunk.NodeDrawable = new FakeDrawable(Scene.VECTOR, voxelChunk.BoundingBox);
+                    voxelChunk.ItemDrawable = new FakeDrawable(Scene.VECTOR, voxelChunk.BoundingBox);
                 }
             }
             return voxelChunk;
@@ -281,7 +284,7 @@ namespace GameLibrary.Voxel.Octree
                     map.Read(reader);
                 }
             }
-            catch (IOException ex)
+            catch (IOException)
             {
                 //Console.WriteLine(ex.Message);
                 return false;
@@ -319,8 +322,7 @@ namespace GameLibrary.Voxel.Octree
             //queue.Clear();
             while (loadQueue.Count > 0)
             {
-                OctreeNode<VoxelChunk> node;
-                bool success = loadQueue.TryTake(out node);
+                bool success = loadQueue.TryTake(out OctreeNode<VoxelChunk> node);
                 if (success)
                 {
                     if (node.obj.State == VoxelChunkState.Queued)
@@ -361,12 +363,9 @@ namespace GameLibrary.Voxel.Octree
                         break;
                     }
 
-                    load(node);
+                    Load(node);
 
-                    if (objectLoadedCallback != null)
-                    {
-                        objectLoadedCallback();
-                    }
+                    objectLoadedCallback?.Invoke();
                     //Console.WriteLine("Loaded " + node.locCode);
                 }
                 Console.WriteLine("No more items to take.");
@@ -390,7 +389,7 @@ namespace GameLibrary.Voxel.Octree
             cts.Dispose();
         }
 
-        private void load(OctreeNode<VoxelChunk> node)
+        private void Load(OctreeNode<VoxelChunk> node)
         {
             VoxelChunk voxelChunk = node.obj;
             // FIXME works because there is a single loader thread
@@ -403,19 +402,19 @@ namespace GameLibrary.Voxel.Octree
                 {
                     // HACK...
                     mapIterator.NodeLocCode = node.locCode;
-                    createMeshes(voxelChunk);
+                    CreateMeshes(voxelChunk);
                 }
                 voxelChunk.State = VoxelChunkState.Ready;
             }
         }
 
-        private void createMeshes(VoxelChunk voxelChunk)
+        private void CreateMeshes(VoxelChunk voxelChunk)
         {
             Debug.Assert(voxelChunk.VoxelMap != null);
 
             using (Stats.Use("VoxelOctree.CreateMeshes"))
             {
-                meshFactory.CreateMeshes(voxelChunk, mapIterator);
+                meshFactory.CreateMeshes(voxelChunk);
             }
 
             Mesh opaqueMesh = meshFactory.CreateOpaqueMesh();
@@ -423,7 +422,7 @@ namespace GameLibrary.Voxel.Octree
             {
                 using (Stats.Use("VoxelOctree.CreateOpaqueMesh"))
                 {
-                    voxelChunk.Drawable = new MeshDrawable(Scene.VOXEL, opaqueMesh);
+                    voxelChunk.OpaqueDrawable = new MeshDrawable(Scene.VOXEL, opaqueMesh);
                 }
             }
 

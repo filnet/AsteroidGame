@@ -1,12 +1,7 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using GameLibrary;
-using Microsoft.Xna.Framework;
-using GameLibrary.SceneGraph;
-using GameLibrary.Control;
+﻿using GameLibrary.Control;
 using GameLibrary.SceneGraph.Common;
+using Microsoft.Xna.Framework;
+using System;
 
 namespace AsteroidGame.Control
 {
@@ -21,16 +16,13 @@ namespace AsteroidGame.Control
             get { return age; }
         }
 
-        public RIPController(Node node, float lifeTime)
-            : base(node)
+        public RIPController(Node node, float lifeTime) : base(node)
         {
             this.lifeTime = lifeTime;
         }
 
         public override void Update(GameTime gameTime)
         {
-            base.Update(gameTime);
-
             age += gameTime.ElapsedGameTime;
             if (age.TotalSeconds > lifeTime)
             {

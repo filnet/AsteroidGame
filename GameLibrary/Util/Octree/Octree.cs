@@ -24,8 +24,8 @@ namespace GameLibrary.Util.Octree
         public static readonly int RIGHT = 1 << 4;
         public static readonly int BOTTOM = 1 << 3;
         public static readonly int TOP = 1 << 2;
-        public static readonly int BACK = 1 << 1;
-        public static readonly int FRONT = 1 << 0;
+        public static readonly int BACK = 1 << 1; // !!!
+        public static readonly int FRONT = 1 << 0; // !!!
     }
 
     // 0b +Y -Z +X
@@ -151,16 +151,26 @@ namespace GameLibrary.Util.Octree
         // some lookup indices are invalid (0b111111 for example)
         public static readonly Direction[] DIR_LOOKUP_TABLE = computeDirectionLookupTable();
 
-        public OctreeNode<T> RootNode;
+        public delegate T ObjectFactory(Octree<T> octree, OctreeNode<T> node);
+
+        public delegate bool Visitor<K>(Octree<K> octree, OctreeNode<K> node, Object arg);
+
+        public enum VisitType
+        {
+            // Preorder traversal (http://en.wikipedia.org/wiki/Tree_traversal#Example)
+            PreOrder,
+            InOrder,
+            PostOrder
+        }
 
         public Vector3 Center;
         public Vector3 HalfSize;
 
-        private readonly Dictionary<ulong, OctreeNode<T>> nodes;
-
-        public delegate T ObjectFactory(Octree<T> octree, OctreeNode<T> node);
+        public OctreeNode<T> RootNode { get;  }
 
         public ObjectFactory objectFactory;
+
+        private readonly Dictionary<ulong, OctreeNode<T>> nodes;
 
         public Octree(Vector3 center, Vector3 halfSize)
         {
@@ -509,50 +519,40 @@ namespace GameLibrary.Util.Octree
           return neighbors
         */
 
-        public delegate bool Visitor<K>(Octree<K> octree, OctreeNode<K> node, ref Object arg);
-
-        public enum VisitType
+        public void Visit(int visitOrder, Visitor<T> visitor, Object arg)
         {
-            // Preorder traversal (http://en.wikipedia.org/wiki/Tree_traversal#Example)
-            PreOrder,
-            InOrder,
-            PostOrder
+            Visit(visitOrder, visitor, VisitType.PreOrder, arg);
         }
 
-        public void Visit(int visitOrder, Visitor<T> visitor, ref Object arg)
-        {
-            Visit(visitOrder, visitor, VisitType.PreOrder, ref arg);
-        }
-
-        public virtual void Visit(int visitOrder, Visitor<T> visitor, VisitType visitType, ref Object arg)
+        public virtual void Visit(int visitOrder, Visitor<T> visitor, VisitType visitType, Object arg)
         {
             switch (visitType)
             {
                 case VisitType.PreOrder:
-                    visit(visitOrder, visitor, null, null, ref arg);
+                    visit(visitOrder, visitor, null, null, arg);
                     break;
                 case VisitType.InOrder:
-                    visit(visitOrder, null, visitor, null, ref arg);
+                    visit(visitOrder, null, visitor, null, arg);
                     break;
                 case VisitType.PostOrder:
-                    visit(visitOrder, null, null, visitor, ref arg);
+                    visit(visitOrder, null, null, visitor, arg);
                     break;
             }
         }
 
-        public void Visit(int visitOrder, Visitor<T> preVisitor, Visitor<T> inVisitor, Visitor<T> postVisitor, ref Object arg)
+        public void Visit(int visitOrder, Visitor<T> preVisitor, Visitor<T> inVisitor, Visitor<T> postVisitor, Object arg)
         {
-            visit(visitOrder, preVisitor, inVisitor, postVisitor, ref arg);
+            visit(visitOrder, preVisitor, inVisitor, postVisitor, arg);
         }
 
-        internal void visit(int visitOrder, Visitor<T> preVisitor, Visitor<T> inVisitor, Visitor<T> postVisitor, ref Object arg)
+        internal void visit(int visitOrder, Visitor<T> preVisitor, Visitor<T> inVisitor, Visitor<T> postVisitor, Object arg)
         {
             VisitContext ctxt = new VisitContext();
             ctxt.visitOrder = visitOrder;
             ctxt.preVisitor = preVisitor;
             ctxt.inVisitor = inVisitor;
             ctxt.postVisitor = postVisitor;
-            visit(RootNode, ref ctxt, ref arg);
+            visit(RootNode, ref ctxt, arg);
         }
 
         internal struct VisitContext
@@ -563,7 +563,7 @@ namespace GameLibrary.Util.Octree
             internal Visitor<T> postVisitor;
         }
 
-        internal virtual bool visit(OctreeNode<T> node, ref VisitContext ctxt, ref Object arg)
+        internal virtual bool visit(OctreeNode<T> node, ref VisitContext ctxt, Object arg)
         {
             if ((node.childExists == 0) && (node.obj == null))
             {
@@ -574,7 +574,7 @@ namespace GameLibrary.Util.Octree
             bool cont = true;
             if (ctxt.preVisitor != null)
             {
-                cont = ctxt.preVisitor(this, node, ref arg);
+                cont = ctxt.preVisitor(this, node, arg);
             }
             if (cont && (node.childExists != 0))
             {
@@ -594,36 +594,49 @@ namespace GameLibrary.Util.Octree
                     {
                         continue;
                     }*/
-                    visit(childNode, ref ctxt, ref arg);
-                    ctxt.inVisitor?.Invoke(this, childNode, ref arg);
+                    visit(childNode, ref ctxt, arg);
+                    ctxt.inVisitor?.Invoke(this, childNode, arg);
                 }
             }
-            ctxt.postVisitor?.Invoke(this, node, ref arg);
+            ctxt.postVisitor?.Invoke(this, node, arg);
             return true;
         }
 
         private static Octant[] computeVisitOrderPermutations()
         {
+            // for each 48 visit order, list the 8 octants in the corresponding visit order
             Octant[] permutations = new Octant[48 * 8];
             int index = 0;
             for (int order = 0; order < 48; order++)
             {
+                // extract permutation and signs from visit order
                 int perm = order >> 3;
+                // signs are pre-permuted and, so must be applied after permutating
                 int signs = (order & 0b111);
+
+                // loop over all 8 octants in +x +y +z order
                 for (int i = 0; i < 8; i++)
                 {
-                    int o = i ^ signs;
+                    int x = (i & 0b100) >> 2;
+                    int y = (i & 0b010) >> 1;
+                    int z = (i & 0b001) >> 0;
 
-                    // TODO there are better ways to permute bits
-                    // see http://programming.sirrida.de/calcperm.php
-                    // but since we compute permutations only once there is no real need to optimize
-                    int x = (o & 0b100) >> 2;
-                    int y = (o & 0b010) >> 1;
-                    int z = (o & 0b001) >> 0;
-                    //Console.Write("{0} {1} {2} --> ", x, y, z);
-                    VectorUtil.PERMUTATIONS[perm](x, y, z, out x, out y, out z);
-                    //Console.WriteLine("{0} {1} {2}", x, y, z);
-                    o = (x * Mask.X) | (y * Mask.Y) | (z * Mask.Z) ^ Mask.Z;
+                    // handle signs
+                    x = x ^ ((signs & 0b100) >> 2);
+                    y = y ^ ((signs & 0b010) >> 1);
+                    z = z ^ ((signs & 0b001) >> 0);
+                    
+                    // handle permutation
+                    VectorUtil.INV_PERMUTATIONS[perm](x, y, z, out x, out y, out z);
+
+
+                    //FAILS when camera pointing +/-z (perm 4 and 5)
+                    //check if y is ok (x is...)
+
+
+                    // reconstruct octant and store it
+                    // octant are coded as such 0b +y -z +x
+                    int o = (y << 2) | ((1 - z) << 1) | x;
                     permutations[index++] = (Octant)o;
                 }
             }
@@ -635,7 +648,8 @@ namespace GameLibrary.Util.Octree
             Direction[] directionLookupTable = new Direction[64];
             foreach (Direction direction in Enum.GetValues(typeof(Direction)).Cast<Direction>())
             {
-                directionLookupTable[DIR_DATA[(int)direction].lookupIndex] = direction;
+                int lookupIndex = DIR_DATA[(int)direction].lookupIndex;
+                directionLookupTable[lookupIndex] = direction;
             }
             return directionLookupTable;
         }

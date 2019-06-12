@@ -24,16 +24,12 @@ namespace GameLibrary.Control
 
         public int UpdateOrder => throw new NotImplementedException();
 
-        protected BaseNodeController(T node)
-            : base()
+        protected BaseNodeController(T node) : base()
         {
             this.node = node;
         }
 
-        public virtual void Update(GameTime gameTime)
-        {
-            //throw new NotImplementedException();
-        }
+        public abstract void Update(GameTime gameTime);
 
     }
 }

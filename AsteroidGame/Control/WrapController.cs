@@ -1,12 +1,7 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using GameLibrary;
-using Microsoft.Xna.Framework;
-using GameLibrary.SceneGraph;
-using GameLibrary.Control;
+﻿using GameLibrary.Control;
 using GameLibrary.SceneGraph.Common;
+using Microsoft.Xna.Framework;
+using System.Collections.Generic;
 
 namespace AsteroidGame.Control
 {
@@ -27,8 +22,6 @@ namespace AsteroidGame.Control
 
         public override void Update(GameTime gameTime)
         {
-            base.Update(gameTime);
-
             if (mainNode == null)
             {
                 LinkedListNode<Node> it = Node.Nodes.First;
@@ -43,8 +36,7 @@ namespace AsteroidGame.Control
             private GeometryNode node2;
             private GeometryNode node3;
 
-            public WrapperController(GeometryNode node)
-                : base(node)
+            public WrapperController(GeometryNode node) : base(node)
             {
             }
 
@@ -54,8 +46,6 @@ namespace AsteroidGame.Control
 
             public override void Update(GameTime gameTime)
             {
-                base.Update(gameTime);
-
                 float dX = 0;
                 float dY = 0;
 

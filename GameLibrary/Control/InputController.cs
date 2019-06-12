@@ -41,10 +41,10 @@ namespace GameLibrary.Control
             currentGamePadState = GamePad.GetState(PlayerIndex.One);
 
             //KeyboardInput.CharPressed += CharacterTyped;
-            GameLibrary.System.KeyboardInput.KeyPressed += KeyPressed;
+            GameLibrary.Component.UI.KeyboardInput.KeyPressed += KeyPressed;
         }
 
-        private void KeyPressed(object sender, GameLibrary.System.KeyboardInput.KeyEventArgs e, KeyboardState ks)
+        private void KeyPressed(object sender, GameLibrary.Component.UI.KeyboardInput.KeyEventArgs e, KeyboardState ks)
         {
             //Console.WriteLine(e.KeyCode.ToString());
         }
@@ -59,7 +59,7 @@ namespace GameLibrary.Control
             previousGamePadState = currentGamePadState;
             currentGamePadState = GamePad.GetState(PlayerIndex.One);
 
-            GameLibrary.System.KeyboardInput.Update();
+            GameLibrary.Component.UI.KeyboardInput.Update();
         }
 
         public bool IsKeyDown(Keys key)

@@ -7,16 +7,17 @@ using Microsoft.Xna.Framework.Graphics;
 using System;
 using System.Collections.Generic;
 using System.ComponentModel;
+using System.Diagnostics;
 
 namespace GameLibrary.SceneGraph
 {
 
     public class RenderBin
     {
-        public readonly long Id;
+        public readonly int Id;
         public readonly List<Drawable> DrawableList;
 
-        public RenderBin(long id)
+        public RenderBin(int id)
         {
             this.Id = id;
             DrawableList = new List<Drawable>();
@@ -81,8 +82,8 @@ namespace GameLibrary.SceneGraph
         }
 
         // flags
-        [Category("Debug")]
-        public bool Debug { get; set; }
+        //[Category("Debug")]
+        //public bool Debug { get; set; }
 
         [Category("Debug Culling")]
         public bool ShowBoundingVolumes
@@ -385,17 +386,22 @@ namespace GameLibrary.SceneGraph
             }
         }
 
-        protected virtual RenderBin CreateRenderBin(long id)
+        protected RenderBin GetRenderBin(int binId)
         {
-            return new RenderBin(id);
+            RenderBin renderBin;
+            renderBins.TryGetValue(binId, out renderBin);
+            return renderBin;
+        }
+
+
+        protected virtual RenderBin CreateRenderBin(int binId)
+        {
+            return new RenderBin(binId);
         }
 
         protected virtual void AddToRenderBin(RenderBin renderBin, Drawable drawable)
         {
-            if (Debug && renderBin.DrawableList.Contains(drawable))
-            {
-                throw new Exception("Drawable already in render bin " + renderBin.Id);
-            }
+            Debug.Assert(!renderBin.DrawableList.Contains(drawable));
             renderBin.DrawableList.Add(drawable);
         }
 

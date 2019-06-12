@@ -1,6 +1,7 @@
 ﻿using GameLibrary.SceneGraph.Common;
 using Microsoft.Xna.Framework.Graphics;
 using System;
+using static GameLibrary.Voxel.VoxelManager;
 
 namespace GameLibrary.Voxel.Grid
 {
@@ -10,8 +11,8 @@ namespace GameLibrary.Voxel.Grid
 
         public VoxelGridGeometry(String name, int chunkSize) : base(name)
         {
-            voxelGrid = new VoxelGrid(chunkSize);
-            voxelGrid.objectLoadedCallback = CB;
+            voxelGrid = new VoxelGrid(chunkSize, CB);
+            //voxelGrid.objectLoadedCallback = CB;
         }
 
         private void CB()
@@ -28,6 +29,11 @@ namespace GameLibrary.Voxel.Grid
             //BoundingVolume = new GameLibrary.SceneGraph.Bounding.BoundingBox(voxelGrid.Center, voxelGrid.HalfSize);
 
             voxelGrid.Initialize(gd);
+        }
+
+        public override void Commit(GraphicsDevice graphicsDevice)
+        {
+            base.Commit(graphicsDevice);
         }
 
         public override void Dispose()

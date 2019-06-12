@@ -1,12 +1,11 @@
-﻿using System;
+﻿using GameLibrary.Component.Util;
+using GameLibrary.Geometry.Common;
+using GameLibrary.Util;
+using Microsoft.Xna.Framework;
+using Microsoft.Xna.Framework.Graphics;
+using System;
 using System.Collections.Generic;
 using System.Linq;
-using Microsoft.Xna.Framework;
-using GameLibrary.Geometry.Common;
-using Microsoft.Xna.Framework.Graphics;
-using GameLibrary.Component.Util;
-using GameLibrary.Util;
-using GameLibrary.Geometry.Common;
 
 namespace GameLibrary.Geometry
 {
@@ -26,7 +25,7 @@ namespace GameLibrary.Geometry
             }
         }
 
-        private int recursionLevel;
+        private readonly int recursionLevel;
         protected Boolean flat;
         protected Boolean facetted;
 
@@ -182,8 +181,7 @@ namespace GameLibrary.Geometry
         {
             // first check if we have it already
             Int64 key = IntegerUtil.createInt64Key(p1, p2);
-            short ret;
-            if (middlePointIndexCache.TryGetValue(key, out ret))
+            if (middlePointIndexCache.TryGetValue(key, out short ret))
             {
                 return ret;
             }

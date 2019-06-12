@@ -1,12 +1,15 @@
 using AsteroidGame.Control;
 using AsteroidGame.Geometry;
+using BepuPhysics;
 using GameLibrary;
 using GameLibrary.Component.Camera;
 using GameLibrary.Control;
 using GameLibrary.Geometry;
+using GameLibrary.Physics.Bepu;
 using GameLibrary.SceneGraph;
 using GameLibrary.SceneGraph.Common;
 using GameLibrary.Util;
+using GameLibrary.Voxel.Grid;
 using GameLibrary.Voxel.Octree;
 using Microsoft.Xna.Framework;
 using System;
@@ -21,9 +24,6 @@ namespace AsteroidGame
     public class AsteroidGame : CustomGame
     {
         private static AsteroidGame instance;
-
-        private GroupNode bulletGroupNode;
-        private GroupNode asteroidGroupNode;
 
         private readonly bool DebugWindowEnabled = true;
         private WpfControlWindow wnd;
@@ -195,6 +195,13 @@ namespace AsteroidGame
             return grid;
         }
 
+        // asteroid stuff (also used by voxel...)
+        long bulletId = 0;
+        long asteroidId = 0;
+
+        private GroupNode bulletGroupNode;
+        private GroupNode asteroidGroupNode;
+
         private Node createAsteroidScene()
         {
             float height = 0.25f;
@@ -286,9 +293,6 @@ namespace AsteroidGame
             return playerNode;
         }
 
-        long bulletId = 0;
-        long asteroidId = 0;
-
         public void AddBullet(GameTime gameTime, Vector3 position, Quaternion orientation, Vector3 velocity)
         {
             bulletId++;
@@ -342,31 +346,79 @@ namespace AsteroidGame
             return cube;
         }
 
+        //public void FireBullet(GameTime gameTime, Vector3 position, Quaternion orientation, Vector3 velocity)
+        public void FireBullet(GameTime gameTime)
+        {
+            Vector3 position = Scene.CameraComponent.Position + Scene.CameraComponent.ViewDirection;// Vector3.Up * 3;
+            Vector3 velocity = Scene.CameraComponent.ViewDirection * 10;
+
+            bulletId++;
+            GeometryNode node = GeometryUtil.CreateSphere("BULLET_" + bulletId, 3);
+            node.RenderGroupId = Scene.ONE_LIGHT;
+            //node.RenderGroupId = Scene.BULLET;
+            //node.CollisionGroupId = Scene.BULLET;
+            node.Scale = new Vector3(BepuHelper.bulletSphere.Radius);
+            node.Rotation = Quaternion.Identity;
+            node.Translation = position;
+
+            var bulletHandle = BepuHelper.AddBullet(Scene.Simulation, position, velocity);
+            BodyReference bodyReference = new BodyReference(bulletHandle, Scene.Simulation.Bodies);
+
+            // TODO should pass bulletHandle to controller ?
+            // TODO creating/destroying controller with bullets creates GARBAGE...
+            // need to use the same controller for all entities/node ?
+            Controller controller = new Voxel.Control.BulletController(node, bodyReference);
+            // TODO node should not have controller list...
+            // should have controller (i.e. components) lists at scene level (or some manager)
+            node.AddController(controller);
+            //bulletController.Update(gameTime);
+
+            bool rip = false;
+            if (rip)
+            {
+                Voxel.Control.RIPController ripController = new Voxel.Control.RIPController(node, bulletHandle, 6.0f);
+                node.AddController(ripController);
+            }
+
+            bulletGroupNode.Add(node);
+        }
+
+        public void RemoveBullet(int bulletHandle)
+        {
+            BepuHelper.RemoveBullet(Scene.Simulation, bulletHandle);
+        }
+
         private Node createVoxelTestScene()
         {
-            Node voxelOctreeNode = createVoxelOctreeNode("OCTREE", 256, 32);
-
             TransformNode sceneNode = new TransformNode("SCENE");
 
-            LightNode sunNode = new LightNode("LIGHT_SUN");
-            sunNode.Translation = new Vector3(1, 1, 1);
+            Node groundNode = new VoxelGridGeometry("GRID", 32);
+
+            VoxelOctreeGeometry voxelOctreeNode = new VoxelOctreeGeometry("OCTREE", 256, 32);
+            voxelOctreeNode.voxelOctree.LoadFromDisk = false;
+            TransformNode structureNode = new TransformNode("SCENE");
+            structureNode.Add(voxelOctreeNode);
+            structureNode.Translation = new Vector3(200, 64 + 0.001f, 200);
 
             GeometryNode sphereGeo = GeometryUtil.CreateSphere("SPHERE", 2);
             sphereGeo.RenderGroupId = Scene.ONE_LIGHT;
             sphereGeo.Translation = new Vector3(2, 6, 2);
 
-            sceneNode.Add(sunNode);
+            LightNode sunNode = new LightNode("LIGHT_SUN");
+            sunNode.Translation = new Vector3(1, 1, 1);
+
+            //sunNode.Add(structureNode);
+            sunNode.Add(groundNode);
             sunNode.Add(sphereGeo);
-            sunNode.Add(voxelOctreeNode);
+
+            sceneNode.Add(sunNode);
+
+            bulletGroupNode = new GroupNode("GROUP_BULLET");
+            Voxel.Control.GunController gunController = new Voxel.Control.GunController(bulletGroupNode);
+            bulletGroupNode.AddController(gunController);
+            sceneNode.Add(bulletGroupNode);
 
             return sceneNode;
-        }
-
-        private Node createVoxelOctreeNode(String name, int size, int chunkSize)
-        {
-            VoxelOctreeGeometry voxelOctreeGeometry = new VoxelOctreeGeometry(name, size, chunkSize);
-            voxelOctreeGeometry.RenderGroupId = Scene.OCTREE;
-            return voxelOctreeGeometry;
         }
 
         private Node createBoundingBoxHullSceneTest()

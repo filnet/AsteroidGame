@@ -1,13 +1,8 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using GameLibrary;
+﻿using GameLibrary.Control;
+using GameLibrary.SceneGraph.Common;
 using Microsoft.Xna.Framework;
 using Microsoft.Xna.Framework.Input;
-using GameLibrary.SceneGraph;
-using GameLibrary.Control;
-using GameLibrary.SceneGraph.Common;
+using System;
 
 namespace AsteroidGame.Control
 {
@@ -22,8 +17,7 @@ namespace AsteroidGame.Control
         private TimeSpan coolDown = new TimeSpan(TimeSpan.TicksPerSecond / 6);
         private TimeSpan lastFireTime;
 
-        public GunController(GeometryNode gunNode, GeometryNode shipNode, Vector3 muzzleTranslation)
-            : base(gunNode)
+        public GunController(GeometryNode gunNode, GeometryNode shipNode, Vector3 muzzleTranslation) : base(gunNode)
         {
             this.muzzleTranslation = muzzleTranslation;
             this.shipNode = shipNode;

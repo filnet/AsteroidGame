@@ -198,17 +198,17 @@ namespace GameLibrary.Component.Camera
 
             cage.Reset(Game.Window.ClientBounds);
 
-            GameLibrary.System.KeyboardInput.KeyPressed += KeyPressed;
+            GameLibrary.Component.UI.KeyboardInput.KeyPressed += KeyPressed;
         }
 
         protected override void Dispose(bool disposing)
         {
-            GameLibrary.System.KeyboardInput.KeyPressed -= KeyPressed;
+            GameLibrary.Component.UI.KeyboardInput.KeyPressed -= KeyPressed;
 
             base.Dispose(disposing);
         }
 
-        private void KeyPressed(object sender, GameLibrary.System.KeyboardInput.KeyEventArgs e, KeyboardState ks)
+        private void KeyPressed(object sender, GameLibrary.Component.UI.KeyboardInput.KeyEventArgs e, KeyboardState ks)
         {
             //Console.WriteLine(e.KeyCode.ToString());
         }

@@ -1,10 +1,7 @@
-﻿using System;
+﻿using Microsoft.Xna.Framework.Graphics;
+using System;
 using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using Microsoft.Xna.Framework;
-using Microsoft.Xna.Framework.Graphics;
-using GameLibrary.SceneGraph.Bounding;
+using System.Diagnostics;
 
 namespace GameLibrary.SceneGraph.Common
 {
@@ -14,7 +11,7 @@ namespace GameLibrary.SceneGraph.Common
 
         //private BoundingVolume boundingVolume;
 
-        private LinkedList<Node> nodes;
+        private readonly LinkedList<Node> nodes;
 
         //internal enum ChangeType { Add, Remove }
 
@@ -44,7 +41,7 @@ namespace GameLibrary.SceneGraph.Common
 
         }
 
-        private LinkedList<NodeEvent> nodeEvents;
+        private readonly LinkedList<NodeEvent> nodeEvents;
 
         #endregion
 
@@ -74,25 +71,25 @@ namespace GameLibrary.SceneGraph.Common
 
         #region Constructor
 
-        public GroupNode(String name)
-            : base(name)
+        public GroupNode(String name) : base(name)
         {
             //BoundingVolumeVisible = true;
             nodes = new LinkedList<Node>();
-            setStructureDirty();
+            nodeEvents = new LinkedList<NodeEvent>();
+            //setStructureDirty();
         }
 
-        public GroupNode(GroupNode node)
-            : base(node)
+        public GroupNode(GroupNode node) : base(node)
         {
             //boundingVolume = node.boundingVolume != null ? node.boundingVolume.Clone() : null;
             //BoundingVolumeVisible = node.BoundingVolumeVisible;
             nodes = new LinkedList<Node>();
+            nodeEvents = new LinkedList<NodeEvent>();
             for (LinkedListNode<Node> it = node.Nodes.First; it != null; it = it.Next)
             {
                 Add(it.Value.Clone());
             }
-            setStructureDirty();
+            //setStructureDirty();
         }
 
         #endregion
@@ -106,10 +103,6 @@ namespace GameLibrary.SceneGraph.Common
 
         public void Add(Node node)
         {
-            if (nodeEvents == null)
-            {
-                nodeEvents = new LinkedList<NodeEvent>();
-            }
             // TODO performance: call AddFrist
             nodeEvents.AddLast(new NodeEvent(EventType.ADDED, node));
             setStructureDirty();
@@ -117,10 +110,6 @@ namespace GameLibrary.SceneGraph.Common
 
         public void AddFirst(Node node)
         {
-            if (nodeEvents == null)
-            {
-                nodeEvents = new LinkedList<NodeEvent>();
-            }
             // TODO performance: call AddFrist
             nodeEvents.AddLast(new NodeEvent(EventType.ADDED_FIRST, node));
             setStructureDirty();
@@ -128,74 +117,64 @@ namespace GameLibrary.SceneGraph.Common
 
         public void Remove(Node node)
         {
-            if (nodeEvents == null)
-            {
-                nodeEvents = new LinkedList<NodeEvent>();
-            }
             // TODO performance: call AddFrist
             nodeEvents.AddLast(new NodeEvent(EventType.REMOVED, node));
             setStructureDirty();
         }
 
-        public void Commit(GraphicsDevice graphicsDevice)
+        public virtual void Commit(GraphicsDevice graphicsDevice)
         {
-            if (!isDirty(DirtyFlag.Structure))
+            Debug.Assert(isDirty(DirtyFlag.Structure));
+            //Debug.Assert(nodeEvents.Count > 0);
+            bool added = false;
+            for (LinkedListNode<NodeEvent> it = nodeEvents.First; it != null; it = it.Next)
             {
-                return;
+                NodeEvent evt = it.Value;
+                Node node = evt.Node;
+                switch (evt.Type)
+                {
+                    case EventType.ADDED:
+                        added = true;
+                        node.ParentNode = this;
+                        //setSceneRecursive(node);
+                        nodes.AddLast(node);
+                        node.Initialize(graphicsDevice);
+                        if (node.IsDirty(DirtyFlag.Transform))
+                        {
+                            node.setDirty(DirtyFlag.ChildTransform);
+                            setParentDirty(DirtyFlag.ChildTransform);
+                        }
+                        // FIXME this will cause every node in the scene to recompute their world transform
+                        node.setDirty(DirtyFlag.ChildWorldTransform);
+                        setParentDirty(DirtyFlag.ChildWorldTransform);
+                        break;
+                    case EventType.ADDED_FIRST:
+                        added = true;
+                        node.ParentNode = this;
+                        //setSceneRecursive(node);
+                        nodes.AddFirst(node);
+                        node.Initialize(graphicsDevice);
+                        if (node.IsDirty(DirtyFlag.Transform))
+                        {
+                            node.setDirty(DirtyFlag.ChildTransform);
+                            setParentDirty(DirtyFlag.ChildTransform);
+                        }
+                        // FIXME this will cause every node in the scene to recompute their world transform
+                        node.setDirty(DirtyFlag.ChildWorldTransform);
+                        setParentDirty(DirtyFlag.ChildWorldTransform);
+                        break;
+                    case EventType.REMOVED:
+                        node.ParentNode = null;
+                        nodes.Remove(node);
+                        node.Dispose();
+                        break;
+                }
             }
-            if (nodeEvents != null)
+            if (added)
             {
-                bool added = false;
-                for (LinkedListNode<NodeEvent> it = nodeEvents.First; it != null; it = it.Next)
-                {
-                    NodeEvent evt = it.Value;
-                    Node node = evt.Node;
-                    switch (evt.Type)
-                    {
-                        case EventType.ADDED:
-                            added = true;
-                            node.ParentNode = this;
-                            //setSceneRecursive(node);
-                            nodes.AddLast(node);
-                            node.Initialize(graphicsDevice);
-                            if (node.IsDirty(DirtyFlag.Transform))
-                            {
-                                node.setDirty(DirtyFlag.ChildTransform);
-                                setParentDirty(DirtyFlag.ChildTransform);
-                            }
-                            // FIXME this will cause every node in the scene to recompute their world transform
-                            node.setDirty(DirtyFlag.ChildWorldTransform);
-                            setParentDirty(DirtyFlag.ChildWorldTransform);
-                            break;
-                        case EventType.ADDED_FIRST:
-                            added = true;
-                            node.ParentNode = this;
-                            //setSceneRecursive(node);
-                            nodes.AddFirst(node);
-                            node.Initialize(graphicsDevice);
-                            if (node.IsDirty(DirtyFlag.Transform))
-                            {
-                                node.setDirty(DirtyFlag.ChildTransform);
-                                setParentDirty(DirtyFlag.ChildTransform);
-                            }
-                            // FIXME this will cause every node in the scene to recompute their world transform
-                            node.setDirty(DirtyFlag.ChildWorldTransform);
-                            setParentDirty(DirtyFlag.ChildWorldTransform);
-                            break;
-                        case EventType.REMOVED:
-                            node.ParentNode = null;
-                            nodes.Remove(node);
-                            node.Dispose();
-                            break;
-                    }
-                }
-                if (added)
-                {
-                    setDirty(DirtyFlag.ChildStructure);
-                }
-                nodeEvents.Clear();
-                nodeEvents = null;
+                setDirty(DirtyFlag.ChildStructure);
             }
+            nodeEvents.Clear();
             clearDirty(DirtyFlag.Structure);
         }
 
@@ -254,20 +233,20 @@ namespace GameLibrary.SceneGraph.Common
 
         #region Private Methods
 
-            /*
-        private void setSceneRecursive(Node node)
+        /*
+    private void setSceneRecursive(Node node)
+    {
+        node.Scene = node.ParentNode.Scene;
+        GroupNode groupNode = node as GroupNode;
+        if (groupNode != null)
         {
-            node.Scene = node.ParentNode.Scene;
-            GroupNode groupNode = node as GroupNode;
-            if (groupNode != null)
+            for (LinkedListNode<Node> it = groupNode.Nodes.First; it != null; it = it.Next)
             {
-                for (LinkedListNode<Node> it = groupNode.Nodes.First; it != null; it = it.Next)
-                {
-                    setSceneRecursive(it.Value);
-                }
+                setSceneRecursive(it.Value);
             }
         }
-        */
+    }
+    */
         #endregion
     }
 

@@ -9,13 +9,13 @@ namespace GameLibrary.Voxel
     public sealed class FaceInfo
     {
         private static readonly FaceInfo[] FACES = new FaceInfo[] {
-            new FaceInfo(FaceType.None, false, false),
+            new FaceInfo(FaceType.None, false, false, false),
             new FaceInfo(FaceType.Earth),
             new FaceInfo(FaceType.Grass),
             new FaceInfo(FaceType.Rock),
             new FaceInfo(FaceType.Snow),
-            new FaceInfo(FaceType.Water, true, false),
-            new FaceInfo(FaceType.Glass, true, false),
+            new FaceInfo(FaceType.Water, false, true, false),
+            new FaceInfo(FaceType.Glass, true, true, false),
             new FaceInfo(FaceType.Test),
             new FaceInfo(FaceType.Test_Left),
             new FaceInfo(FaceType.Test_Right),
@@ -26,15 +26,17 @@ namespace GameLibrary.Voxel
         };
 
         public readonly FaceType Type;
+        public readonly bool IsPhysical;
         public readonly bool IsSolid;
         public readonly bool IsOpaque;
         public readonly int Rank;
 
-        private FaceInfo(FaceType type) : this(type, true, true) { }
+        private FaceInfo(FaceType type) : this(type, true, true, true) { }
 
-        private FaceInfo(FaceType type, bool solid, bool opaque)
+        private FaceInfo(FaceType type, bool physical, bool solid, bool opaque)
         {
             Type = type;
+            IsPhysical = physical;
             IsSolid = solid;
             IsOpaque = opaque;
             Rank = (IsSolid ? 1 : 0) + (IsOpaque ? 1 : 0);
@@ -47,6 +49,20 @@ namespace GameLibrary.Voxel
             return FACES[(int)type];
         }
 
+        // any and none gives any
+        // opaque and opaque gives none
+        // transparent and transparent gives none
+        // opaque and transparent gives opaque
+        //
+        //               -------------------------------------------
+        //               | none        | opaque      | transparent |
+        // ---------------------------------------------------------
+        // | none        | none        | opaque      | transparent |
+        // | opaque      | opaque      | none        | opaque      |
+        // | transparent | transparent | opaque      | none        |
+        // ---------------------------------------------------------
+        //
+        // to sum up: opaque > transparent > none
         public static int Compare(FaceType faceType1, FaceType faceType2)
         {
             return Get(faceType1).Rank - Get(faceType2).Rank;
@@ -80,6 +96,7 @@ namespace GameLibrary.Voxel
         };
 
         public readonly VoxelType Type;
+        public readonly bool IsPhysical;
         public readonly bool IsSolid;
         public readonly bool IsTransparent;
         public readonly bool IsOpaque;
@@ -109,6 +126,7 @@ namespace GameLibrary.Voxel
             faces[(int)Direction.Front] = FaceInfo.Get(front);
             for (int i = 0; i < faces.Length; i++)
             {
+                IsPhysical |= faces[i].IsPhysical;
                 IsSolid |= faces[i].IsSolid;
                 IsOpaque |= faces[i].IsOpaque;
                 IsTransparent &= !faces[i].IsOpaque;

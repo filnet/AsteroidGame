@@ -458,8 +458,7 @@ namespace Voxel
         /// <summary>
         /// Creates a new VoxelEffect with default parameter settings.
         /// </summary>
-        public VoxelEffect(GraphicsDevice device)
-            : base(AsteroidGame.AsteroidGame.Instance().Content.Load<Effect>("Effects/VoxelEffect"))
+        public VoxelEffect(GraphicsDevice device) : base(AsteroidGame.AsteroidGame.Instance().Content.Load<Effect>("Effects/VoxelEffect"))
         {
             CacheEffectParameters(null);
 
@@ -468,13 +467,17 @@ namespace Voxel
             SpecularPower = 16;
 
             wireframeMode = WireframeMode.Faces;
+
+            //FogEnabled = true;
+            FogColor = new Vector3(0.5f);
+            FogStart = 300;
+            FogEnd = 2000;
         }
 
         /// <summary>
         /// Creates a new VoxelEffect by cloning parameter settings from an existing instance.
         /// </summary>
-        protected VoxelEffect(VoxelEffect cloneSource)
-            : base(cloneSource)
+        protected VoxelEffect(VoxelEffect cloneSource) : base(cloneSource)
         {
             CacheEffectParameters(cloneSource);
 

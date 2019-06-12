@@ -29,6 +29,11 @@ namespace GameLibrary.SceneGraph
             return refractionRenderContextes[index];
         }
 
+        public int ReflectionRenderContextCount()
+        {
+            return reflectionRenderContextes.Count;
+        }
+
         public ReflectionRenderContext ReflectionRenderContext(int index)
         {
             return reflectionRenderContextes[index];
@@ -192,7 +197,7 @@ namespace GameLibrary.SceneGraph
                 LightCamera lightCamera = new LightCamera(lightDirection);
 
                 LightRenderContext lightRenderContext = new LightRenderContext(GraphicsDevice, lightCamera);
-                lightRenderContext.ShowShadowMap = true;
+                //lightRenderContext.ShowShadowMap = true;
 
                 lightRenderContextes.Add(lightRenderContext);
             }
@@ -206,7 +211,7 @@ namespace GameLibrary.SceneGraph
 
                 RefractionRenderContext refractionRenderContext = new RefractionRenderContext(GraphicsDevice, CullCamera);
                 refractionRenderContext.Enabled = false;
-                //refractionRenderContext.ShowMap = true;
+                refractionRenderContext.ShowMap = false;
 
                 refractionRenderContextes.Add(refractionRenderContext);
             }
@@ -219,8 +224,8 @@ namespace GameLibrary.SceneGraph
                 Console.WriteLine("Creating reflection render context");
 
                 ReflectionRenderContext reflectionRenderContext = new ReflectionRenderContext(GraphicsDevice, CullCamera);
-                reflectionRenderContext.Enabled = true;
-                //reflectionRenderContext.ShowMap = true;
+                reflectionRenderContext.Enabled = false;
+                reflectionRenderContext.ShowMap = false;
 
                 reflectionRenderContextes.Add(reflectionRenderContext);
             }
@@ -348,19 +353,43 @@ namespace GameLibrary.SceneGraph
         public override void CullBegin()
         {
             base.CullBegin();
-            // TODO not all lights are used...
-            foreach (LightRenderContext context in lightRenderContextes)
+            // TODO replace with callbacks (use interface implemeting strucs like bepu)...
+            if (ShadowsEnabled)
             {
-                context.FitToViewStable(this);
+                // TODO not all lights are used...
+                foreach (LightRenderContext context in lightRenderContextes)
+                {
+                    context.FitToViewStable(this);
+                }
             }
         }
 
         public override void CullEnd()
         {
             base.CullEnd();
+            // TODO replace with callbacks (use interface implemeting strucs like bepu)...
+            if (ShadowsEnabled)
+            {
+                // TODO not all lights are used...
+                foreach (LightRenderContext context in lightRenderContextes)
+                {
+                    // HACK
+                    RenderBin renderBin;
+                    renderBin = GetRenderBin(Scene.VOXEL);
+                    if (renderBin != null)
+                    {
+                        context.AddShadowReceivers(renderBin);
+                    }
+                    renderBin = GetRenderBin(Scene.ONE_LIGHT);
+                    if (renderBin != null)
+                    {
+                        context.AddShadowReceivers(renderBin);
+                    }
+                }
+            }
         }
 
-        protected override void AddToRenderBin(RenderBin renderBin, Drawable drawable)
+        /*protected override void AddToRenderBin(RenderBin renderBin, Drawable drawable)
         {
             base.AddToRenderBin(renderBin, drawable);
             // HACK
@@ -375,11 +404,14 @@ namespace GameLibrary.SceneGraph
                     LightRenderContext lightRenderContext = LightRenderContext(i);
                     if (lightRenderContext.Enabled)
                     {
+                        // FIXME
+                        // FIXME should send all receivers in one call at the end... DOD
+                        // FIXME
                         lightRenderContext.AddShadowReceiver(renderBin, drawable);
                     }
                 }
             }
-        }
+        }*/
 
         public override void DebugGeometryAddTo(RenderContext renderContext)
         {
