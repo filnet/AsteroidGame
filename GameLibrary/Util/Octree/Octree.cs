@@ -2,32 +2,11 @@
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
-using System.Linq;
 using System.Runtime.CompilerServices;
+using static GameLibrary.Util.DirectionConstants;
 
 namespace GameLibrary.Util.Octree
 {
-    public sealed class Mask
-    {
-        public static readonly ulong LEAF = 0b111;
-        public static readonly ulong PARENT = ~LEAF;
-
-        public static readonly int X = 0b001;
-        public static readonly int Y = 0b100;
-        public static readonly int Z = 0b010;
-        public static readonly int XY = X | Y;
-        public static readonly int YZ = Y | Z;
-        public static readonly int XZ = X | Z;
-        public static readonly int XYZ = X | Y | Z;
-
-        public static readonly int LEFT = 1 << 5;
-        public static readonly int RIGHT = 1 << 4;
-        public static readonly int BOTTOM = 1 << 3;
-        public static readonly int TOP = 1 << 2;
-        public static readonly int BACK = 1 << 1; // !!!
-        public static readonly int FRONT = 1 << 0; // !!!
-    }
-
     // 0b +Y -Z +X
     public enum Octant
     {
@@ -55,6 +34,27 @@ namespace GameLibrary.Util.Octree
     // https://en.wikipedia.org/wiki/Z-order_curve
     public class Octree<T>
     {
+        private sealed class Constants
+        {
+            public static readonly ulong LEAF = 0b111;
+            public static readonly ulong PARENT = ~LEAF;
+
+            /*public static readonly int X = 0b001;
+            public static readonly int Y = 0b100;
+            public static readonly int Z = 0b010;
+            public static readonly int XY = X | Y;
+            public static readonly int YZ = Y | Z;
+            public static readonly int XZ = X | Z;
+            public static readonly int XYZ = X | Y | Z;
+
+            public static readonly int LEFT = 1 << 5;
+            public static readonly int RIGHT = 1 << 4;
+            public static readonly int BOTTOM = 1 << 3;
+            public static readonly int TOP = 1 << 2;
+            public static readonly int BACK = 1 << 1; // !!!
+            public static readonly int FRONT = 1 << 0; // !!!*/
+        }
+
         private static readonly Vector3[] OCTANT_VECTORS = new Vector3[] {
             new Vector3(-1, -1, +1), // BottomLeftFront
             new Vector3(+1, -1, +1), // BottomRightFront
@@ -77,79 +77,9 @@ namespace GameLibrary.Util.Octree
             { +1, +1, -1 }, // TopRightBack
         };
 
-        private static readonly int LEFT = 0b000;
-        private static readonly int RIGHT = 0b001;
-        private static readonly int BOTTOM = 0b000;
-        private static readonly int TOP = 0b100;
-        private static readonly int BACK = 0b010;
-        private static readonly int FRONT = 0b000;
-
-        public sealed class DirData
-        {
-            public readonly Direction dir;
-            public readonly int mask;
-            public readonly int value;
-            public readonly int dX;
-            public readonly int dY;
-            public readonly int dZ;
-            public readonly int lookupIndex;
-            public DirData(Direction dir, int mask, int value)
-            {
-                this.dir = dir;
-                this.mask = mask;
-                this.value = value;
-                // x, y, z deltas
-                dX = ((mask & Mask.X) != 0) ? ((value & Mask.X) != 0) ? +1 : -1 : 0;
-                dY = ((mask & Mask.Y) != 0) ? ((value & Mask.Y) != 0) ? +1 : -1 : 0;
-                dZ = ((mask & Mask.Z) != 0) ? ((value & Mask.Z) != 0) ? -1 : +1 : 0;
-                // lookup index is the bit sequence LEFT RIGHT BOTTOM TOP BACK FRONT
-                // some lookup indices are invalid (0b111111 for example)
-                lookupIndex = ((mask & Mask.X) != 0) ? ((value & Mask.X) != 0) ? 0b01 : 0b10 : 0;
-                lookupIndex = (lookupIndex << 2) | (((mask & Mask.Y) != 0) ? ((value & Mask.Y) != 0) ? 0b01 : 0b10 : 0);
-                lookupIndex = (lookupIndex << 2) | (((mask & Mask.Z) != 0) ? ((value & Mask.Z) != 0) ? 0b10 : 0b01 : 0);
-            }
-        }
-
-        public static readonly DirData[] DIR_DATA = new DirData[] {
-            // 6-connected
-            new DirData(Direction.Left, Mask.X, LEFT),
-            new DirData(Direction.Right, Mask.X, RIGHT),
-            new DirData(Direction.Bottom, Mask.Y, BOTTOM),
-            new DirData(Direction.Top, Mask.Y, TOP),
-            new DirData(Direction.Back, Mask.Z, BACK),
-            new DirData(Direction.Front, Mask.Z, FRONT),
-            // 18-connected
-            new DirData(Direction.BottomLeft, Mask.XY, BOTTOM | LEFT),
-            new DirData(Direction.BottomRight, Mask.XY, BOTTOM | RIGHT),
-            new DirData(Direction.BottomFront, Mask.YZ, BOTTOM | FRONT),
-            new DirData(Direction.BottomBack, Mask.YZ, BOTTOM | BACK),
-            new DirData(Direction.LeftFront, Mask.XZ, LEFT | FRONT),
-            new DirData(Direction.RightFront, Mask.XZ, RIGHT | FRONT),
-            new DirData(Direction.LeftBack, Mask.XZ, LEFT | BACK),
-            new DirData(Direction.RightBack, Mask.XZ, RIGHT | BACK),
-            new DirData(Direction.TopLeft, Mask.XY, TOP | LEFT),
-            new DirData(Direction.TopRight, Mask.XY, TOP | RIGHT),
-            new DirData(Direction.TopFront, Mask.YZ, TOP | FRONT),
-            new DirData(Direction.TopBack, Mask.YZ, TOP | BACK),
-            // 26-connected
-            new DirData(Direction.BottomLeftFront, Mask.XYZ, BOTTOM | LEFT | FRONT),
-            new DirData(Direction.BottomRightFront, Mask.XYZ, BOTTOM | RIGHT | FRONT),
-            new DirData(Direction.BottomLeftBack, Mask.XYZ, BOTTOM | LEFT | BACK),
-            new DirData(Direction.BottomRightBack, Mask.XYZ, BOTTOM | RIGHT | BACK),
-            new DirData(Direction.TopLeftFront, Mask.XYZ, TOP | LEFT | FRONT),
-            new DirData(Direction.TopRightFront, Mask.XYZ, TOP | RIGHT | FRONT),
-            new DirData(Direction.TopLeftBack, Mask.XYZ, TOP | LEFT | BACK),
-            new DirData(Direction.TopRightBack, Mask.XYZ, TOP | RIGHT | BACK),
-        };
-
         // all octant visit order permutations
         // for each 48 visit orders gives the 8 octants in appropriate order
         private static readonly Octant[] OCTANT_VISIT_ORDER = computeVisitOrderPermutations();
-
-        // gives the Direction by lookup index
-        // lookup index is the bit sequence LEFT RIGHT BOTTOM TOP BACK FRONT
-        // some lookup indices are invalid (0b111111 for example)
-        public static readonly Direction[] DIR_LOOKUP_TABLE = computeDirectionLookupTable();
 
         public delegate T ObjectFactory(Octree<T> octree, OctreeNode<T> node);
 
@@ -166,7 +96,7 @@ namespace GameLibrary.Util.Octree
         public Vector3 Center;
         public Vector3 HalfSize;
 
-        public OctreeNode<T> RootNode { get;  }
+        public OctreeNode<T> RootNode { get; }
 
         public ObjectFactory objectFactory;
 
@@ -199,7 +129,7 @@ namespace GameLibrary.Util.Octree
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static ulong SiblingLocCode(ulong locCode, Octant octant)
         {
-            return (locCode & Mask.PARENT) | (ulong)octant;
+            return (locCode & Constants.PARENT) | (ulong)octant;
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -229,7 +159,7 @@ namespace GameLibrary.Util.Octree
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static Octant GetOctant(ulong locCode)
         {
-            return (Octant)(locCode & Mask.LEAF);
+            return (Octant)(locCode & Constants.LEAF);
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -260,8 +190,7 @@ namespace GameLibrary.Util.Octree
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public OctreeNode<T> LookupNode(ulong locCode)
         {
-            OctreeNode<T> node;
-            nodes.TryGetValue(locCode, out node);
+            nodes.TryGetValue(locCode, out OctreeNode<T> node);
             return node;
         }
 
@@ -425,7 +354,7 @@ namespace GameLibrary.Util.Octree
 
         public ulong GetNeighborOfGreaterOrEqualSize(ulong nodeLocCode, Direction direction)
         {
-            DirData dirData = DIR_DATA[(int)direction];
+            DirData dirData = DirData.Get(direction);
             return getNeighborOfGreaterOrEqualSize(nodeLocCode, dirData.mask, dirData.value);
         }
 
@@ -625,7 +554,7 @@ namespace GameLibrary.Util.Octree
                     x = x ^ ((signs & 0b100) >> 2);
                     y = y ^ ((signs & 0b010) >> 1);
                     z = z ^ ((signs & 0b001) >> 0);
-                    
+
                     // handle permutation
                     VectorUtil.INV_PERMUTATIONS[perm](x, y, z, out x, out y, out z);
 
@@ -643,15 +572,5 @@ namespace GameLibrary.Util.Octree
             return permutations;
         }
 
-        private static Direction[] computeDirectionLookupTable()
-        {
-            Direction[] directionLookupTable = new Direction[64];
-            foreach (Direction direction in Enum.GetValues(typeof(Direction)).Cast<Direction>())
-            {
-                int lookupIndex = DIR_DATA[(int)direction].lookupIndex;
-                directionLookupTable[lookupIndex] = direction;
-            }
-            return directionLookupTable;
-        }
     }
 }

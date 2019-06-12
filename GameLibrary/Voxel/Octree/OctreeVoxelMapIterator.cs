@@ -2,6 +2,7 @@
 using GameLibrary.Util.Octree;
 using System;
 using System.Diagnostics;
+using static GameLibrary.Util.DirectionConstants;
 
 namespace GameLibrary.Voxel.Octree
 {
@@ -56,45 +57,21 @@ namespace GameLibrary.Voxel.Octree
 
         public override int Value(int x, int y, int z, Direction dir)
         {
-            Octree<VoxelChunk>.DirData dirData = Octree<VoxelChunk>.DIR_DATA[(int)dir];
+            DirData dirData = DirData.Get(dir);
             int nx = x + dirData.dX;
             int ny = y + dirData.dY;
             int nz = z + dirData.dZ;
 
-            int lookupIndex = 0;
-            if (nx < x0)
-            {
-                lookupIndex |= Mask.LEFT;
-            }
-            else if (nx >= x0 + size)
-            {
-                lookupIndex |= Mask.RIGHT;
-            }
-            if (ny < y0)
-            {
-                lookupIndex |= Mask.BOTTOM;
-            }
-            else if (ny >= y0 + size)
-            {
-                lookupIndex |= Mask.TOP;
-            }
-            if (nz < z0)
-            {
-                lookupIndex |= Mask.BACK;
-            }
-            else if (nz >= z0 + size)
-            {
-                lookupIndex |= Mask.FRONT;
-            }
-
+            int lookupIndex = DirData.ComputeLookupIndex(nx, ny, nz, map.X0(), map.Y0(), map.Z0(), map.Size());
             if (lookupIndex == 0)
             {
                 // inside
+                Debug.Assert(map.Contains(nx, ny, nz));
                 return map.Get(nx, ny, nz);
             }
 
             // outside
-            Direction neighbourDir = Octree<VoxelChunk>.DIR_LOOKUP_TABLE[lookupIndex];
+            Direction neighbourDir = DirData.LookupDirection(lookupIndex);
             VoxelMap neighbourMap = GetNeighbourMap(neighbourDir);
             Debug.Assert(neighbourMap.Contains(nx, ny, nz));
             return neighbourMap.Get(nx, ny, nz);

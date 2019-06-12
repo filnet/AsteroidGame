@@ -1,5 +1,6 @@
 ﻿using GameLibrary.Util;
 using GameLibrary.Voxel.Octree;
+using static GameLibrary.Util.DirectionConstants;
 
 namespace GameLibrary.Voxel
 {
@@ -76,7 +77,7 @@ namespace GameLibrary.Voxel
 
         public override int Value(int x, int y, int z, Direction dir)
         {
-            VoxelOctree.DirData dirData = VoxelOctree.DIR_DATA[(int)dir];
+            DirData dirData = DirData.Get(dir);
             int nx = x + dirData.dX;
             int ny = y + dirData.dY;
             int nz = z + dirData.dZ;

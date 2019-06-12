@@ -64,7 +64,10 @@ namespace AsteroidGame
                 //wnd.setSelected(Scene.CameraComponent);
                 wnd.SetSelected1(Scene.RenderContext);
                 wnd.SetSelected2(Scene.RenderContext.LightRenderContext(0));
-                wnd.SetSelected3(Scene.RenderContext.ReflectionRenderContext(0));
+                if (Scene.RenderContext.ReflectionRenderContextCount() > 0)
+                {
+                    wnd.SetSelected3(Scene.RenderContext.ReflectionRenderContext(0));
+                }
                 wnd.SetRendererMap(Scene.GetRendererMap());
                 // Show the window
                 wnd.ShowDialog();

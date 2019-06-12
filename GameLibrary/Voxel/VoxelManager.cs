@@ -1,11 +1,9 @@
-﻿#define NEW_FACTORY
-#define DEBUG_VOXEL_MANAGER
+﻿#define DEBUG_VOXEL_MANAGER
 
 using GameLibrary.Geometry.Common;
 using GameLibrary.SceneGraph;
 using GameLibrary.SceneGraph.Common;
 using GameLibrary.Util;
-using GameLibrary.Util.Grid;
 using GameLibrary.Voxel.Geometry;
 using Microsoft.Xna.Framework;
 using Microsoft.Xna.Framework.Graphics;
@@ -16,7 +14,7 @@ using System.IO;
 using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
-using static GameLibrary.Voxel.Geometry.NewVoxelMapMeshFactory;
+using static GameLibrary.Voxel.Geometry.VoxelMapMeshFactory;
 
 namespace GameLibrary.Voxel
 {
@@ -24,11 +22,9 @@ namespace GameLibrary.Voxel
     {
         private GraphicsDevice graphicsDevice;
 
-#if NEW_FACTORY
-        private NewVoxelMapMeshFactory meshFactory;
-#else
-        private VoxelMapMeshFactory meshFactory;
-#endif
+        private VoxelMapMeshFactory meshFactory1;
+        private VoxelMapMeshFactory meshFactory2;
+        private VoxelMapMeshFactory meshFactory3;
 
         private bool CompressAtInitialization = true;
         private bool LoadFromDisk = true;
@@ -37,11 +33,13 @@ namespace GameLibrary.Voxel
         //private bool CreateMeshOnInitialization = false;
         //private bool ExitAfterLoad = false;
 
-        private Task loadTask;
+        private Task loadTask1;
+        private Task loadTask2;
+        private Task loadTask3;
         private CancellationTokenSource cts = new CancellationTokenSource();
         //private readonly int queueSize = 10;
-        private ConcurrentQueue<GridItem<VoxelChunk>> queue = new ConcurrentQueue<GridItem<VoxelChunk>>();
-        private BlockingCollection<GridItem<VoxelChunk>> loadQueue;
+        private ConcurrentQueue<VoxelChunk> queue = new ConcurrentQueue<VoxelChunk>();
+        private BlockingCollection<VoxelChunk> loadQueue;
 
         //public delegate T ObjectFactory(Grid<T> grid, GridItem<T> item);
 
@@ -56,13 +54,26 @@ namespace GameLibrary.Voxel
         {
             this.graphicsDevice = graphicsDevice;
             this.objectLoadedCallback = objectLoadedCallback;
-#if NEW_FACTORY
-            meshFactory = new NewVoxelMapMeshFactory(graphicsDevice, getNeighbourMapCallback);
-#else
-            meshFactory = new VoxelMapMeshFactory(graphicsDevice, pool);
-#endif
+
+            var pool1 = new ObjectPool<VoxelMap, ArrayVoxelMap>(ArrayVoxelMapFactory, AbstractVoxelMap.EqualityComparerInstance);
+            var pool2 = new ObjectPool<VoxelMap, ArrayVoxelMap>(ArrayVoxelMapFactory, AbstractVoxelMap.EqualityComparerInstance);
+            var pool3 = new ObjectPool<VoxelMap, ArrayVoxelMap>(ArrayVoxelMapFactory, AbstractVoxelMap.EqualityComparerInstance);
+
+            meshFactory1 = new VoxelMapMeshFactory(graphicsDevice, pool1, getNeighbourMapCallback);
+            meshFactory2 = new VoxelMapMeshFactory(graphicsDevice, pool2, getNeighbourMapCallback);
+            meshFactory3 = new VoxelMapMeshFactory(graphicsDevice, pool3, getNeighbourMapCallback);
 
             StartLoadQueue();
+        }
+
+        private static ArrayVoxelMap ArrayVoxelMapFactory(VoxelMap map, ArrayVoxelMap arrayMap)
+        {
+            if (arrayMap == null)
+            {
+                arrayMap = new ArrayVoxelMap(map);
+            }
+            arrayMap.InitializeFrom(map);
+            return arrayMap;
         }
 
         public void Dispose()
@@ -218,11 +229,11 @@ namespace GameLibrary.Voxel
             return true;
         }
 
-        public bool LoadItem(GridItem<VoxelChunk> item, ref Object arg)
+        public bool LoadItem(VoxelChunk chunk, ref Object arg)
         {
-            item.obj.State = VoxelChunkState.Queued;
+            chunk.State = VoxelChunkState.Queued;
             //Console.WriteLine("Queuing " + item.locCode);
-            loadQueue.Add(item);
+            loadQueue.Add(chunk);
             return true;
         }
 
@@ -235,15 +246,15 @@ namespace GameLibrary.Voxel
             // so that the consumer loads "older" chunks if it gets a chance to do so...
             // and there is no need to clear the queue anymore
             //queue.Clear();
+
             while (loadQueue.Count > 0)
             {
-                GridItem<VoxelChunk> item;
-                bool success = loadQueue.TryTake(out item);
+                bool success = loadQueue.TryTake(out VoxelChunk chunk);
                 if (success)
                 {
-                    if (item.obj.State == VoxelChunkState.Queued)
+                    if (chunk.State == VoxelChunkState.Queued)
                     {
-                        item.obj.State = VoxelChunkState.Null;
+                        chunk.State = VoxelChunkState.Null;
                     }
                     //obj.Dispose();
                 }
@@ -252,79 +263,90 @@ namespace GameLibrary.Voxel
 
         private void StartLoadQueue()
         {
-            loadQueue = new BlockingCollection<GridItem<VoxelChunk>>(queue/*, queueSize*/);
+            loadQueue = new BlockingCollection<VoxelChunk>(queue/*, queueSize*/);
             // A simple blocking consumer with cancellation.
-            loadTask = Task.Run(() =>
+            loadTask1 = Task.Run(() => { LoadQueueRun(meshFactory1); });
+            loadTask2 = Task.Run(() => { LoadQueueRun(meshFactory2); });
+            loadTask3 = Task.Run(() => { LoadQueueRun(meshFactory3); });
+        }
+
+        private void LoadQueueRun(VoxelMapMeshFactory meshFactory)
+        {
+            while (!loadQueue.IsCompleted)
             {
-                while (!loadQueue.IsCompleted)
+
+                VoxelChunk chunk = null;
+                // Blocks if number.Count == 0
+                // IOE means that Take() was called on a completed collection.
+                // Some other thread can call CompleteAdding after we pass the
+                // IsCompleted check but before we call Take. 
+                // In this example, we can simply catch the exception since the 
+                // loop will break on the next iteration.
+                try
                 {
-
-                    GridItem<VoxelChunk> item = null;
-                    // Blocks if number.Count == 0
-                    // IOE means that Take() was called on a completed collection.
-                    // Some other thread can call CompleteAdding after we pass the
-                    // IsCompleted check but before we call Take. 
-                    // In this example, we can simply catch the exception since the 
-                    // loop will break on the next iteration.
-                    try
-                    {
-                        item = loadQueue.Take(cts.Token);
-                    }
-                    catch (InvalidOperationException)
-                    {
-                        break;
-                    }
-                    catch (OperationCanceledException)
-                    {
-                        break;
-                    }
-
-                    load(item);
-
-                    if (objectLoadedCallback != null)
-                    {
-                        objectLoadedCallback();
-                    }
-                    //Console.WriteLine("Loaded " + item.locCode);
+                    chunk = loadQueue.Take(cts.Token);
                 }
-                Console.WriteLine("No more items to take.");
-            });
+                catch (InvalidOperationException)
+                {
+                    break;
+                }
+                catch (OperationCanceledException)
+                {
+                    break;
+                }
+
+                Load(meshFactory, chunk);
+
+                if (objectLoadedCallback != null)
+                {
+                    objectLoadedCallback();
+                }
+                //Console.WriteLine("Loaded " + item.locCode);
+            }
+            Console.WriteLine("No more items to take.");
         }
 
         private void DisposeLoadQueue()
         {
-            if (loadTask != null)
-            {
-                // complete adding and empty queue
-                loadQueue.CompleteAdding();
-                ClearLoadQueue();
-                // cancel load task
-                cts.Cancel();
-                // wait for load task to end
-                Task.WaitAll(loadTask);
-            }
-            loadTask.Dispose();
+            // complete adding and empty queue
+            loadQueue.CompleteAdding();
+            ClearLoadQueue();
+
+            // cancel load tasks
+            cts.Cancel();
+
+            StopLoadTask(loadTask1);
+            StopLoadTask(loadTask2);
+            StopLoadTask(loadTask3);
+
             loadQueue.Dispose();
             cts.Dispose();
         }
 
-        private void load(GridItem<VoxelChunk> item)
+        private void StopLoadTask(Task task)
         {
-            VoxelChunk voxelChunk = item.obj;
+            Debug.Assert(task != null);
+            // wait for load task to end
+            Task.WaitAll(task);
+            task.Dispose();
+        }
+
+        private static void Load(VoxelMapMeshFactory meshFactory, VoxelChunk chunk)
+        {
             // FIXME works because there is a single loader thread
-            if (voxelChunk.State == VoxelChunkState.Queued)
+            if (chunk.State == VoxelChunkState.Queued)
             {
-                voxelChunk.State = VoxelChunkState.Loading;
+                chunk.State = VoxelChunkState.Loading;
                 //Console.WriteLine("Loading item " + item.key);
                 // HACK...
                 //mapIterator.Key = item.key;
 
-                createMeshes(voxelChunk);
-                voxelChunk.State = VoxelChunkState.Ready;
+                CreateMeshes(meshFactory, chunk);
+                chunk.State = VoxelChunkState.Ready;
             }
         }
 
-        private void createMeshes(VoxelChunk voxelChunk)
+        private static void CreateMeshes(VoxelMapMeshFactory meshFactory, VoxelChunk voxelChunk)
         {
             Debug.Assert(voxelChunk.VoxelMap != null);
 

@@ -14,9 +14,11 @@ namespace GameLibrary.Voxel
 
         public SceneGraph.Bounding.Box BoundingBox;
 
-        public Drawable ItemDrawable;
         public Drawable OpaqueDrawable;
         public Drawable TransparentDrawable;
+
+        // debug
+        public Drawable ItemDrawable;
 
         public VoxelChunk()
         {

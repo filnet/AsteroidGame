@@ -6,6 +6,7 @@ using GameLibrary.Util.Octree;
 using Microsoft.Xna.Framework.Graphics;
 using System;
 using System.Diagnostics;
+using static GameLibrary.Util.DirectionConstants;
 using static GameLibrary.Voxel.VoxelManager;
 
 namespace GameLibrary.Voxel.Grid
@@ -61,9 +62,10 @@ namespace GameLibrary.Voxel.Grid
 
         private VoxelMap GetNeighbourMap(VoxelMap map, Direction dir)
         {
-            Point3 key = new Point3(map.X0(), map.Y0(), map.Z0());
             // find neighbourg node if any
-            Octree<VoxelChunk>.DirData dirData = Octree<VoxelChunk>.DIR_DATA[(int)dir];
+            DirData dirData = DirData.Get(dir);
+            // XXX
+            Point3 key = new Point3(map.X0(), map.Y0(), map.Z0());
             int nx = key.X / map.Size() + dirData.dX;
             int ny = key.Y / map.Size() + dirData.dY;
             int nz = key.Z / map.Size() + dirData.dZ;
@@ -73,7 +75,7 @@ namespace GameLibrary.Voxel.Grid
 
         public override bool LoadItem(GridItem<VoxelChunk> item, ref Object arg)
         {
-            return voxelManager.LoadItem(item, ref arg);
+            return voxelManager.LoadItem(item.obj, ref arg);
         }
 
         public void ClearLoadQueue()

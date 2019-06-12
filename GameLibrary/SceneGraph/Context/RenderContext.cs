@@ -261,6 +261,30 @@ namespace GameLibrary.SceneGraph
             ClearBins();
         }
 
+        private Matrix previousViewProjectionMatrix = Matrix.Identity;
+
+        public bool CameraDirty()
+        {
+            if (!previousViewProjectionMatrix.Equals(camera.ViewProjectionMatrix))
+            {
+                previousViewProjectionMatrix = camera.ViewProjectionMatrix;
+                return true;
+            }
+            return false;
+        }
+
+        private int previousVisitOrder = 0;
+
+        public bool CameraVisitOrderDirty()
+        {
+            if (previousVisitOrder != camera.VisitOrder)
+            {
+                previousVisitOrder = camera.VisitOrder;
+                return true;
+            }
+            return false;
+        }
+
         public virtual bool RedrawRequested()
         {
             return drawRequested;

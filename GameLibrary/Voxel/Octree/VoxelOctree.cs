@@ -28,7 +28,7 @@ namespace GameLibrary.Voxel.Octree
 
         private OctreeVoxelMapIterator mapIterator;
 #if NEW_FACTORY
-        private NewVoxelMapMeshFactory meshFactory;
+        private VoxelMapMeshFactory meshFactory;
 #else
         private VoxelMapMeshFactory meshFactory;
 #endif
@@ -69,7 +69,7 @@ namespace GameLibrary.Voxel.Octree
 
             mapIterator = new OctreeVoxelMapIterator(this, pool);
 #if NEW_FACTORY
-            meshFactory = new NewVoxelMapMeshFactory(graphicsDevice, null);
+            meshFactory = new VoxelMapMeshFactory(graphicsDevice, pool, null);
 #else
             meshFactory = new VoxelMapMeshFactory(graphicsDevice, pool);
 #endif

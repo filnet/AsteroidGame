@@ -692,7 +692,11 @@ namespace GameLibrary.SceneGraph
                     // should not be done here but cannot be done in the cull visitor as it is called more than once
                     // and we don't want to clear it more than once...
                     // should be done in the update visitor ?
-                    //voxelGridGeometry.voxelGrid.ClearLoadQueue();
+                    if (ctxt.CameraVisitOrderDirty())
+                    {
+                        voxelGridGeometry.voxelGrid.ClearLoadQueue();
+                    }
+                    
                     //voxelGridGeometry.voxelGrid.Visit(
                     //    ctxt.CullCamera.VisitOrder, VOXEL_GRID_CULL_VISITOR, null, VOXEL_GRID_CULL_POST_VISITOR, arg);
                     voxelGridGeometry.voxelGrid.Cull(ctxt, VOXEL_GRID_CULL_VISITOR, arg);

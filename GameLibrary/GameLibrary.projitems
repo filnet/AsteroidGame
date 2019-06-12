@@ -58,10 +58,8 @@
     <Compile Include="$(MSBuildThisFileDirectory)Util\ObjectPool.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Util\Stats.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Voxel\Effect\VoxelSimpleEffect.cs" />
-    <Compile Include="$(MSBuildThisFileDirectory)Voxel\Geometry\NewVoxelMapMeshFactory.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)Voxel\Geometry\VoxelMapMeshFactory.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Voxel\Geometry\VoxelVertexBufferBuilder.cs" />
-    <Compile Include="$(MSBuildThisFileDirectory)Voxel\Grid\GridVoxelMapIterator.cs" />
-    <Compile Include="$(MSBuildThisFileDirectory)Voxel\VoxelManager.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Voxel\Octree\OctreeVoxelMapIterator.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Voxel\Octree\VoxelOctree.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Voxel\VoxelChunk.cs" />
@@ -115,12 +113,13 @@
     <Compile Include="$(MSBuildThisFileDirectory)StockEffects\C#\InstancingEffect.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Util\BitUtil.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Voxel\FunctionVoxelMap.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)Voxel\VoxelManager.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Voxel\VoxelMapIterator.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Voxel\Voxelnfo.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Voxel\VoxelUtil.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Voxel\Octree\VoxelOctreeGeometry.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Util\Octree\Octree.cs" />
-    <Compile Include="$(MSBuildThisFileDirectory)Voxel\Geometry\VoxelMapMeshFactory.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)Voxel\Geometry\OldVoxelMapMeshFactory.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Physics\Integrator.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)SceneGraph\EffectFactory.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)SceneGraph\Common\GeometryNode.cs" />

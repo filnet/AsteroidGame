@@ -231,18 +231,6 @@ namespace GameLibrary.SceneGraph
             }
         }
 
-        private Matrix previousViewProjectionMatrix = Matrix.Identity;
-
-        public bool CameraDirty()
-        {
-            if (!previousViewProjectionMatrix.Equals(camera.ViewProjectionMatrix))
-            {
-                previousViewProjectionMatrix = camera.ViewProjectionMatrix;
-                return true;
-            }
-            return false;
-        }
-
         public void SetCameraMode(CameraMode mode)
         {
             if (mode == cameraMode)
