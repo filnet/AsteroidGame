@@ -26,9 +26,9 @@ namespace GameLibrary.Voxel
         private VoxelMapMeshFactory meshFactory2;
         private VoxelMapMeshFactory meshFactory3;
 
-        private bool CompressAtInitialization = true;
-        private bool LoadFromDisk = true;
-        private bool WriteToDisk = true;
+        public bool CompressAtInitialization = true;
+        public bool LoadFromDisk = true;
+        public bool WriteToDisk = true;
         //private bool LoadAtInitialization = false;
         //private bool CreateMeshOnInitialization = false;
         //private bool ExitAfterLoad = false;
@@ -45,10 +45,14 @@ namespace GameLibrary.Voxel
 
         public delegate void ObjectLoadedCallback();
 
+        public delegate VoxelMap VoxelMapFactory(int x, int y, int z, int size);
+
         //public ObjectFactory objectFactory;
         //private GetNeighbourMapCallback getNeighbourMapCallback;
 
         private ObjectLoadedCallback objectLoadedCallback;
+
+        public string Name;
 
         public VoxelManager(GraphicsDevice graphicsDevice, ObjectLoadedCallback objectLoadedCallback, GetNeighbourMapCallback getNeighbourMapCallback)
         {
@@ -82,17 +86,17 @@ namespace GameLibrary.Voxel
         }
 
         // TODO this should be done asynchronously
-        public VoxelChunk CreateObject(int x, int y, int z, int chunkSize)
+        public VoxelChunk CreateChunk(int x, int y, int z, int size, VoxelMapFactory voxelMapFactory)
         {
             VoxelChunk voxelChunk = null;
 
             /*int x, y, z;
-            x = item.key.X * chunkSize;
-            y = item.key.Y * chunkSize;
-            z = item.key.Z * chunkSize;*/
-            x *= chunkSize;
-            y *= chunkSize;
-            z *= chunkSize;
+            x = item.key.X * size;
+            y = item.key.Y * size;
+            z = item.key.Z * size;*/
+            x *= size;
+            y *= size;
+            z *= size;
 
             //String name = item.ToString();
             StringBuilder sb = new StringBuilder(32);
@@ -108,7 +112,7 @@ namespace GameLibrary.Voxel
                 using (Stats.Use("VoxelManager.ReadMap"))
                 {
                     // FIXME get RLEVoxelMap from pool
-                    RLEVoxelMap rleMap = new RLEVoxelMap(chunkSize, x, y, z);
+                    RLEVoxelMap rleMap = new RLEVoxelMap(size, x, y, z);
                     if (ReadVoxelMap(name, rleMap))
                     {
                         map = rleMap;
@@ -123,13 +127,7 @@ namespace GameLibrary.Voxel
             {
                 using (Stats.Use("VoxelManager.CreateMap"))
                 {
-                    //VoxelMap map = new AOTestVoxelMap(chunkSize, x, y, z);
-                    //VoxelMap map = new SpongeVoxelMap(chunkSize, x, y, z);
-                    // TODO this generates garbage (need a size less perlin noise map
-                    VoxelMap perlinNoiseMap = new PerlinNoiseVoxelMap(chunkSize, x, y, z);
-
-                    map = perlinNoiseMap;
-
+                    map = voxelMapFactory(x, y, z, size);
                     if (CompressAtInitialization)
                     {
                         RLEVoxelMap rleMap = new RLEVoxelMap(map);
@@ -174,9 +172,9 @@ namespace GameLibrary.Voxel
                 // FIXME should be merge of opaque+transparent...
                 Vector3 center;
                 Vector3 halfSize;
-                halfSize.X = (float)chunkSize / 2.0f;
-                halfSize.Y = (float)chunkSize / 2.0f;
-                halfSize.Z = (float)chunkSize / 2.0f;
+                halfSize.X = (float)size / 2.0f;
+                halfSize.Y = (float)size / 2.0f;
+                halfSize.Z = (float)size / 2.0f;
                 center.X = (float)x + halfSize.X;
                 center.Y = (float)y + halfSize.Y;
                 center.Z = (float)z + halfSize.Z;
@@ -202,7 +200,7 @@ namespace GameLibrary.Voxel
 
         public bool ReadVoxelMap(String name, VoxelMap map)
         {
-            String path = "C:\\Projects\\XNA\\Save\\" + name;
+            String path = "C:\\Projects\\XNA\\Save\\" + Name + name;
 
             try
             {
@@ -211,7 +209,7 @@ namespace GameLibrary.Voxel
                     map.Read(reader);
                 }
             }
-            catch (IOException ex)
+            catch (IOException)
             {
                 //Console.WriteLine(ex.Message);
                 return false;
@@ -221,7 +219,7 @@ namespace GameLibrary.Voxel
 
         public bool WriteVoxelMap(String name, VoxelMap map)
         {
-            String path = "C:\\Projects\\XNA\\Save\\" + name;
+            String path = "C:\\Projects\\XNA\\Save\\" + Name + name;
             using (var writer = new BinaryWriter(File.Open(path, FileMode.OpenOrCreate)))
             {
                 map.Write(writer);
@@ -229,7 +227,7 @@ namespace GameLibrary.Voxel
             return true;
         }
 
-        public bool LoadItem(VoxelChunk chunk, ref Object arg)
+        public bool LoadChunk(VoxelChunk chunk, ref Object arg)
         {
             chunk.State = VoxelChunkState.Queued;
             //Console.WriteLine("Queuing " + item.locCode);

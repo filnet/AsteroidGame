@@ -1,4 +1,5 @@
 ﻿using GameLibrary.SceneGraph.Common;
+using System.Runtime.InteropServices;
 
 namespace GameLibrary.Voxel
 {
@@ -9,6 +10,11 @@ namespace GameLibrary.Voxel
 
     public sealed class VoxelChunk
     {
+        public ulong LocCode;
+        public int X;
+        public int Y;
+        public int Z;
+
         public VoxelChunkState State;
         public VoxelMap VoxelMap;
 

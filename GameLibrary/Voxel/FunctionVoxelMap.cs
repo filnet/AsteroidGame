@@ -117,6 +117,18 @@ namespace GameLibrary.Voxel
         }
     }
 
+    class ConstantVoxelMap : FunctionVoxelMap
+    {
+        public ConstantVoxelMap(int size, int x0, int y0, int z0) : base(size, x0, y0, z0)
+        {
+        }
+
+        protected override ushort F(int x, int y, int z)
+        {
+            return (ushort)VoxelType.Snow;
+        }
+    }
+
     class XXXVoxelMap : FunctionVoxelMap
     {
         public XXXVoxelMap(int size, int x0, int y0, int z0) : base(size, x0, y0, z0)

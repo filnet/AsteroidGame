@@ -226,8 +226,8 @@ namespace GameLibrary.Voxel
                 float t = thickness / 2f;
                 // desaturate
                 if (true)
-                // t -> t/3 in levelCount steps
                 {
+                    // t -> t/3 in levelCount steps
                     t = MathUtil.Lerp(t, t / 3.0f, (float)level / (float)(levelCount - 1));
                 }
                 else
@@ -241,9 +241,13 @@ namespace GameLibrary.Voxel
                 var data = new Color[width];
                 for (int i = width - 1; i >= 0; i--)
                 {
-                    float alpha = t >= 1.0f ? 1.0f : t;
-                    t = Math.Max(t - 1.0f, 0);
+                    float alpha = t > 1.0f ? 1.0f : t;
+                    /*if (t > 0)
+                    {
+                        Console.WriteLine("{0}.{1}={2}", level, i, t);
+                    }*/
                     data[i] = new Color(c, alpha);
+                    t = Math.Max(t - 1.0f, 0);
                 }
                 texture.SetData(level, 0, null, data, 0, data.Length);
                 width /= 2;

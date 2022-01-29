@@ -56,11 +56,12 @@
     <Compile Include="$(MSBuildThisFileDirectory)SceneGraph\Common\FakeDrawable.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)SceneGraph\Common\MeshDrawable.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Util\ObjectPool.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)Util\Point3.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)Util\Raster\LineRasterizer.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Util\Stats.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Voxel\Effect\VoxelSimpleEffect.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Voxel\Geometry\VoxelMapMeshFactory.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Voxel\Geometry\VoxelVertexBufferBuilder.cs" />
-    <Compile Include="$(MSBuildThisFileDirectory)Voxel\Octree\OctreeVoxelMapIterator.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Voxel\Octree\VoxelOctree.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Voxel\VoxelChunk.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Voxel\Effect\VoxelWaterEffect.cs" />

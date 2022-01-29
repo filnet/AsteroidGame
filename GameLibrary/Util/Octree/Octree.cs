@@ -200,12 +200,6 @@ namespace GameLibrary.Util.Octree
             throw new NotImplementedException();
         }
 
-        // TODO does not belong here
-        public virtual void ClearLoadQueue()
-        {
-            throw new NotImplementedException();
-        }
-
         public void GetNodeHalfSize(OctreeNode<T> node, out Vector3 halfSize)
         {
             int depth = GetNodeTreeDepth(node);
@@ -303,7 +297,12 @@ namespace GameLibrary.Util.Octree
             return node;
         }
 
-        public OctreeNode<T> AddChild(Vector3 point, int depth)
+        public ulong GetLocCode(int x, int y, int z, int depth)
+        {
+            return GetLocCode(new Vector3(x, y, z), depth);
+        }
+
+        public ulong GetLocCode(Vector3 point, int depth)
         {
             OctreeNode<T> parent = RootNode;
 
@@ -323,7 +322,7 @@ namespace GameLibrary.Util.Octree
                 }
                 else
                 {
-                    parent = AddChild(parent, octant);
+                    return 0;
                 }
                 if (d < depth - 1)
                 {
@@ -340,7 +339,7 @@ namespace GameLibrary.Util.Octree
                     center.Z += c.Z;
                 }
             }
-            return parent;
+            return locCode;
         }
 
         public static Octant GetOctantForPoint(Vector3 center, Vector3 point)

@@ -18,7 +18,7 @@ namespace GameLibrary.Util
             internal long min;
             internal long max;
 
-            private readonly object syncLock = new object();
+            private readonly object syncLock = new object();        
 
             internal Stat(string name)
             {
@@ -39,6 +39,8 @@ namespace GameLibrary.Util
                     max = Math.Max(max, t);
                 }
             }
+
+            public long Elapsed { get { return total;  } }
 
             internal void Log()
             {
@@ -92,10 +94,14 @@ namespace GameLibrary.Util
             return Instance;
         }
 
-        private static void Start(string name)
+        public static TimeSpan Elapsed(string name)
         {
-            Stat stat;
-            if (!entries.TryGetValue(name, out stat))
+            return new TimeSpan(Get(name).Elapsed);
+        }
+
+        private static Stat Get(string name)
+        {
+            if (!entries.TryGetValue(name, out Stat stat))
             {
                 stat = new Stat(name);
                 if (!entries.TryAdd(name, stat))
@@ -104,8 +110,12 @@ namespace GameLibrary.Util
                     stat = entries[name];
                 }
             }
-            Stopwatch stopwatch;
-            if (!stopwatchPool.TryPop(out stopwatch))
+            return stat;
+        }
+
+        private static void Start(string name)
+        {
+            if (!stopwatchPool.TryPop(out Stopwatch stopwatch))
             {
                 stopwatch = new Stopwatch();
             }
@@ -113,7 +123,7 @@ namespace GameLibrary.Util
             Stack<StackEntry> stack = stackThreadLocal.Value;
 
             StackEntry entry;
-            entry.stat = stat;
+            entry.stat = Get(name);            
             entry.stopwatch = stopwatch;
             stack.Push(entry);
 

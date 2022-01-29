@@ -26,8 +26,11 @@ namespace GameLibrary.Component.Camera
             Orbit
         };
 
+        //public const float DEFAULT_FOVX = MathHelper.Pi / 3.0f;
         public const float DEFAULT_FOVX = MathHelper.Pi / 3.0f;
+
         public const float DEFAULT_ZNEAR = 0.1f;
+        
         public const float DEFAULT_ZFAR = 1000;
         //public const float DEFAULT_ZFAR = 200;
         //public const float DEFAULT_ZFAR = 500;
@@ -1034,8 +1037,8 @@ namespace GameLibrary.Component.Camera
             // compute visit order based on view direction
             visitOrder = VectorUtil.VisitOrder(ViewDirection);
 
-            int perm = visitOrder >> 3;
             int signs = (visitOrder & 0b111);
+            int perm = visitOrder >> 3;
             //Console.WriteLine("{0}", ViewDirection);
             //Console.WriteLine("{0} {1}", perm, Convert.ToString(signs, 2));
 

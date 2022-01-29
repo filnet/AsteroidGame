@@ -382,6 +382,118 @@ namespace GameLibrary.SceneGraph.Bounding
             result = 0.0f;
         }
 
+        public const int MISSED = 0;
+        public const int FRONT = 1;
+        public const int BACK = -1;
+
+        public int Intersects(ref Ray ray, out Vector3? near, out Vector3? far) //, tmax, phdrn, ph_num, tresult, norm )
+                                        //Point3* org, *dir ;	/* origin and direction of ray */
+                                        //double tmax;        /* maximum useful distance along ray */
+                                        //        Point4* phdrn;  /* list of planes in convex polyhedron */
+                                        //        int ph_num; /* number of planes in convex polyhedron */
+                                        //        double* tresult;    /* returned: distance of intersection along ray */
+                                        //        Point3* norm;		/* returned: normal of face hit */
+        {
+            //Point4* pln;            /* plane equation */
+            //double tnear, tfar, t, vn, vd;
+            //int fnorm_num, bnorm_num;   /* front/back face # hit */
+
+            float t;
+            float tmax = float.MaxValue;
+
+            float tnear = float.MinValue;
+            float tfar = float.MaxValue;
+            //tnear = -HUGE_VAL ;
+            //tfar = tmax ;
+
+            near = null;
+            far = null;
+
+            // Test each plane
+            foreach (Plane plane in planes)
+            //for (pln = &phdrn[ph_num - 1]; ph_num--; pln--)
+            {
+                // Compute intersection point T and sidedness
+                //vd = DOT3(dir, pln);
+                //vn = DOT3(org, pln) + pln->w;
+                float vd = Vector3.Dot(ray.Direction, plane.Normal);
+                float vn = Vector3.Dot(ray.Position, plane.Normal) + plane.D;
+                if (vd == 0.0)
+                {
+                    // ray is parallel to plane - check if ray origin is inside plane's half-space
+                    if (vn > 0.0)
+                    {
+                        // ray origin is outside half-space
+                        return MISSED;
+                    }
+                }
+                else
+                {
+                    // ray not parallel - get distance to plane
+                    t = -vn / vd;
+                    if (vd < 0.0)
+                    {
+                        // front face - T is a near point
+                        if (t > tfar)
+                        {
+                            return MISSED;
+                        }
+                        if (t > tnear)
+                        {
+                            // hit near face, update normal 
+                            //fnorm_num = ph_num;
+                            tnear = t;
+                        }
+                    }
+                    else
+                    {
+                        // back face - T is a far point
+                        if (t < tnear) 
+                        {
+                            return MISSED;
+                        }
+                        if (t < tfar)
+                        {
+                            // hit far face, update normal */
+                            //bnorm_num = ph_num;
+                            tfar = t;
+                        }
+                    }
+                }
+            }
+
+            // survived all tests
+            // Note: if ray originates on polyhedron, may want to change 0.0 to some
+            // epsilon to avoid intersecting the originating face.
+            if (tnear >= 0.0)
+            {
+                // outside, hitting front face
+                //*norm = *(Point3*)&phdrn[fnorm_num];
+
+                //*tresult = tnear;
+                near = ray.Position + tnear * ray.Direction;
+                far = ray.Position + tfar * ray.Direction;
+                return FRONT;
+            }
+            else
+            {
+                if (tfar < tmax)
+                {
+                    // inside, hitting back face
+                    //*norm = *(Point3*)&phdrn[bnorm_num];
+
+                    //*tresult = tfar;
+                    near = ray.Position - tnear * ray.Direction;
+                    return BACK;
+                }
+                else
+                {
+                    // inside, but back face beyond tmax
+                    return MISSED;
+                }
+            }
+        }
+
         #endregion
 
         #region Hull

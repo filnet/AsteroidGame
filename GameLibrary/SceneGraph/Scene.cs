@@ -681,7 +681,10 @@ namespace GameLibrary.SceneGraph
                     // should not be done here but cannot be done in the cull visitor as it is called more than once
                     // and we don't want to clear it more than once...
                     // should be done in the update visitor ?
-                    voxelOctreeGeometry.voxelOctree.ClearLoadQueue();
+                    if (ctxt.CameraVisitOrderDirty())
+                    {
+                        voxelOctreeGeometry.voxelOctree.ClearLoadQueue();
+                    }
                     voxelOctreeGeometry.voxelOctree.Visit(
                         ctxt.CullCamera.VisitOrder, VOXEL_OCTREE_CULL_VISITOR, null, VOXEL_OCTREE_CULL_POST_VISITOR, arg);
                     return true;
@@ -696,7 +699,7 @@ namespace GameLibrary.SceneGraph
                     {
                         voxelGridGeometry.voxelGrid.ClearLoadQueue();
                     }
-                    
+
                     //voxelGridGeometry.voxelGrid.Visit(
                     //    ctxt.CullCamera.VisitOrder, VOXEL_GRID_CULL_VISITOR, null, VOXEL_GRID_CULL_POST_VISITOR, arg);
                     voxelGridGeometry.voxelGrid.Cull(ctxt, VOXEL_GRID_CULL_VISITOR, arg);
@@ -1154,7 +1157,7 @@ namespace GameLibrary.SceneGraph
                     new Vector3(10, 530, 0),
                 };
 
-                GeometryNode borderNode = new MeshNode("HORTO_CORDER", new LineMeshFactory(borderVertices, true))
+                GeometryNode borderNode = new MeshNode("HORTO_BORDER", new LineMeshFactory(borderVertices, true))
                 {
                     RenderGroupId = Scene.HORTO
                 };

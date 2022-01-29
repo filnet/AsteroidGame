@@ -476,7 +476,6 @@ namespace GameLibrary.Voxel
 
         private bool Sweep(EagerVisitor visitor, int d, int u, int v)
         {
-            // FIXME array related garbage (dims, x, q, mask)
             int[] dims = { size, size, size };
 
             int[] x = { 0, 0, 0 };

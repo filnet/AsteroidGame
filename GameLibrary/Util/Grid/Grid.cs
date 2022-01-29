@@ -1,9 +1,10 @@
 ﻿using GameLibrary.SceneGraph;
+using GameLibrary.SceneGraph.Bounding;
 using Microsoft.Xna.Framework;
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
-using System.Text;
+using static GameLibrary.Util.Raster.LineRasterizerUtil;
 using static GameLibrary.VectorUtil;
 
 // see:
@@ -11,89 +12,6 @@ using static GameLibrary.VectorUtil;
 // http://hhoppe.com/geomclipmap.pdf
 namespace GameLibrary.Util.Grid
 {
-    // See http://hhoppe.com/perfecthash.pdf
-    [DebuggerDisplay("{DebugDisplayString,nq}")]
-    public struct Point3 : IEquatable<Point3>
-    {
-        //public static readonly IEqualityComparer<Point3> KeyEqualityComparerInstance = new KeyEqualityComparer();
-
-        public int X;
-        public int Y;
-        public int Z;
-
-        public Point3(int X, int Y, int Z)
-        {
-            this.X = X;
-            this.Y = Y;
-            this.Z = Z;
-        }
-
-        public override bool Equals(object obj)
-        {
-            if (!(obj is Point3))
-                return false;
-
-            var other = (Point3)obj;
-            return ((X == other.X) && (Y == other.Y) && (Z == other.Z));
-        }
-
-        public bool Equals(Point3 other)
-        {
-            return ((X == other.X) && (Y == other.Y) && (Z == other.Z));
-        }
-
-        public override int GetHashCode()
-        {
-            unchecked
-            {
-                var hashCode = X.GetHashCode();
-                hashCode = (hashCode * 31) ^ Y.GetHashCode();
-                hashCode = (hashCode * 127) ^ Z.GetHashCode();
-                return hashCode;
-            }
-        }
-
-        public override string ToString()
-        {
-            StringBuilder sb = new StringBuilder(32);
-            sb.Append("{X:");
-            sb.Append(this.X);
-            sb.Append(" Y:");
-            sb.Append(this.Y);
-            sb.Append(" Z:");
-            sb.Append(this.Z);
-            sb.Append("}");
-            return sb.ToString();
-        }
-
-        internal string DebugDisplayString
-        {
-            get
-            {
-                return string.Concat(
-                    this.X.ToString(), "  ",
-                    this.Y.ToString(), "  ",
-                    this.Z.ToString()
-                );
-            }
-        }
-
-        /*private sealed class KeyEqualityComparer : IEqualityComparer<Point3>
-        {
-            public bool Equals(Point3 key1, Point3 key2)
-            {
-                return ((key1.X == key2.X) && (key1.Y == key2.Y) && (key1.Z == key2.Z));
-            }
-
-            public int GetHashCode(Point3 key)
-            {
-                int hash = key.X;
-                hash = hash * 31 + key.Y;
-                hash = hash * 31 + key.Z;
-                return hash;
-            }
-        }*/
-    }
 
     public sealed class GridItem<T>
     {
@@ -144,6 +62,13 @@ namespace GameLibrary.Util.Grid
             p.Z = (int)(v.Z / chunkSize) + (Math.Sign(v.Z) - 1) / 2;
         }
 
+        public void ToVector3(ref Point3 p, out Vector3 v)
+        {
+            v.X = (p.X >= 0) ? p.X * chunkSize : p.X * chunkSize + 1;
+            v.Y = (p.Y >= 0) ? p.X * chunkSize : p.Y * chunkSize + 1;
+            v.Z = (p.Z >= 0) ? p.X * chunkSize : p.Z * chunkSize + 1;
+        }
+
         // TODO does not belong here
         public virtual bool LoadItem(GridItem<T> item, ref Object arg)
         {
@@ -161,16 +86,16 @@ namespace GameLibrary.Util.Grid
 
         struct RasterVisitorDelegate<T>
         {
-            public Grid<T> grid;
-            public Visitor<T> visitor;
-            public Object arg;
+            public Grid<T> Grid;
+            public Visitor<T> Visitor;
+            public Object Arg;
 
             public void RasterVisit(Point3 point)
             {
-                GridItem<T> item = grid.GetItem(point);
+                GridItem<T> item = Grid.GetItem(point);
                 if (item != null && item.obj != null)
                 {
-                    visitor.Invoke(grid, item, arg);
+                    Visitor.Invoke(Grid, item, Arg);
                 }
             }
         }
@@ -178,17 +103,17 @@ namespace GameLibrary.Util.Grid
         public void Cull(RenderContext ctxt, Visitor<T> visitor, Object arg)
         {
             CullNaiveFrontToBack(ctxt, visitor, arg);
-            //CullNaive(ctxt, visitor, arg);
             //CullX(ctxt, visitor, arg);
+            //CullNaive(ctxt, visitor, arg);
         }
 
         public void CullNaive(RenderContext ctxt, Visitor<T> visitor, Object arg)
         {
             RasterVisitorDelegate<T> visitorDelegate;
-            visitorDelegate.grid = this;
-            visitorDelegate.visitor = visitor;
-            visitorDelegate.arg = arg;
-            
+            visitorDelegate.Grid = this;
+            visitorDelegate.Visitor = visitor;
+            visitorDelegate.Arg = arg;
+
             ctxt.CullCamera.BoundingBox.MinMax(out Vector3 min, out Vector3 max);
 
             ToKey(ref min, out Point3 p1);
@@ -200,9 +125,9 @@ namespace GameLibrary.Util.Grid
         public void CullNaiveFrontToBack(RenderContext ctxt, Visitor<T> visitor, Object arg)
         {
             RasterVisitorDelegate<T> visitorDelegate;
-            visitorDelegate.grid = this;
-            visitorDelegate.visitor = visitor;
-            visitorDelegate.arg = arg;
+            visitorDelegate.Grid = this;
+            visitorDelegate.Visitor = visitor;
+            visitorDelegate.Arg = arg;
 
             ctxt.CullCamera.BoundingBox.MinMax(out Vector3 min, out Vector3 max);
 
@@ -219,19 +144,266 @@ namespace GameLibrary.Util.Grid
             AABBFrontToBack(ctxt.CullCamera.VisitOrder, p1, p2, visitorDelegate.RasterVisit);
         }
 
+
+        // the initial planes of traversal are:
+        // (1)    zy if (|x| > |y|) ∧ (|x| > |z|)
+        // (2)    zx if (|y| > |x|) ∧ (|y| > |z|)
+        // (3)    xy if (|z| > |x|) ∧ (|z| > |y|)
+        // (4)    zy and xy if |x| = |z|;
+        // (5)    zx and yx if |y| = |z|;
+        // (6)    yz and xz if |y| = |x|
         public void CullX(RenderContext ctxt, Visitor<T> visitor, Object arg)
         {
-            RasterVisitorDelegate<T> visitorDelegate;
-            visitorDelegate.grid = this;
-            visitorDelegate.visitor = visitor;
-            visitorDelegate.arg = arg;
+            /*RasterVisitorDelegate<T> visitorDelegate;
+            visitorDelegate.Grid = this;
+            visitorDelegate.Visitor = visitor;
+            visitorDelegate.Arg = arg;*/
+
+            Vector3 cameraPosition = ctxt.CullCamera.Position;
+            ToKey(ref cameraPosition, out Point3 o);
 
             ctxt.CullCamera.Frustum.NearFarFaceCenters(out Vector3 nearFaceCenter, out Vector3 farFaceCenter);
 
+            Vector3[] corners = ctxt.CullCamera.Frustum.GetCorners();
+            ToKey(ref corners[4], out Point3 p4);
+            ToKey(ref corners[5], out Point3 p5);
+            ToKey(ref corners[6], out Point3 p6);
+            ToKey(ref corners[7], out Point3 p7);
+            p4 -= o;
+            p5 -= o;
+            p6 -= o;
+            p7 -= o;
+            int mp4 = p4.ManhatanDistance();
+            int mp5 = p4.ManhatanDistance();
+            int mp6 = p4.ManhatanDistance();
+            int mp7 = p4.ManhatanDistance();
+            Debug.Assert(mp4 == mp5);
+            Debug.Assert(mp4 == mp6);
+            Debug.Assert(mp4 == mp7);
+
             ToKey(ref nearFaceCenter, out Point3 p1);
             ToKey(ref farFaceCenter, out Point3 p2);
+            p1 -= o;
+            p2 -= o;
 
-            Line(p1, p2, visitorDelegate.RasterVisit);
+            LineRasterizer rasterizer = CreateLineRasterizer(p1, p2);
+            int maxZ = -1;
+            while (true /*rasterizer.HasNext()*/)
+            {
+#if DEBUG
+                bool hasNext = rasterizer.HasNext();
+#endif             
+                rasterizer.Next(out Point3 seed);
+                if (seed.ManhatanDistance() > mp4)
+                {
+                    break;
+                }
+                ToVector3(ref seed, out Vector3  v);
+                //v.Z = Math.Max(v.Z, nearFaceCenter.Z);
+                //v.Z = Math.Min(v.Z, farFaceCenter.Z);
+                Ray ray = new Ray(v, Vector3.Left);
+
+                Point3 n = new Point3();
+                Point3 f = new Point3();
+
+                Vector3? near;
+                Vector3? far;
+                int rit = ctxt.CullCamera.Frustum.Intersects(ref ray, out near, out far);
+                switch (rit)
+                {
+                    case Frustum.MISSED:
+                        //Debug.Assert(false);
+                        break;
+                    case Frustum.FRONT:
+                        {
+                            //Debug.Assert(!hasNext);
+                            Debug.Assert(near != null);
+                            Debug.Assert(far != null);
+                            // seed is outside frustum
+                            Vector3 nearValue = near.Value;
+                            Vector3 farValue = far.Value;
+                            ToKey(ref nearValue, out n);
+                            ToKey(ref farValue, out f);
+                        }
+                        break;
+                    case Frustum.BACK:
+                        {
+                            Debug.Assert(near != null);
+                            //Debug.Assert(hasNext);
+                            Debug.Assert(near != null);
+                            // seed is inside frustum
+                            n = seed;
+                            Vector3 nearValue = near.Value;
+                            ToKey(ref nearValue, out f);
+                        }
+                        break;
+                }
+                //Debug.Assert(rit != Frustum.MISSED);
+                if (rit == Frustum.MISSED)
+                {
+                    break;
+                }
+                bool seedCulled = false;
+                GridItem<T> seedItem = GetItem(o + seed);
+                if (seedItem != null && seedItem.obj != null)
+                {
+                    seedCulled = !visitor.Invoke(this, seedItem, arg);
+                }
+                //continue;
+
+                Point3 p = seed;
+                if (n == seed)
+                {
+                    n.X -= 1;
+                }
+                for (int x = n.X; x >= f.X; x--)
+                {
+                    p.X = x;
+                    GridItem<T> item = GetItem(o + p);
+                    if (item != null && item.obj != null)
+                    {
+                        bool culled = !visitor.Invoke(this, item, arg);
+                        //Debug.Assert(!culled);
+                    }
+                }
+            }
+
+        }
+
+        // the initial planes of traversal are:
+        // (1)    zy if (|x| > |y|) ∧ (|x| > |z|)
+        // (2)    zx if (|y| > |x|) ∧ (|y| > |z|)
+        // (3)    xy if (|z| > |x|) ∧ (|z| > |y|)
+        // (4)    zy and xy if |x| = |z|;
+        // (5)    zx and yx if |y| = |z|;
+        // (6)    yz and xz if |y| = |x|
+        public void CullXX(RenderContext ctxt, Visitor<T> visitor, Object arg)
+        {
+            /*RasterVisitorDelegate<T> visitorDelegate;
+            visitorDelegate.Grid = this;
+            visitorDelegate.Visitor = visitor;
+            visitorDelegate.Arg = arg;*/
+
+            Vector3 cameraPosition = ctxt.CullCamera.Position;
+            ToKey(ref cameraPosition, out Point3 o);
+
+            ctxt.CullCamera.Frustum.NearFarFaceCenters(out Vector3 nearFaceCenter, out Vector3 farFaceCenter);
+
+            Vector3[] corners = ctxt.CullCamera.Frustum.GetCorners();
+            ToKey(ref corners[4], out Point3 p4);
+            ToKey(ref corners[5], out Point3 p5);
+            ToKey(ref corners[6], out Point3 p6);
+            ToKey(ref corners[7], out Point3 p7);
+            p4 -= o;
+            p5 -= o;
+            p6 -= o;
+            p7 -= o;
+            int mp4 = p4.ManhatanDistance();
+            int mp5 = p4.ManhatanDistance();
+            int mp6 = p4.ManhatanDistance();
+            int mp7 = p4.ManhatanDistance();
+            Debug.Assert(mp4 == mp5);
+            Debug.Assert(mp4 == mp6);
+            Debug.Assert(mp4 == mp7);
+
+            ToKey(ref nearFaceCenter, out Point3 p1);
+            ToKey(ref farFaceCenter, out Point3 p2);
+            p1 -= o;
+            p2 -= o;
+
+            LineRasterizer rasterizer = CreateLineRasterizer(p1, p2);
+            int maxZ = -1;
+            while (true /*rasterizer.HasNext()*/)
+            {
+                rasterizer.Next(out Point3 seed);
+                if (seed.ManhatanDistance() > mp4)
+                {
+                    break;
+                }
+                bool seedCulled = false;
+                GridItem<T> seedItem = GetItem(o + seed);
+                if (seedItem != null && seedItem.obj != null)
+                {
+                    seedCulled = !visitor.Invoke(this, seedItem, arg);
+                }
+                if (seed.X == 0 && seed.Y == 0 && seed.Z == 0)
+                {
+                    continue;
+                }
+                GridItem<T> item;
+                Point3 p = seed;
+                bool culled = false;
+                if (!seedCulled)
+                {
+                    while (!culled && (Math.Abs(p.X) != Math.Abs(p.Z)))
+                    {
+                        p.X -= 1;
+                        item = GetItem(o + p);
+                        if (item != null && item.obj != null)
+                        {
+                            culled = !visitor.Invoke(this, item, arg);
+                        }
+                    }
+                }
+                else
+                {
+                    if (maxZ == -1)
+                    {
+                        maxZ = p.Z;
+                    }
+                    p.X = -Math.Abs(p.Z);
+                    p.Z = maxZ;
+                    culled = false;
+                }
+                if (!culled)
+                {
+                    p.Z += 1;
+                    item = GetItem(o + p);
+                    if (item != null && item.obj != null)
+                    {
+                        culled = !visitor.Invoke(this, item, arg);
+                    }
+                    while (!culled && (Math.Abs(p.X) != Math.Abs(p.Z)))
+                    {
+                        p.Z += 1;
+                        item = GetItem(o + p);
+                        if (item != null && item.obj != null)
+                        {
+                            culled = !visitor.Invoke(this, item, arg);
+                        }
+                    }
+                }
+                /*culled = false;
+                p = seed;
+                while (!culled && (Math.Abs(p.X) != Math.Abs(p.Z)))
+                {
+                    p.X += 1;
+                    item = GetItem(o + p);
+                    if (item != null && item.obj != null)
+                    {
+                        culled = !visitor.Invoke(this, item, arg);
+                    }
+                }
+                if (!culled)
+                {
+                    p.Z += 1;
+                    item = GetItem(o + p);
+                    if (item != null && item.obj != null)
+                    {
+                        culled = !visitor.Invoke(this, item, arg);
+                    }
+                    while (!culled && (Math.Abs(p.X) != Math.Abs(p.Z)))
+                    {
+                        p.Z += 1;
+                        item = GetItem(o + p);
+                        if (item != null && item.obj != null)
+                        {
+                            culled = !visitor.Invoke(this, item, arg);
+                        }
+                    }
+                }*/
+            }
+
         }
 
         public void AABBFrontToBack(int order, Point3 p1, Point3 p2, RasterVisitor visitor)
@@ -274,7 +446,7 @@ namespace GameLibrary.Util.Grid
             }
 
             int i = p1.X - di;
-            do 
+            do
             {
                 i += di;
                 int j = p1.Y - dj;

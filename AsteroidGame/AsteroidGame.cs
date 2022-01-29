@@ -398,10 +398,9 @@ namespace AsteroidGame
             Node groundNode = new VoxelGridGeometry("GRID", 32);
 
             VoxelOctreeGeometry voxelOctreeNode = new VoxelOctreeGeometry("OCTREE", 256, 32);
-            voxelOctreeNode.voxelOctree.LoadFromDisk = false;
-            TransformNode structureNode = new TransformNode("SCENE");
+            TransformNode structureNode = new TransformNode("STRUCTURE");
             structureNode.Add(voxelOctreeNode);
-            structureNode.Translation = new Vector3(200, 64 + 0.001f, 200);
+            //structureNode.Translation = new Vector3(200, 64 + 0.001f, 200);
 
             GeometryNode sphereGeo = GeometryUtil.CreateSphere("SPHERE", 2);
             sphereGeo.RenderGroupId = Scene.ONE_LIGHT;
@@ -410,7 +409,7 @@ namespace AsteroidGame
             LightNode sunNode = new LightNode("LIGHT_SUN");
             sunNode.Translation = new Vector3(1, 1, 1);
 
-            //sunNode.Add(structureNode);
+            sunNode.Add(structureNode);
             sunNode.Add(groundNode);
             sunNode.Add(sphereGeo);
 

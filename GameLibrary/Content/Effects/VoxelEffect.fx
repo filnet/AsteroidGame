@@ -523,7 +523,7 @@ float4 blendWF(float4 src, float4 dst)
     }
 */
 
-float ComputerPercentageLit(int splitIndex, float4 shadowTexCoord, float dist)
+float ComputePercentageLit(int splitIndex, float4 shadowTexCoord, float dist)
 {
 	float shadowFactor = ShadowMapTexture.SampleCmpLevelZero(ShadowSampler, float3(shadowTexCoord.xy, splitIndex), dist);
 	//float shadowDistance = SAMPLE_TEXTURE(ShadowMapTexture, shadowTexCoord).x;
@@ -559,7 +559,7 @@ float4 PSBasicVertexLightingTxNoFog(VSOutputTx pin) : SV_Target0
 
 	// shadow cascade
 	
-	// Interval-based cascade selection uses a vector comparison and a dot product to determine the correct cacade.
+	// Interval-based cascade selection uses a vector comparison and a dot product to determine the correct cascade.
 	// The CascadeCount specifies the number of cascades.
 	// The m_fCascadeFrustumsEyeSpaceDepths_data constrains the view frustum partitions.
 	// After the comparison, the fComparison contains a value of 1 where the current pixel is larger than the barrier, and a value of 0 when the current cascade is smaller.
@@ -584,7 +584,7 @@ float4 PSBasicVertexLightingTxNoFog(VSOutputTx pin) : SV_Target0
     //float lightDistance = PositionLS.z / PositionLS.w;
 	
 	// shadow
-	float shadowFactor = ComputerPercentageLit(splitIndex, shadowTexCoord, lightDistance);
+	float shadowFactor = ComputePercentageLit(splitIndex, shadowTexCoord, lightDistance);
 
 	// pixel color
     float4 cout = color * AmbientColor;

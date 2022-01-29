@@ -79,9 +79,9 @@ namespace GameLibrary
         };
 
         //delegate (int x, int y, int z, out int px, out int py, out int pz) {  px = z; py = x; pz = y; }, // y z x
-            //delegate (int x, int y, int z, out int px, out int py, out int pz) {  px = y; py = z; pz = x; }, // z x y
+        //delegate (int x, int y, int z, out int px, out int py, out int pz) {  px = y; py = z; pz = x; }, // z x y
 
-//delegate (int x, int y, int z, out int px, out int py, out int pz) {  px = y; py = z; pz = x; }, // y z x
+        //delegate (int x, int y, int z, out int px, out int py, out int pz) {  px = y; py = z; pz = x; }, // y z x
         //delegate (int x, int y, int z, out int px, out int py, out int pz) {  px = z; py = x; pz = y; }, // z x y
 
         public static readonly Permute<int>[] INV_PERMUTATIONS = new Permute<int>[] {
@@ -93,43 +93,43 @@ namespace GameLibrary
             PERMUTATIONS[5],
         };
 
-// taken from http://www.iquilezles.org/www/articles/volumesort/volumesort.htm
-// returns the direction visit order (one of the 48 visit orders between 0 and 47)
-// bits 5, 4, 3 give the 6 x,y z permutations
-// bits 2, 1, 0 give the the sign bit (0=+, 1=-) for x, y, z respectivly (8 sign permutations)
-public static int VisitOrder(Vector3 dir)
-{
-    int sx = (dir.X < 0.0f) ? 1 : 0;
-    int sy = (dir.Y < 0.0f) ? 1 : 0;
-    int sz = (dir.Z < 0.0f) ? 1 : 0;
-    float ax = Math.Abs(dir.X);
-    float ay = Math.Abs(dir.Y);
-    float az = Math.Abs(dir.Z);
+        // taken from http://www.iquilezles.org/www/articles/volumesort/volumesort.htm
+        // returns the direction visit order (one of the 48 visit orders between 0 and 47)
+        // bits 5, 4, 3 give the 6 x, y, z permutations
+        // bits 2, 1, 0 give the the sign bit (0=+, 1=-) for x, y, z respectivly (8 sign permutations)
+        public static int VisitOrder(Vector3 dir)
+        {
+            int sx = (dir.X < 0.0f) ? 1 : 0;
+            int sy = (dir.Y < 0.0f) ? 1 : 0;
+            int sz = (dir.Z < 0.0f) ? 1 : 0;
+            float ax = Math.Abs(dir.X);
+            float ay = Math.Abs(dir.Y);
+            float az = Math.Abs(dir.Z);
 
-    int signs;
-    if (ax > ay && ax > az)
-    {
-        if (ay > az)
-            signs = 0 + ((sx << 2) | (sy << 1) | sz);
-        else
-            signs = 8 + ((sx << 2) | (sz << 1) | sy);
-    }
-    else if (ay > ax && ay > az)
-    {
-        if (ax > az)
-            signs = 16 + ((sy << 2) | (sx << 1) | sz);
-        else
-            signs = 24 + ((sy << 2) | (sz << 1) | sx);
-    }
-    else
-    {
-        if (ax > ay)
-            signs = 32 + ((sz << 2) | (sx << 1) | sy);
-        else
-            signs = 40 + ((sz << 2) | (sy << 1) | sx);
-    }
+            int signs;
+            if (ax > ay && ax > az)
+            {
+                if (ay > az)
+                    signs = 0 + ((sx << 2) | (sy << 1) | sz);
+                else
+                    signs = 8 + ((sx << 2) | (sz << 1) | sy);
+            }
+            else if (ay > ax && ay > az)
+            {
+                if (ax > az)
+                    signs = 16 + ((sy << 2) | (sx << 1) | sz);
+                else
+                    signs = 24 + ((sy << 2) | (sz << 1) | sx);
+            }
+            else
+            {
+                if (ax > ay)
+                    signs = 32 + ((sz << 2) | (sx << 1) | sy);
+                else
+                    signs = 40 + ((sz << 2) | (sy << 1) | sx);
+            }
 
-    return signs;
-}
+            return signs;
+        }
     }
 }
